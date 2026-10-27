@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Пользователи (Админы и Клиенты)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  avatarUrl String?  // <--- ДОБАВИТЬ ЭТО
+  role      String   @default("USER")
+  createdAt DateTime @default(now())
+  
+  
+  playlists Playlist[]
+  likes     Like[]
+    listenHistory ListenHistory[]
+     pinnedTracks PinnedTrack[]
+}
+
+// Музыкальные треки
+model Track {
+  id        String   @id @default(uuid())
+  title     String
+  artist    String
+  coverUrl  String?  // Ссылка на обложку (может быть пустой)
+  audioUrl  String   // Ссылка на MP3 файл
+  duration  Int      // Длительность в секундах
+  genre String?
+  createdAt DateTime @default(now())
+
+  playlists PlaylistItem[]
+  likes     Like[]
+    listenHistory ListenHistory[]
+    pinnedTracks PinnedTrack[]
+}
+
+model Playlist {
+  id        String         @id @default(cuid())
+  title     String
+  createdAt DateTime       @default(now())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     PlaylistItem[] // <--- ВОТ ЭТА СТРОКА ДОЛЖНА БЫТЬ
+}
+
+model PlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  trackId    String
+  order      Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade) // И ЭТА
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+// Лайки (Понравившиеся треки)
+model Like {
+  id        String @id @default(uuid())
+  userId    String
+  trackId   String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     Track  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+}
+
+model ListenHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  trackId   String
+  playedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model ImportLog {
+  id        String   @id @default(cuid())
+  ipAddress String
+  createdAt DateTime @default(now())
+}
+
+model PinnedTrack {
+  id        String   @id @default(cuid())
+  userId    String
+  trackId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+}

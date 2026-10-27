@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* 1. Глобальные переменные (если используешь) */
+:root {
+  --text-base: #ffffff;
+  --text-subdued: #a7a7a7;
+}
+
+/* 2. Базовые стили body */
+body {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* 3. Кастомный тонкий скроллбар */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 4. Запрет выделения текста (кроме полей ввода) */
+* {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+input, textarea {
+  user-select: text !important;
+}
+
+/* 5. Убираем синий фон автозаполнения браузера */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1a1a1a inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: white;
+}
+
+/* 6. Прячем нативный черный "зрачок" Edge */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+/* 7. Убираем стрелочки у input type="number" */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
