@@ -13,14 +13,22 @@ export async function POST(req: Request) {
 
     const resetToken = await signToken({ userId: user.id, role: 'RESET' });
     
-    // Берем реальный домен (на Render это будет твой адрес, локально - localhost)
-    const origin = new URL(req.url).origin;
+    // Достаем реальный домен из заголовков (работает за прокси Render)
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    const origin = host ? `${protocol}://${host}` : 'http://localhost:3000';
+
+    const resetLink = `${origin}/reset-password?token=${resetToken}`;
 
     console.log(`\n=== ССЫЛКА ДЛЯ СБРОСА ПАРОЛЯ ДЛЯ ${email} ===`);
-    console.log(`${origin}/reset-password?token=${resetToken}`);
+    console.log(resetLink);
     console.log(`====================================================\n`);
 
-    return NextResponse.json({ message: 'Ссылка отправлена в консоль' }, { status: 200 });
+    // Возвращаем ссылку на клиент
+    return NextResponse.json({ 
+      message: 'Ссылка сгенерирована',
+      resetLink: resetLink 
+    }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
