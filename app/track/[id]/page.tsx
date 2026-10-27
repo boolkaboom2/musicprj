@@ -37,7 +37,7 @@ async function TrackData({ paramsPromise }: { paramsPromise: Promise<{ id: strin
             {track.title}
           </h1>
           <p className="text-white/60 text-sm">
-            {track.artist} • 2026
+            {track.artist} {track.releaseYear ? `• ${track.releaseYear}` : ''}
           </p>
 
           <div className="flex items-center gap-3 mt-4">
@@ -63,7 +63,9 @@ async function TrackData({ paramsPromise }: { paramsPromise: Promise<{ id: strin
             </div>
             <div className="flex items-center gap-4">
                <Heart size={18} className="text-[#777] hover:text-white" />
-               <span className="text-[#777] text-sm">3:45</span>
+               <span className="text-[#777] text-sm">
+                 {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+               </span>
             </div>
          </div>
       </div>

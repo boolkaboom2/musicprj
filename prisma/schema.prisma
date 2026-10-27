@@ -13,32 +13,32 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  avatarUrl String?  // <--- ДОБАВИТЬ ЭТО
+  avatarUrl String? 
   role      String   @default("USER")
   createdAt DateTime @default(now())
   
-  
   playlists Playlist[]
   likes     Like[]
-    listenHistory ListenHistory[]
-     pinnedTracks PinnedTrack[]
+  listenHistory ListenHistory[]
+  pinnedTracks PinnedTrack[]
 }
 
 // Музыкальные треки
 model Track {
-  id        String   @id @default(uuid())
-  title     String
-  artist    String
-  coverUrl  String?  // Ссылка на обложку (может быть пустой)
-  audioUrl  String   // Ссылка на MP3 файл
-  duration  Int      // Длительность в секундах
-  genre String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  title       String
+  artist      String
+  coverUrl    String?  
+  audioUrl    String   
+  duration    Int      
+  genre       String?
+  releaseYear Int?     // <--- ДОБАВИЛИ ГОД ВЫПУСКА
+  createdAt   DateTime @default(now())
 
   playlists PlaylistItem[]
   likes     Like[]
-    listenHistory ListenHistory[]
-    pinnedTracks PinnedTrack[]
+  listenHistory ListenHistory[]
+  pinnedTracks PinnedTrack[]
 }
 
 model Playlist {
@@ -47,7 +47,7 @@ model Playlist {
   createdAt DateTime       @default(now())
   userId    String
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     PlaylistItem[] // <--- ВОТ ЭТА СТРОКА ДОЛЖНА БЫТЬ
+  items     PlaylistItem[] 
 }
 
 model PlaylistItem {
@@ -55,11 +55,10 @@ model PlaylistItem {
   playlistId String
   trackId    String
   order      Int
-  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade) // И ЭТА
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
 }
 
-// Лайки (Понравившиеся треки)
 model Like {
   id        String @id @default(uuid())
   userId    String

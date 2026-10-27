@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink } from 'fs/promises';
+import { mkdir, stat, unlink, chmod } from 'fs/promises';
 
 const execAsync = promisify(exec);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -20,8 +20,15 @@ export async function POST(request: Request) {
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'audio');
     await mkdir(uploadDir, { recursive: true });
 
-    const ytdlpPath = join(process.cwd(), 'yt-dlp.exe');
-    const ffmpegPath = join(process.cwd(), 'ffmpeg.exe');
+    // Для Linux (Render) используем бинарники без .exe
+    const ytdlpPath = join(process.cwd(), 'yt-dlp');
+    const ffmpegPath = join(process.cwd(), 'ffmpeg');
+
+    // Даем права на выполнение (нужно для Linux)
+    try {
+      await chmod(ytdlpPath, 0o755);
+      await chmod(ffmpegPath, 0o755);
+    } catch (e) {}
 
     for (const line of lines) {
       try {
@@ -30,6 +37,7 @@ export async function POST(request: Request) {
         let genre: string | null = null;
         let coverUrl: string | null = null; 
         let duration = 0;
+        let releaseYear: number | null = null;
 
         // 1. ПРЕДВАРИТЕЛЬНЫЙ ПАРСИНГ
         if (line.includes(' - ')) {
@@ -51,12 +59,17 @@ export async function POST(request: Request) {
               genre = bestMatch.primaryGenreName;
               coverUrl = bestMatch.artworkUrl100.replace('100x100', '600x600');
               duration = Math.round(bestMatch.trackTimeMillis / 1000);
+              
+              // Вытаскиваем год из даты релиза (формат: "2024-01-01T...")
+              if (bestMatch.releaseDate) {
+                releaseYear = parseInt(bestMatch.releaseDate.split('-')[0]);
+              }
             }
           }
         } catch (e) {}
 
-        // 3. Deezer API (если нет обложки)
-        if (!coverUrl) {
+        // 3. Deezer API
+        if (!coverUrl || !releaseYear) {
           try {
             const deezerRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(line)}`);
             const deezerData = await deezerRes.json();
@@ -66,6 +79,9 @@ export async function POST(request: Request) {
               artist = dTrack.artist.name;
               coverUrl = dTrack.album.cover_xl;
               duration = dTrack.duration;
+              if (dTrack.album.release_date) {
+                releaseYear = parseInt(dTrack.album.release_date.split('-')[0]);
+              }
             }
           } catch (e) {}
         }
@@ -80,46 +96,14 @@ export async function POST(request: Request) {
             
             if (lastfmData.toptags && lastfmData.toptags.tag && lastfmData.toptags.tag.length > 0) {
               const topTag = lastfmData.toptags.tag[0].name;
-              // Приводим к нормальному виду (например, "russian rap" -> "Russian Rap")
               genre = topTag.charAt(0).toUpperCase() + topTag.slice(1);
             }
           } catch (e) {}
         }
 
-        // 5. УМНЫЙ ПОИСК В ИНТЕРНЕТЕ (DuckDuckGo)
-        if (!genre) {
-          try {
-            const searchQuery = encodeURIComponent(`${artist} ${title} жанр музыки`);
-            const ddgRes = await fetch(`https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_html=1`);
-            const ddgData = await ddgRes.json();
-            
-            const textToAnalyze = (ddgData.AbstractText + " " + (ddgData.RelatedTopics?.[0]?.Text || "")).toLowerCase();
-            
-            // Расширенный список жанров (включая английские)
-            const genres = [
-              "рэп", "хип-хоп", "hip-hop", "hip hop", "rap", "trap", "трэп",
-              "рок", "rock", "поп", "pop", "джаз", "jazz", "электроника", "electronic",
-              "металл", "metal", "панк", "punk", "инди", "indie", "фолк", "folk",
-              "реп", "попса", "шансон", "r&b", "rhythm and blues", "house", "techno",
-              "альтернатива", "alternative", "хардкор", "hardcore"
-            ];
-            
-            for (const g of genres) {
-              if (textToAnalyze.includes(g)) {
-                // Если нашли, делаем первую букву заглавной
-                genre = g.charAt(0).toUpperCase() + g.slice(1);
-                break;
-              }
-            }
-          } catch (e) {}
-        }
+        if (!genre) genre = "Other";
 
-        // 6. Если ничего не помогло, ставим Other
-        if (!genre) {
-          genre = "Other";
-        }
-
-        // 7. ПРОВЕРКА НА ДУБЛИКАТ
+        // 5. ПРОВЕРКА НА ДУБЛИКАТ
         const existingTrack = await prisma.track.findFirst({
           where: { title: { equals: title, mode: 'insensitive' } }
         });
@@ -134,7 +118,7 @@ export async function POST(request: Request) {
         let isDownloaded = false;
         let lastError = '';
 
-        // 8. Скачивание (SoundCloud -> YouTube)
+        // 6. Скачивание (SoundCloud -> YouTube)
         const sources = [`scsearch1:${line}`, `ytsearch1:${line}`];
         
         for (const source of sources) {
@@ -157,23 +141,11 @@ export async function POST(request: Request) {
           }
         }
 
-        if (!isDownloaded) {
-          throw new Error(lastError);
-        }
+        if (!isDownloaded) throw new Error(lastError);
 
-        // 9. ПРОВЕРКА НА АДЕКВАТНОСТЬ
-        const queryWords = line.toLowerCase().split(/[\s-]+/);
-        const foundString = `${title} ${artist}`.toLowerCase();
-        const hasMatch = queryWords.some(word => word.length > 2 && foundString.includes(word));
-        
-        if (!hasMatch && !coverUrl) {
-           await unlink(filePath);
-           throw new Error('Не удалось найти точное совпадение');
-        }
-
-        // 10. Сохранение
+        // 7. Сохранение
         await prisma.track.create({
-          data: { title, artist, genre, coverUrl, duration, audioUrl: `/uploads/audio/${fileName}` },
+          data: { title, artist, genre, coverUrl, duration, releaseYear, audioUrl: `/uploads/audio/${fileName}` },
         });
         
         results.push({ success: true, title });
