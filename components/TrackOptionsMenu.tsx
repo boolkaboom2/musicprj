@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTrackMenuStore } from "@/store/trackMenuStore";
 import { usePlayerStore } from "@/store/playerStore";
-import { Share2, Pin, Heart, PlayCircle, Radio, Loader2, PinOff } from "lucide-react";
+import { Share2, Pin, Heart, Radio, Loader2, PinOff } from "lucide-react";
 
 export default function TrackOptionsMenu() {
   const { isTrackMenuOpen, trackForMenu, menuPosition, closeTrackMenu } = useTrackMenuStore();
@@ -15,7 +15,6 @@ export default function TrackOptionsMenu() {
   const [isPinned, setIsPinned] = useState(false);
   const router = useRouter();
 
-  // Проверяем статус при открытии меню
   useEffect(() => {
     if (isTrackMenuOpen && trackForMenu) {
       fetch(`/api/pins?trackId=${trackForMenu.id}`)
@@ -36,9 +35,8 @@ export default function TrackOptionsMenu() {
         body: JSON.stringify({ trackId: trackForMenu.id })
       });
       const data = await res.json();
-      setIsPinned(data.pinned); // Обновляем локальный стейт
-      router.refresh(); // Обновляем данные на странице
-      // closeTrackMenu(); // Не закрываем меню сразу, чтобы юзер увидел результат
+      setIsPinned(data.pinned);
+      router.refresh();
     } catch (error) {
       console.error("Ошибка закрепления", error);
     } finally {
@@ -79,7 +77,7 @@ export default function TrackOptionsMenu() {
   };
 
   const menuWidth = 260;
-  const menuHeight = 280;
+  const menuHeight = 240; // Чуть уменьшили высоту, так как убрали кнопку
   let top = menuPosition.top;
   let left = menuPosition.left;
 
@@ -106,10 +104,6 @@ export default function TrackOptionsMenu() {
         
         <button className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium">
             <Heart size={18} /> Нравится
-        </button>
-        
-        <button className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium">
-            <PlayCircle size={18} /> Трейлер
         </button>
 
         <button 

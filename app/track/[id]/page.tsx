@@ -25,7 +25,7 @@ async function TrackData({ paramsPromise }: { paramsPromise: Promise<{ id: strin
       <div className="flex items-end gap-6 p-8 bg-gradient-to-b from-[#2a2a2a] to-[#121212] pb-12">
         <div className="w-48 h-48 md:w-56 md:h-56 bg-[#282828] rounded-lg shadow-2xl shrink-0 overflow-hidden flex items-center justify-center">
            {track.coverUrl ? (
-              <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
+              <img src={track.coverUrl.startsWith('http') ? track.coverUrl : `/api/stream/${track.coverUrl}`} alt={track.title} className="w-full h-full object-cover" />
            ) : (
               <Music size={64} className="text-white/20" />
            )}
@@ -45,10 +45,6 @@ async function TrackData({ paramsPromise }: { paramsPromise: Promise<{ id: strin
              
              <button className="bg-white/10 hover:bg-white/20 text-white font-bold text-sm px-5 py-2.5 rounded-full transition flex items-center gap-2">
                 <Heart size={16} /> Нравится
-             </button>
-             
-             <button className="bg-white/10 hover:bg-white/20 text-white font-bold text-sm px-5 py-2.5 rounded-full transition">
-                Трейлер
              </button>
 
              <TrackMenuTrigger track={track} />
