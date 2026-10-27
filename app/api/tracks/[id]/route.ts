@@ -28,11 +28,17 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { title, artist, genre, coverUrl } = body;
+    const { title, artist, genre, coverUrl, releaseYear } = body;
 
     const updatedTrack = await prisma.track.update({
       where: { id },
-      data: { title, artist, genre, coverUrl },
+      data: { 
+        title, 
+        artist, 
+        genre, 
+        coverUrl, 
+        releaseYear: releaseYear !== undefined ? (releaseYear ? Number(releaseYear) : null) : undefined 
+      },
     });
 
     return NextResponse.json(updatedTrack);

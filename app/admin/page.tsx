@@ -12,6 +12,7 @@ type Track = {
   coverUrl: string | null;
   duration: number;
   genre: string | null;
+  releaseYear: number | null;
 };
 
 export default function AdminPage() {
@@ -23,6 +24,7 @@ export default function AdminPage() {
   const [artist, setArtist] = useState("");
   const [genre, setGenre] = useState("");
   const [duration, setDuration] = useState(0); 
+  const [releaseYear, setReleaseYear] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
@@ -35,6 +37,7 @@ export default function AdminPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editArtist, setEditArtist] = useState("");
   const [editGenre, setEditGenre] = useState("");
+  const [editYear, setEditYear] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Состояние удаления
@@ -78,6 +81,7 @@ export default function AdminPage() {
         setGenre(data.genre);
         setDuration(data.duration);
         setCoverUrl(data.coverUrl);
+        if (data.releaseYear) setReleaseYear(data.releaseYear.toString());
         showToast("Данные из iTunes подтянуты", "success");
       } else {
         showToast("Ничего не найдено в iTunes", "error");
@@ -143,12 +147,18 @@ export default function AdminPage() {
       const res = await fetch("/api/tracks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, artist, audioUrl, coverUrl: coverUrl || null, duration, genre: genre || null }),
+        body: JSON.stringify({ 
+          title, artist, audioUrl, 
+          coverUrl: coverUrl || null, 
+          duration, 
+          genre: genre || null,
+          releaseYear: releaseYear ? parseInt(releaseYear) : null
+        }),
       });
 
       if (res.ok) {
         showToast("Трек успешно добавлен!", "success");
-        setTitle(""); setArtist(""); setGenre(""); setDuration(0); setAudioUrl(""); setCoverUrl("");
+        setTitle(""); setArtist(""); setGenre(""); setDuration(0); setAudioUrl(""); setCoverUrl(""); setReleaseYear("");
         fetchTracks();
       } else {
         const data = await res.json();
@@ -184,6 +194,7 @@ export default function AdminPage() {
     setEditTitle(track.title);
     setEditArtist(track.artist);
     setEditGenre(track.genre || "");
+    setEditYear(track.releaseYear ? track.releaseYear.toString() : "");
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -194,7 +205,12 @@ export default function AdminPage() {
       const res = await fetch(`/api/tracks/${editingTrack.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editTitle, artist: editArtist, genre: editGenre }),
+        body: JSON.stringify({ 
+          title: editTitle, 
+          artist: editArtist, 
+          genre: editGenre,
+          releaseYear: editYear ? parseInt(editYear) : null
+        }),
       });
       if (res.ok) {
         showToast("Трек обновлен", "success");
@@ -232,7 +248,10 @@ export default function AdminPage() {
               </button>
             </div>
             <input type="text" placeholder="Исполнитель" value={artist} onChange={(e) => setArtist(e.target.value)} className="bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
-            <input type="text" placeholder="Жанр" value={genre} onChange={(e) => setGenre(e.target.value)} className="bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
+            <div className="flex gap-4">
+              <input type="text" placeholder="Жанр" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-2/3 bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
+              <input type="number" placeholder="Год" value={releaseYear} onChange={(e) => setReleaseYear(e.target.value)} className="w-1/3 bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
+            </div>
             
             <div className="flex flex-col gap-2">
               <input type="file" accept="audio/*" className="hidden" ref={audioInputRef} onChange={handleAudioChange} />
@@ -263,11 +282,11 @@ export default function AdminPage() {
                   <li key={track.id} className="bg-[#121212] p-3 rounded-md flex items-center justify-between border border-white/5 group">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center">
-                        {track.coverUrl ? <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" /> : <Music size={20} className="text-[#555]" />}
+                        {track.coverUrl ? <img src={track.coverUrl.startsWith('http') ? track.coverUrl : `/api/stream/${track.coverUrl}`} alt={track.title} className="w-full h-full object-cover" /> : <Music size={20} className="text-[#555]" />}
                       </div>
                       <div className="flex flex-col">
                         <span className="text-white font-medium">{track.title}</span>
-                        <span className="text-[var(--text-subdued)] text-sm">{track.artist} {track.genre ? `• ${track.genre}` : ''}</span>
+                        <span className="text-[var(--text-subdued)] text-sm">{track.artist} {track.genre ? `• ${track.genre}` : ''} {track.releaseYear ? `• ${track.releaseYear}` : ''}</span>
                       </div>
                     </div>
                     
@@ -295,7 +314,10 @@ export default function AdminPage() {
             <form onSubmit={handleUpdate} className="flex flex-col gap-3">
               <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Название" className="bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30" />
               <input type="text" value={editArtist} onChange={e => setEditArtist(e.target.value)} placeholder="Исполнитель" className="bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30" />
-              <input type="text" value={editGenre} onChange={e => setEditGenre(e.target.value)} placeholder="Жанр" className="bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30" />
+              <div className="flex gap-3">
+                <input type="text" value={editGenre} onChange={e => setEditGenre(e.target.value)} placeholder="Жанр" className="w-2/3 bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30" />
+                <input type="number" value={editYear} onChange={e => setEditYear(e.target.value)} placeholder="Год" className="w-1/3 bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30" />
+              </div>
               <button type="submit" disabled={isUpdating} className="bg-white text-black font-bold py-3 rounded-md hover:bg-gray-200 transition mt-2 flex justify-center">
                 {isUpdating ? <Loader2 className="animate-spin" size={20} /> : "Сохранить изменения"}
               </button>

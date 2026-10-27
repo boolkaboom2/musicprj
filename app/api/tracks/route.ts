@@ -16,13 +16,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { title, artist, audioUrl, coverUrl, duration, genre } = body
+    const { title, artist, audioUrl, coverUrl, duration, genre, releaseYear } = body
 
     if (!title || !artist || !audioUrl) {
       return NextResponse.json({ error: 'Заполните обязательные поля' }, { status: 400 })
     }
 
-    // ПРОВЕРКА НА ДУБЛИКАТ (по названию без учета регистра)
     const existingTrack = await prisma.track.findFirst({
       where: { title: { equals: title, mode: 'insensitive' } }
     });
@@ -39,6 +38,7 @@ export async function POST(request: Request) {
         coverUrl: coverUrl || null,
         duration: Number(duration) || 0,
         genre: genre || null,
+        releaseYear: releaseYear ? Number(releaseYear) : null, // <--- Сохраняем год
       },
     })
 

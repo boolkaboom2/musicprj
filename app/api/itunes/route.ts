@@ -9,7 +9,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Ищем в iTunes (entity=song ограничивает поиск только треками)
     const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`);
     
     if (!res.ok) throw new Error('Ошибка iTunes');
@@ -20,15 +19,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Ничего не найдено' }, { status: 404 });
     }
 
-    // Берем первый результат
     const track = data.results[0];
+
+    // Указываем, что переменная может быть числом или null
+    let releaseYear: number | null = null; 
+    
+    if (track.releaseDate) {
+      releaseYear = parseInt(track.releaseDate.split('-')[0]);
+    }
 
     return NextResponse.json({
       title: track.trackName,
       artist: track.artistName,
-      coverUrl: track.artworkUrl100.replace('100x100', '600x600'), // Меняем размер на большой
+      coverUrl: track.artworkUrl100.replace('100x100', '600x600'),
       genre: track.primaryGenreName,
-      duration: Math.round(track.trackTimeMillis / 1000), // Переводим мс в секунды
+      duration: Math.round(track.trackTimeMillis / 1000),
+      releaseYear: releaseYear,
     });
   } catch (error) {
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
