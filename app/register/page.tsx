@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import CustomInput from "@/components/CustomInput"; // <--- Импортируем кастомный инпут
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -28,7 +29,6 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // После регистрации сразу логиним
         await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -56,32 +56,29 @@ export default function RegisterPage() {
         
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <input
+            <CustomInput
               type="text"
               placeholder="Ваше имя"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#1a1a1a] text-white p-4 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all duration-300"
             />
           </div>
           <div>
-            <input
+            <CustomInput
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-[#1a1a1a] text-white p-4 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all duration-300"
             />
           </div>
           <div>
-            <input
-              type="password"
+            <CustomInput
+              isPassword // <--- Включаем глазик
               placeholder="Пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-[#1a1a1a] text-white p-4 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all duration-300"
             />
           </div>
 
