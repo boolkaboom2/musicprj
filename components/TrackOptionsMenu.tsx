@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation"; // Для обновления страницы
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTrackMenuStore } from "@/store/trackMenuStore";
 import { usePlayerStore } from "@/store/playerStore";
-import { Share2, Pin, Heart, PlayCircle, Radio, Loader2 } from "lucide-react";
+import { Share2, Pin, Heart, PlayCircle, Radio, Loader2, PinOff } from "lucide-react";
 
 export default function TrackOptionsMenu() {
   const { isTrackMenuOpen, trackForMenu, menuPosition, closeTrackMenu } = useTrackMenuStore();
@@ -12,20 +12,33 @@ export default function TrackOptionsMenu() {
   const [shareStatus, setShareStatus] = useState("");
   const [isLoadingWave, setIsLoadingWave] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const router = useRouter();
+
+  // Проверяем статус при открытии меню
+  useEffect(() => {
+    if (isTrackMenuOpen && trackForMenu) {
+      fetch(`/api/pins?trackId=${trackForMenu.id}`)
+        .then(res => res.json())
+        .then(data => setIsPinned(data.pinned))
+        .catch(console.error);
+    }
+  }, [isTrackMenuOpen, trackForMenu]);
 
   if (!isTrackMenuOpen || !trackForMenu) return null;
 
   const handlePin = async () => {
     setIsPinning(true);
     try {
-      await fetch('/api/pins', {
+      const res = await fetch('/api/pins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trackId: trackForMenu.id })
       });
+      const data = await res.json();
+      setIsPinned(data.pinned); // Обновляем локальный стейт
       router.refresh(); // Обновляем данные на странице
-      closeTrackMenu();
+      // closeTrackMenu(); // Не закрываем меню сразу, чтобы юзер увидел результат
     } catch (error) {
       console.error("Ошибка закрепления", error);
     } finally {
@@ -87,7 +100,8 @@ export default function TrackOptionsMenu() {
             disabled={isPinning}
             className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium disabled:opacity-50"
         >
-            {isPinning ? <Loader2 size={18} className="animate-spin" /> : <Pin size={18} />} Закрепить
+            {isPinning ? <Loader2 size={18} className="animate-spin" /> : (isPinned ? <PinOff size={18} /> : <Pin size={18} />)} 
+            {isPinned ? "Открепить" : "Закрепить"}
         </button>
         
         <button className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium">

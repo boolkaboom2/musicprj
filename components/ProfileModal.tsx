@@ -14,6 +14,11 @@ export default function ProfileModal({
 
   if (!isOpen) return null;
 
+  // Проверяем, ссылка это или file_id из Telegram
+  const avatarSrc = currentAvatar 
+    ? (currentAvatar.startsWith('http') || currentAvatar.startsWith('/') ? currentAvatar : `/api/stream/${currentAvatar}`)
+    : null;
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -22,7 +27,6 @@ export default function ProfileModal({
     setError("");
 
     try {
-      // 1. Загружаем файл локально
       const formData = new FormData();
       formData.append("file", file);
       const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
@@ -30,7 +34,6 @@ export default function ProfileModal({
 
       if (!uploadRes.ok) throw new Error("Ошибка загрузки");
 
-      // 2. Сохраняем ссылку в базу
       const dbRes = await fetch("/api/user/avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,7 +42,7 @@ export default function ProfileModal({
 
       if (!dbRes.ok) throw new Error("Ошибка сохранения");
 
-      router.refresh(); // Обновляем страницу
+      router.refresh(); 
       onClose();
     } catch (err) {
       setError("Не удалось обновить аватар");
@@ -57,8 +60,8 @@ export default function ProfileModal({
         <h2 className="text-xl font-bold text-white mb-6">Профиль</h2>
         
         <div className="w-24 h-24 rounded-full bg-[#2a2a2a] mb-4 overflow-hidden border-2 border-white/10 flex items-center justify-center">
-          {currentAvatar ? (
-            <img src={currentAvatar} className="w-full h-full object-cover" alt="avatar" />
+          {avatarSrc ? (
+            <img src={avatarSrc} className="w-full h-full object-cover" alt="avatar" />
           ) : (
             <UserIcon size={40} className="text-white/20" />
           )}

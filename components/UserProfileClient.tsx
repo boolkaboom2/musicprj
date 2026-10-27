@@ -17,13 +17,18 @@ export default function UserProfileClient({ user }: { user: any }) {
     );
   }
 
+  // Проверяем, ссылка это или file_id из Telegram
+  const avatarSrc = user.avatarUrl 
+    ? (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('/') ? user.avatarUrl : `/api/stream/${user.avatarUrl}`)
+    : null;
+
   return (
     <>
       <div className="flex items-center justify-between animate-in fade-in">
         <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-3 overflow-hidden hover:bg-white/5 p-1 rounded-md transition text-left">
           <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
             ) : (
               <UserIcon size={16} className="text-white" />
             )}

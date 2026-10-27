@@ -8,17 +8,16 @@ export async function POST(req: Request) {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // Из соображений безопасности не говорим, что юзера нет
       return NextResponse.json({ message: 'Если такой email существует, ссылка отправлена' }, { status: 200 });
     }
 
-    // Генерируем временный токен на 15 минут для сброса
     const resetToken = await signToken({ userId: user.id, role: 'RESET' });
     
-    // В реальном проекте здесь отправляется email.
-    // Так как у нас бюджет 0, выводим ссылку в консоль сервера.
+    // Берем реальный домен (на Render это будет твой адрес, локально - localhost)
+    const origin = new URL(req.url).origin;
+
     console.log(`\n=== ССЫЛКА ДЛЯ СБРОСА ПАРОЛЯ ДЛЯ ${email} ===`);
-    console.log(`http://localhost:3000/reset-password?token=${resetToken}`);
+    console.log(`${origin}/reset-password?token=${resetToken}`);
     console.log(`====================================================\n`);
 
     return NextResponse.json({ message: 'Ссылка отправлена в консоль' }, { status: 200 });
