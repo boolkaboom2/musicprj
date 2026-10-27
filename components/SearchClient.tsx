@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Loader2, DownloadCloud, XCircle, AlertCircle } from "lucide-react";
+import { Search, Loader2, DownloadCloud, AlertCircle } from "lucide-react";
 import TrackList from "./TrackList";
 import { usePlayerStore } from "@/store/playerStore";
 
@@ -12,6 +12,9 @@ export default function SearchClient() {
   const [isImporting, setIsImporting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const userLikes = usePlayerStore((state) => state.likedTrackIds);
+
+  // Проверяем, запущены мы локально или на сервере
+  const isProduction = process.env.NODE_ENV === "production";
 
   useEffect(() => {
     if (!query.trim()) { setTracks([]); return; }
@@ -47,7 +50,6 @@ export default function SearchClient() {
       }
 
       if (data.results && data.results[0] && !data.results[0].success) {
-         // Заменяем сырой текст на красивый
          const cleanError = data.results[0].error.replace(/.*Command failed.*/, "Трек не найден на наших источниках");
          setErrorMsg(cleanError);
          return;
@@ -91,11 +93,10 @@ export default function SearchClient() {
         ) : query.length > 0 && !isLoading ? (
           <div className="p-8 flex flex-col items-start gap-4">
             
-            {!isImporting && (
+            {!isProduction && !isImporting && (
               <p className="text-[var(--text-subdued)]">Трека нет в базе. Хотите скачать его из сети?</p>
             )}
             
-            {/* КРАСИВАЯ ОШИБКА */}
             {errorMsg && (
               <div className="flex items-center gap-3 text-red-400 bg-red-500/10 px-4 py-3 rounded-lg border border-red-500/20 text-sm font-medium animate-in slide-in-from-top-2 fade-in">
                 <AlertCircle size={18} className="shrink-0" /> 
@@ -103,15 +104,24 @@ export default function SearchClient() {
               </div>
             )}
 
-            <button
-              onClick={handleImport}
-              disabled={isImporting}
-              className="bg-white text-black font-bold py-2.5 px-6 rounded-full hover:bg-gray-200 transition flex items-center gap-2 disabled:opacity-50"
-            >
-              {isImporting ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-              {isImporting ? "Скачиваем (около 15 сек)..." : "Не нашлось? Нажми!"}
-            </button>
-            <p className="text-xs text-[var(--text-subdued)]">Скрипт сам скачает этот трек из открытых источников.</p>
+            {/* Показываем кнопку импорта ТОЛЬКО локально */}
+            {!isProduction && (
+              <>
+                <button
+                  onClick={handleImport}
+                  disabled={isImporting}
+                  className="bg-white text-black font-bold py-2.5 px-6 rounded-full hover:bg-gray-200 transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isImporting ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
+                  {isImporting ? "Скачиваем (около 15 сек)..." : "Не нашлось? Нажми!"}
+                </button>
+                <p className="text-xs text-[var(--text-subdued)]">Скрипт сам скачает этот трек из открытых источников.</p>
+              </>
+            )}
+
+            {isProduction && (
+               <p className="text-[var(--text-subdued)] mt-2">Воспользуйтесь Админ-панелью, чтобы загрузить трек.</p>
+            )}
           </div>
         ) : null}
       </div>
