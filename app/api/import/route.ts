@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink, readFile, chmod } from 'fs/promises'; // <-- Вернули chmod
+import { mkdir, stat, unlink, readFile, chmod } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import os from 'os';
 
@@ -25,14 +25,11 @@ export async function POST(request: Request) {
     const ytdlpPath = join(process.cwd(), 'yt-dlp');
     const ffmpegPath = join(process.cwd(), 'ffmpeg');
     
-    // ВАЖНО: Даем права на выполнение для Linux (Render)
     try {
       await chmod(ytdlpPath, 0o755);
       await chmod(ffmpegPath, 0o755);
-    } catch (e) {
-      console.log("Не удалось выдать права (возможно, мы на Windows локально):", e);
-    }
-    
+    } catch (e) {}
+
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHANNEL_ID;
 
@@ -84,8 +81,10 @@ export async function POST(request: Request) {
         const sources = [`scsearch1:${line}`, `ytsearch1:${line}`];
         for (const source of sources) {
           try {
-            const command = `"${ytdlpPath}" -x --audio-format mp3 --ffmpeg-location "${ffmpegPath}" --no-playlist --no-warnings --geo-bypass -o "${filePath}" "${source}"`;
-            await execAsync(command, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 });
+            // ДОБАВИЛИ ФЛАГ --extractor-args "youtube:player_client=android"
+            const command = `"${ytdlpPath}" --extractor-args "youtube:player_client=android" -x --audio-format mp3 --ffmpeg-location "${ffmpegPath}" --no-playlist --no-warnings --geo-bypass -o "${filePath}" "${source}"`;
+            
+            await execAsync(command, { maxBuffer: 1024 * 1024 * 10, timeout: 40000 }); // Даем чуть больше времени (40 сек)
             const fileStats = await stat(filePath);
             if (fileStats.size > 100 * 1024) {
               isDownloaded = true;
@@ -95,11 +94,9 @@ export async function POST(request: Request) {
               lastError = 'Файл скачался, но он слишком маленький (ошибка)';
             }
           } catch (err: any) {
-            // ВЫВОДИМ РЕАЛЬНУЮ ОШИБКУ В КОНСОЛЬ
             console.error(`[yt-dlp ERROR] ${err.message}`);
-            if (err.stderr) console.error(`[yt-dlp STDERR] ${err.stderr}`);
             
-            lastError = 'Трек не найден (сервер YouTube/SoundCloud отклонил запрос)';
+            lastError = 'Сервер источника отклонил запрос (IP заблокирован)';
             try { await unlink(filePath); } catch (e) {}
           }
         }
