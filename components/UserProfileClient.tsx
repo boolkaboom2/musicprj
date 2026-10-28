@@ -4,11 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { LogOut, User as UserIcon } from "lucide-react";
 import ProfileModal from "./ProfileModal";
-import { useRouter } from "next/navigation"; // <-- Добавили роутер
 
 export default function UserProfileClient({ user }: { user: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const router = useRouter();
 
   if (!user) {
     return (
@@ -23,12 +21,11 @@ export default function UserProfileClient({ user }: { user: any }) {
     ? (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('/') ? user.avatarUrl : `/api/stream/${user.avatarUrl}`)
     : null;
 
-  // Обработчик выхода
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/");
-      router.refresh();
+      // Жесткий редирект, чтобы сбросить кэш Next.js
+      window.location.href = "/"; 
     } catch (error) {
       console.error("Ошибка выхода", error);
     }
@@ -48,7 +45,6 @@ export default function UserProfileClient({ user }: { user: any }) {
           <span className="text-white text-sm font-medium truncate">{user.name || user.email}</span>
         </button>
         
-        {/* Заменили form action на обычную кнопку с onClick */}
         <button onClick={handleLogout} className="text-[var(--text-subdued)] hover:text-white transition p-2">
             <LogOut size={18} />
         </button>

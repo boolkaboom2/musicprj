@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink, readFile, writeFile } from 'fs/promises';
+import { mkdir, stat, unlink, readFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
+import os from 'os'; // <--- Импортируем модуль для временной папки ОС
+
+// Обязательно для работы с файловой системой и child_process
+export const runtime = 'nodejs'; 
+export const maxDuration = 60; // Даем 60 секунд на выполнение (на бесплатном тарифе Render лимит может быть меньше, но Vercel точно ограничивает)
 
 const execAsync = promisify(exec);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -18,7 +23,9 @@ export async function POST(request: Request) {
     if (lines.length > 10) return NextResponse.json({ error: 'Максимум 10 треков за раз' }, { status: 400 });
 
     const results: any[] = [];
-    const tempDir = join(process.cwd(), 'temp');
+    
+    // Используем системную временную папку, куда разрешено писать
+    const tempDir = join(os.tmpdir(), 'sadovod_import'); 
     await mkdir(tempDir, { recursive: true });
 
     const ytdlpPath = join(process.cwd(), 'yt-dlp');
@@ -29,6 +36,7 @@ export async function POST(request: Request) {
 
     for (const line of lines) {
       try {
+        // ... (парсинг iTunes и метаданных остается без изменений) ...
         let title = line;
         let artist = "Unknown";
         let genre: string | null = null;
@@ -42,7 +50,6 @@ export async function POST(request: Request) {
           title = parts[1].trim();
         }
 
-        // 1. Метаданные (iTunes)
         try {
           const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(line)}&entity=song&limit=1`);
           const text = await itunesRes.text();
@@ -73,7 +80,6 @@ export async function POST(request: Request) {
         let isDownloaded = false;
         let lastError = '';
 
-        // 2. Скачивание через yt-dlp (локально или в Linux)
         const sources = [`scsearch1:${line}`, `ytsearch1:${line}`];
         for (const source of sources) {
           try {
@@ -95,7 +101,7 @@ export async function POST(request: Request) {
 
         if (!isDownloaded) throw new Error(lastError);
 
-        // 3. Загрузка в Telegram (сохраняем file_id)
+        // Загрузка в Telegram
         const fileBuffer = await readFile(filePath);
         const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
         
@@ -112,11 +118,8 @@ export async function POST(request: Request) {
         if (!tgData.ok) throw new Error('Ошибка загрузки в Telegram');
         
         const fileId = tgData.result.audio.file_id;
-
-        // 4. Удаляем временный файл (чтобы не забить диск Render)
         await unlink(filePath);
 
-        // 5. Сохраняем в базу
         await prisma.track.create({
           data: { title, artist, genre, coverUrl, duration, releaseYear, audioUrl: fileId },
         });
