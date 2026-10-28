@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink, readFile, writeFile, chmod } from 'fs/promises';
+import { mkdir, unlink, readFile, writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import os from 'os';
 
-const execAsync = promisify(exec);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export async function POST(request: Request) {
@@ -22,16 +19,11 @@ export async function POST(request: Request) {
     const tempDir = join(os.tmpdir(), 'sadovod_import'); 
     await mkdir(tempDir, { recursive: true });
 
-    const ytdlpPath = join(process.cwd(), 'yt-dlp');
-    const ffmpegPath = join(process.cwd(), 'ffmpeg');
-    
-    try {
-      await chmod(ytdlpPath, 0o755);
-      await chmod(ffmpegPath, 0o755);
-    } catch (e) {}
-
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHANNEL_ID;
+    
+    // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ CLOUDFLARE
+    const PROXY_URL = 'https://sadovod-import-proxy.твой_ник.workers.dev';
 
     for (const line of lines) {
       try {
@@ -50,7 +42,7 @@ export async function POST(request: Request) {
           searchQuery = `${artist} ${title}`; 
         }
 
-        // 1. Метаданные (iTunes -> Deezer)
+        // 1. Метаданные
         try {
           const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=1`);
           const text = await itunesRes.text();
@@ -68,20 +60,6 @@ export async function POST(request: Request) {
           }
         } catch (e) {}
 
-        if (!coverUrl) {
-          try {
-            const deezerRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(searchQuery)}`);
-            const deezerData = await deezerRes.json();
-            if (deezerData.data && deezerData.data.length > 0) {
-              const dTrack = deezerData.data[0];
-              title = dTrack.title;
-              artist = dTrack.artist.name;
-              coverUrl = dTrack.album.cover_xl;
-              duration = dTrack.duration;
-            }
-          } catch (e) {}
-        }
-
         if (!genre) genre = "Other";
 
         const existingTrack = await prisma.track.findFirst({
@@ -92,55 +70,17 @@ export async function POST(request: Request) {
         const fileName = `${randomUUID()}.mp3`;
         const filePath = join(tempDir, fileName);
         
-        let isDownloaded = false;
-        let lastError = '';
-
-        // 2. Cobalt API (с параметром vQuality)
-        try {
-          const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
-            method: 'POST',
-            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              url: `https://soundcloud.com/search?q=${encodeURIComponent(searchQuery)}`,
-              vQuality: '128', // Явно указываем качество
-              isAudioOnly: true
-            })
-          });
-
-          const cobaltData = await cobaltRes.json();
-          if (cobaltData.status === 'stream' || cobaltData.status === 'redirect') {
-            const audioRes = await fetch(cobaltData.url);
-            const buffer = await audioRes.arrayBuffer();
-            await writeFile(filePath, Buffer.from(buffer));
-            isDownloaded = true;
-          } else {
-            throw new Error('Cobalt не смог найти трек');
-          }
-        } catch (err: any) {
-          // 3. YT-DLP Fallback (если Cobalt сдох)
-          const sources = [`scsearch1:${searchQuery}`, `ytsearch1:${searchQuery}`];
-          for (const source of sources) {
-            try {
-              const command = `"${ytdlpPath}" --extractor-args "youtube:player_client=android" -x --audio-format mp3 --ffmpeg-location "${ffmpegPath}" --no-playlist --no-warnings --geo-bypass -o "${filePath}" "${source}"`;
-              await execAsync(command, { maxBuffer: 1024 * 1024 * 10, timeout: 40000 });
-              
-              const fileStats = await stat(filePath);
-              if (fileStats.size > 100 * 1024) {
-                isDownloaded = true;
-                break;
-              } else {
-                await unlink(filePath);
-              }
-            } catch (err: any) {
-              lastError = 'Сервер источника отклонил запрос (IP заблокирован)';
-              try { await unlink(filePath); } catch (e) {}
-            }
-          }
+        // 2. Скачиваем через Cloudflare Worker
+        const proxyRes = await fetch(`${PROXY_URL}?q=${encodeURIComponent(searchQuery)}`);
+        
+        if (!proxyRes.ok) {
+          throw new Error('Прокси не смог скачать трек');
         }
 
-        if (!isDownloaded) throw new Error(lastError || 'Не удалось скачать трек');
+        const buffer = await proxyRes.arrayBuffer();
+        await writeFile(filePath, Buffer.from(buffer));
 
-        // 4. Загрузка в Telegram
+        // 3. Загрузка в Telegram
         const fileBuffer = await readFile(filePath);
         const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
         
