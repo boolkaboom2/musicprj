@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHANNEL_ID;
     
-    // УБЕДИСЬ, ЧТО ЗДЕСЬ ТВОЯ ССЫЛКА
+    // ТВОЯ ССЫЛКА
     const PROXY_URL = 'https://sadovod-proxy.vladgoncharov27x27x27.workers.dev'; 
 
     for (const line of lines) {
@@ -66,10 +66,10 @@ export async function POST(request: Request) {
         });
         if (existingTrack) throw new Error('Трек уже есть в базе');
 
-        const fileName = `${randomUUID()}.mp3`;
+        // МЕНЯЕМ РАСШИРЕНИЕ НА M4A
+        const fileName = `${randomUUID()}.m4a`;
         const filePath = join(tempDir, fileName);
         
-        // ДЕЛАЕМ ЗАПРОС К ПРОКСИ И ЧИТАЕМ ОТВЕТ
         console.log(`[Proxy] Отправка запроса: ${PROXY_URL}?q=${encodeURIComponent(searchQuery)}`);
         const proxyRes = await fetch(`${PROXY_URL}?q=${encodeURIComponent(searchQuery)}`);
         
@@ -84,7 +84,8 @@ export async function POST(request: Request) {
         await writeFile(filePath, Buffer.from(buffer));
 
         const fileBuffer = await readFile(filePath);
-        const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
+        // УКАЗЫВАЕМ ТИП AUDIO/MP4
+        const blob = new Blob([fileBuffer], { type: 'audio/mp4' });
         
         const tgFormData = new FormData();
         tgFormData.append('chat_id', chatId!);
