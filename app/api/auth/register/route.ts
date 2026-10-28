@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { signToken } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
@@ -15,18 +16,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Этот email уже занят' }, { status: 400 });
     }
 
-    // Хэшируем пароль (10 - сложность соли)
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Делаем первого зарегистрированного пользователя АДМИНОМ, остальных - ЮЗЕРАМИ
     const userCount = await prisma.user.count();
     const role = userCount === 0 ? 'ADMIN' : 'USER';
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: { email, password: hashedPassword, name, role }
     });
 
-    return NextResponse.json({ message: 'Аккаунт создан' }, { status: 201 });
+    const token = await signToken({ userId: user.id, role: user.role });
+    
+    const response = NextResponse.json({ message: 'Аккаунт создан' }, { status: 201 });
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: false, // <--- И ЗДЕСЬ ТОЖЕ
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });

@@ -13,8 +13,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    console.log("ФОРМА ОТПРАВЛЕНА! Данные:", email, password); 
+    
+    if (!email || !password) {
+       setError("Введите email и пароль");
+       return;
+    }
+
     setError("");
     setIsLoading(true);
 
@@ -26,6 +32,7 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
+      console.log("ОТВЕТ ОТ СЕРВЕРА:", data);
 
       if (res.ok) {
         router.push("/");
@@ -34,6 +41,7 @@ export default function LoginPage() {
         setError(data.error || "Ошибка входа");
       }
     } catch (err) {
+      console.error(err);
       setError("Ошибка сети. Попробуйте позже.");
     } finally {
       setIsLoading(false);
@@ -48,20 +56,20 @@ export default function LoginPage() {
         <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Вход</h1>
         <p className="text-[var(--text-subdued)] text-sm mb-8">Войдите, чтобы слушать и создавать плейлисты.</p>
         
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <CustomInput
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
           <CustomInput
             isPassword
             placeholder="Пароль"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
 
           {error && (
@@ -71,13 +79,14 @@ export default function LoginPage() {
           )}
 
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             disabled={isLoading}
             className="bg-white text-black font-bold py-4 rounded-md hover:bg-gray-200 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Войти"}
           </button>
-        </form>
+        </div>
 
         <div className="mt-4 flex justify-between items-center text-sm text-[var(--text-subdued)]">
           <Link href="/register" className="hover:text-white transition-all">

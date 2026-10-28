@@ -169,17 +169,15 @@ export default function Player() {
     }
   };
 
-  // НОВАЯ ФУНКЦИЯ: Обновляем длительность в базе, если она была 0
   const handleLoadedMetadata = async () => {
     if (audioRef.current && activeTrack) {
        const realDuration = Math.round(audioRef.current.duration);
-       setDuration(realDuration); // Обновляем UI плеера
+       setDuration(realDuration);
        
        if (!isFadingOutRef.current) {
           audioRef.current.volume = isMuted ? 0 : volume / 100;
        }
 
-       // Если в базе было 0, отправляем реальное время на сервер
        if (activeTrack.duration === 0 && realDuration > 0) {
           try {
             await fetch(`/api/tracks/${activeTrack.id}`, {
@@ -187,7 +185,6 @@ export default function Player() {
                headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({ duration: realDuration })
             });
-            // Обновляем локальный Zustand, чтобы в списке сразу пропало 0:00
             usePlayerStore.setState((state) => ({
               activeTrack: state.activeTrack ? { ...state.activeTrack, duration: realDuration } : null,
               queue: state.queue.map(t => t.id === activeTrack.id ? { ...t, duration: realDuration } : t)
@@ -201,11 +198,15 @@ export default function Player() {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const audioSrc = activeTrack?.audioUrl 
+    ? (activeTrack.audioUrl.startsWith('/') ? activeTrack.audioUrl : `/api/stream/${activeTrack.audioUrl}`) 
+    : undefined;
+
   return (
     <>
       <audio 
         ref={audioRef} 
-        src={activeTrack?.audioUrl?.startsWith('/') ? activeTrack.audioUrl : `/api/stream/${activeTrack?.audioUrl}`} 
+        src={audioSrc} 
         onEnded={handleEnded}
         onTimeUpdate={handleTimeUpdate} 
         onLoadedMetadata={handleLoadedMetadata}
