@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink, readFile, writeFile, chmod } from 'fs/promises'; // <-- Добавили writeFile
+import { mkdir, stat, unlink, readFile, writeFile, chmod } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import os from 'os';
 
@@ -47,10 +47,10 @@ export async function POST(request: Request) {
           const parts = line.split(' - ');
           artist = parts[0].trim();
           title = parts[1].trim();
-          searchQuery = `${artist} ${title}`; // iTunes лучше ищет без дефиса
+          searchQuery = `${artist} ${title}`; 
         }
 
-        // 1. iTunes API
+        // 1. Метаданные (iTunes -> Deezer)
         try {
           const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=1`);
           const text = await itunesRes.text();
@@ -68,6 +68,20 @@ export async function POST(request: Request) {
           }
         } catch (e) {}
 
+        if (!coverUrl) {
+          try {
+            const deezerRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(searchQuery)}`);
+            const deezerData = await deezerRes.json();
+            if (deezerData.data && deezerData.data.length > 0) {
+              const dTrack = deezerData.data[0];
+              title = dTrack.title;
+              artist = dTrack.artist.name;
+              coverUrl = dTrack.album.cover_xl;
+              duration = dTrack.duration;
+            }
+          } catch (e) {}
+        }
+
         if (!genre) genre = "Other";
 
         const existingTrack = await prisma.track.findFirst({
@@ -81,14 +95,14 @@ export async function POST(request: Request) {
         let isDownloaded = false;
         let lastError = '';
 
-        // 2. Пытаемся скачать через COBALT API
+        // 2. Cobalt API (с параметром vQuality)
         try {
-          console.log(`[Cobalt] Попытка скачать: ${searchQuery}`);
           const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
             body: JSON.stringify({
               url: `https://soundcloud.com/search?q=${encodeURIComponent(searchQuery)}`,
+              vQuality: '128', // Явно указываем качество
               isAudioOnly: true
             })
           });
@@ -99,14 +113,11 @@ export async function POST(request: Request) {
             const buffer = await audioRes.arrayBuffer();
             await writeFile(filePath, Buffer.from(buffer));
             isDownloaded = true;
-            console.log(`[Cobalt] Успешно скачан: ${title}`);
           } else {
             throw new Error('Cobalt не смог найти трек');
           }
         } catch (err: any) {
-          console.log(`[Cobalt FAILED] Пробуем yt-dlp... ${err.message}`);
-          
-          // 3. Запасной вариант: YT-DLP
+          // 3. YT-DLP Fallback (если Cobalt сдох)
           const sources = [`scsearch1:${searchQuery}`, `ytsearch1:${searchQuery}`];
           for (const source of sources) {
             try {
@@ -116,7 +127,6 @@ export async function POST(request: Request) {
               const fileStats = await stat(filePath);
               if (fileStats.size > 100 * 1024) {
                 isDownloaded = true;
-                if (duration === 0) duration = 180; 
                 break;
               } else {
                 await unlink(filePath);
@@ -149,7 +159,6 @@ export async function POST(request: Request) {
         const fileId = tgData.result.audio.file_id;
         await unlink(filePath);
 
-        // 5. Сохранение
         await prisma.track.create({
           data: { title, artist, genre, coverUrl, duration, releaseYear, audioUrl: fileId },
         });
