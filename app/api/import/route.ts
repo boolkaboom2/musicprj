@@ -5,11 +5,9 @@ import { promisify } from 'util';
 import { join } from 'path';
 import { mkdir, stat, unlink, readFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
-import os from 'os'; // <--- Импортируем модуль для временной папки ОС
+import os from 'os';
 
-// Обязательно для работы с файловой системой и child_process
-export const runtime = 'nodejs'; 
-export const maxDuration = 60; // Даем 60 секунд на выполнение (на бесплатном тарифе Render лимит может быть меньше, но Vercel точно ограничивает)
+// Убрали export const runtime и maxDuration, так как Next.js 16 с cacheComponents их не переваривает
 
 const execAsync = promisify(exec);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -36,7 +34,6 @@ export async function POST(request: Request) {
 
     for (const line of lines) {
       try {
-        // ... (парсинг iTunes и метаданных остается без изменений) ...
         let title = line;
         let artist = "Unknown";
         let genre: string | null = null;
@@ -101,7 +98,6 @@ export async function POST(request: Request) {
 
         if (!isDownloaded) throw new Error(lastError);
 
-        // Загрузка в Telegram
         const fileBuffer = await readFile(filePath);
         const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
         
