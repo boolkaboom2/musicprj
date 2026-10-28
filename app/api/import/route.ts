@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const chatId = process.env.TELEGRAM_CHANNEL_ID;
     
     // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ CLOUDFLARE
-    const PROXY_URL = 'https://sadovod-import-proxy.твой_ник.workers.dev';
+    const PROXY_URL = 'https://sadovod-proxy.vladgoncharov27x27x27.workers.dev/';
 
     for (const line of lines) {
       try {
