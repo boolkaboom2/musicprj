@@ -3,11 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink, readFile } from 'fs/promises';
+import { mkdir, stat, unlink, readFile, chmod } from 'fs/promises'; // <-- Вернули chmod
 import { randomUUID } from 'crypto';
 import os from 'os';
-
-// Убрали export const runtime и maxDuration, так как Next.js 16 с cacheComponents их не переваривает
 
 const execAsync = promisify(exec);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -21,13 +19,19 @@ export async function POST(request: Request) {
     if (lines.length > 10) return NextResponse.json({ error: 'Максимум 10 треков за раз' }, { status: 400 });
 
     const results: any[] = [];
-    
-    // Используем системную временную папку, куда разрешено писать
     const tempDir = join(os.tmpdir(), 'sadovod_import'); 
     await mkdir(tempDir, { recursive: true });
 
     const ytdlpPath = join(process.cwd(), 'yt-dlp');
     const ffmpegPath = join(process.cwd(), 'ffmpeg');
+    
+    // ВАЖНО: Даем права на выполнение для Linux (Render)
+    try {
+      await chmod(ytdlpPath, 0o755);
+      await chmod(ffmpegPath, 0o755);
+    } catch (e) {
+      console.log("Не удалось выдать права (возможно, мы на Windows локально):", e);
+    }
     
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHANNEL_ID;
@@ -88,10 +92,14 @@ export async function POST(request: Request) {
               break;
             } else {
               await unlink(filePath);
-              lastError = 'Трек не найден на наших источниках';
+              lastError = 'Файл скачался, но он слишком маленький (ошибка)';
             }
           } catch (err: any) {
-            lastError = 'Трек не найден на наших источниках';
+            // ВЫВОДИМ РЕАЛЬНУЮ ОШИБКУ В КОНСОЛЬ
+            console.error(`[yt-dlp ERROR] ${err.message}`);
+            if (err.stderr) console.error(`[yt-dlp STDERR] ${err.stderr}`);
+            
+            lastError = 'Трек не найден (сервер YouTube/SoundCloud отклонил запрос)';
             try { await unlink(filePath); } catch (e) {}
           }
         }
