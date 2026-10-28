@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { LogOut, User as UserIcon } from "lucide-react";
 import ProfileModal from "./ProfileModal";
+import { useRouter } from "next/navigation"; // <-- Добавили роутер
 
 export default function UserProfileClient({ user }: { user: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   if (!user) {
     return (
@@ -17,10 +19,20 @@ export default function UserProfileClient({ user }: { user: any }) {
     );
   }
 
-  // Проверяем, ссылка это или file_id из Telegram
   const avatarSrc = user.avatarUrl 
     ? (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('/') ? user.avatarUrl : `/api/stream/${user.avatarUrl}`)
     : null;
+
+  // Обработчик выхода
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Ошибка выхода", error);
+    }
+  };
 
   return (
     <>
@@ -35,9 +47,11 @@ export default function UserProfileClient({ user }: { user: any }) {
           </div>
           <span className="text-white text-sm font-medium truncate">{user.name || user.email}</span>
         </button>
-        <form action="/api/auth/logout" method="POST">
-          <button type="submit" className="text-[var(--text-subdued)] hover:text-white transition p-2"><LogOut size={18} /></button>
-        </form>
+        
+        {/* Заменили form action на обычную кнопку с onClick */}
+        <button onClick={handleLogout} className="text-[var(--text-subdued)] hover:text-white transition p-2">
+            <LogOut size={18} />
+        </button>
       </div>
 
       <ProfileModal 
