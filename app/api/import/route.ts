@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHANNEL_ID;
     
-    // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ CLOUDFLARE
-    const PROXY_URL = 'https://sadovod-proxy.vladgoncharov27x27x27.workers.dev/';
+    // УБЕДИСЬ, ЧТО ЗДЕСЬ ТВОЯ ССЫЛКА
+    const PROXY_URL = 'https://sadovod-proxy.vladgoncharov27x27x27.workers.dev'; 
 
     for (const line of lines) {
       try {
@@ -42,7 +42,6 @@ export async function POST(request: Request) {
           searchQuery = `${artist} ${title}`; 
         }
 
-        // 1. Метаданные
         try {
           const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=1`);
           const text = await itunesRes.text();
@@ -70,17 +69,20 @@ export async function POST(request: Request) {
         const fileName = `${randomUUID()}.mp3`;
         const filePath = join(tempDir, fileName);
         
-        // 2. Скачиваем через Cloudflare Worker
+        // ДЕЛАЕМ ЗАПРОС К ПРОКСИ И ЧИТАЕМ ОТВЕТ
+        console.log(`[Proxy] Отправка запроса: ${PROXY_URL}?q=${encodeURIComponent(searchQuery)}`);
         const proxyRes = await fetch(`${PROXY_URL}?q=${encodeURIComponent(searchQuery)}`);
         
         if (!proxyRes.ok) {
-          throw new Error('Прокси не смог скачать трек');
+          const errText = await proxyRes.text();
+          console.error(`[Proxy ERROR] Статус: ${proxyRes.status}, Ответ: ${errText}`);
+          throw new Error('Прокси вернул ошибку');
         }
 
         const buffer = await proxyRes.arrayBuffer();
+        console.log(`[Proxy SUCCESS] Размер файла: ${buffer.byteLength} байт`);
         await writeFile(filePath, Buffer.from(buffer));
 
-        // 3. Загрузка в Telegram
         const fileBuffer = await readFile(filePath);
         const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
         
