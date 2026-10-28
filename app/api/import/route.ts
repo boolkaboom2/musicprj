@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join } from 'path';
-import { mkdir, stat, unlink, readFile, chmod } from 'fs/promises';
+import { mkdir, stat, unlink, readFile, writeFile, chmod } from 'fs/promises'; // <-- Добавили writeFile
 import { randomUUID } from 'crypto';
 import os from 'os';
 
@@ -42,14 +42,17 @@ export async function POST(request: Request) {
         let duration = 0;
         let releaseYear: number | null = null;
 
+        let searchQuery = line;
         if (line.includes(' - ')) {
           const parts = line.split(' - ');
           artist = parts[0].trim();
           title = parts[1].trim();
+          searchQuery = `${artist} ${title}`; // iTunes лучше ищет без дефиса
         }
 
+        // 1. iTunes API
         try {
-          const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(line)}&entity=song&limit=1`);
+          const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=1`);
           const text = await itunesRes.text();
           if (text.startsWith('{')) {
             const itunesData = JSON.parse(text);
@@ -78,31 +81,56 @@ export async function POST(request: Request) {
         let isDownloaded = false;
         let lastError = '';
 
-        const sources = [`scsearch1:${line}`, `ytsearch1:${line}`];
-        for (const source of sources) {
-          try {
-            // ДОБАВИЛИ ФЛАГ --extractor-args "youtube:player_client=android"
-            const command = `"${ytdlpPath}" --extractor-args "youtube:player_client=android" -x --audio-format mp3 --ffmpeg-location "${ffmpegPath}" --no-playlist --no-warnings --geo-bypass -o "${filePath}" "${source}"`;
-            
-            await execAsync(command, { maxBuffer: 1024 * 1024 * 10, timeout: 40000 }); // Даем чуть больше времени (40 сек)
-            const fileStats = await stat(filePath);
-            if (fileStats.size > 100 * 1024) {
-              isDownloaded = true;
-              break;
-            } else {
-              await unlink(filePath);
-              lastError = 'Файл скачался, но он слишком маленький (ошибка)';
+        // 2. Пытаемся скачать через COBALT API
+        try {
+          console.log(`[Cobalt] Попытка скачать: ${searchQuery}`);
+          const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: `https://soundcloud.com/search?q=${encodeURIComponent(searchQuery)}`,
+              isAudioOnly: true
+            })
+          });
+
+          const cobaltData = await cobaltRes.json();
+          if (cobaltData.status === 'stream' || cobaltData.status === 'redirect') {
+            const audioRes = await fetch(cobaltData.url);
+            const buffer = await audioRes.arrayBuffer();
+            await writeFile(filePath, Buffer.from(buffer));
+            isDownloaded = true;
+            console.log(`[Cobalt] Успешно скачан: ${title}`);
+          } else {
+            throw new Error('Cobalt не смог найти трек');
+          }
+        } catch (err: any) {
+          console.log(`[Cobalt FAILED] Пробуем yt-dlp... ${err.message}`);
+          
+          // 3. Запасной вариант: YT-DLP
+          const sources = [`scsearch1:${searchQuery}`, `ytsearch1:${searchQuery}`];
+          for (const source of sources) {
+            try {
+              const command = `"${ytdlpPath}" --extractor-args "youtube:player_client=android" -x --audio-format mp3 --ffmpeg-location "${ffmpegPath}" --no-playlist --no-warnings --geo-bypass -o "${filePath}" "${source}"`;
+              await execAsync(command, { maxBuffer: 1024 * 1024 * 10, timeout: 40000 });
+              
+              const fileStats = await stat(filePath);
+              if (fileStats.size > 100 * 1024) {
+                isDownloaded = true;
+                if (duration === 0) duration = 180; 
+                break;
+              } else {
+                await unlink(filePath);
+              }
+            } catch (err: any) {
+              lastError = 'Сервер источника отклонил запрос (IP заблокирован)';
+              try { await unlink(filePath); } catch (e) {}
             }
-          } catch (err: any) {
-            console.error(`[yt-dlp ERROR] ${err.message}`);
-            
-            lastError = 'Сервер источника отклонил запрос (IP заблокирован)';
-            try { await unlink(filePath); } catch (e) {}
           }
         }
 
-        if (!isDownloaded) throw new Error(lastError);
+        if (!isDownloaded) throw new Error(lastError || 'Не удалось скачать трек');
 
+        // 4. Загрузка в Telegram
         const fileBuffer = await readFile(filePath);
         const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
         
@@ -121,6 +149,7 @@ export async function POST(request: Request) {
         const fileId = tgData.result.audio.file_id;
         await unlink(filePath);
 
+        // 5. Сохранение
         await prisma.track.create({
           data: { title, artist, genre, coverUrl, duration, releaseYear, audioUrl: fileId },
         });

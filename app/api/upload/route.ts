@@ -9,8 +9,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Файл не найден" }, { status: 400 });
     }
 
-    // Определяем тип (аудио или картинка)
     const isAudio = file.type.startsWith("audio/");
+    // Если это не аудио, принудительно считаем это картинкой
     const method = isAudio ? "sendAudio" : "sendPhoto";
     const field = isAudio ? "audio" : "photo";
 
@@ -19,7 +19,16 @@ export async function POST(request: Request) {
 
     const tgFormData = new FormData();
     tgFormData.append("chat_id", chatId!);
-    tgFormData.append(field, file);
+    
+    // В Next.js 16 File иногда ломается при передаче.
+    // Явно превращаем в Blob (для картинок), чтобы Telegram понял формат.
+    if (isAudio) {
+      tgFormData.append(field, file);
+    } else {
+      const buffer = await file.arrayBuffer();
+      const blob = new Blob([buffer], { type: file.type || 'image/jpeg' });
+      tgFormData.append(field, blob, file.name || 'image.jpg');
+    }
 
     const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
       method: "POST",
@@ -33,16 +42,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Ошибка загрузки в Telegram" }, { status: 500 });
     }
 
-    // Достаем file_id из ответа Telegram
     let fileId = "";
     if (isAudio && tgData.result.audio) {
       fileId = tgData.result.audio.file_id;
     } else if (!isAudio && tgData.result.photo) {
-      // Telegram возвращает массив размеров фото (берем последнее - самое большое)
       fileId = tgData.result.photo[tgData.result.photo.length - 1].file_id;
     }
 
-    // ВАЖНО: Мы возвращаем file_id. В базе он будет храниться в поле audioUrl/coverUrl
     return NextResponse.json({ url: fileId });
   } catch (error) {
     console.error("Ошибка сервера:", error);

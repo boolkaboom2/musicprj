@@ -49,7 +49,6 @@ export default function Player() {
     }
   }, [activeTrack, isMuted, volume]);
 
-  // Магия бесконечной волны
   useEffect(() => {
     if (isRadioMode && activeTrack && queue.length - currentIndex <= 2 && !isFetchingMoreRef.current) {
       isFetchingMoreRef.current = true;
@@ -69,20 +68,6 @@ export default function Player() {
       playNext();
     }
   }, [isWaitingForNext, currentIndex, queue.length, playNext]);
-
-  // ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ТЕСТА
-  const initAudioContext = useCallback(() => {
-    // if (!audioRef.current || audioCtxRef.current) return;
-    // const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    // const ctx = new AudioContext();
-    // const source = ctx.createMediaElementSource(audioRef.current);
-    // const filter = ctx.createBiquadFilter(); filter.type = "lowpass"; filter.frequency.value = 22000; 
-    // const bass = ctx.createBiquadFilter(); bass.type = "lowshelf"; bass.frequency.value = 200;
-    // const mid = ctx.createBiquadFilter(); mid.type = "peaking"; mid.frequency.value = 1000; mid.Q.value = 1;
-    // const treble = ctx.createBiquadFilter(); treble.type = "highshelf"; treble.frequency.value = 3000;
-    // source.connect(filter); filter.connect(bass); bass.connect(mid); mid.connect(treble); treble.connect(ctx.destination);
-    // audioCtxRef.current = ctx; filterRef.current = filter; bassRef.current = bass; midRef.current = mid; trebleRef.current = treble;
-  }, []);
 
   useEffect(() => {
     if (filterRef.current) {
@@ -115,7 +100,6 @@ export default function Player() {
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        // initAudioContext(); // ОТКЛЮЧЕНО
         if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
         audioRef.current.play().catch(e => console.log(e));
       } else {
@@ -185,6 +169,36 @@ export default function Player() {
     }
   };
 
+  // НОВАЯ ФУНКЦИЯ: Обновляем длительность в базе, если она была 0
+  const handleLoadedMetadata = async () => {
+    if (audioRef.current && activeTrack) {
+       const realDuration = Math.round(audioRef.current.duration);
+       setDuration(realDuration); // Обновляем UI плеера
+       
+       if (!isFadingOutRef.current) {
+          audioRef.current.volume = isMuted ? 0 : volume / 100;
+       }
+
+       // Если в базе было 0, отправляем реальное время на сервер
+       if (activeTrack.duration === 0 && realDuration > 0) {
+          try {
+            await fetch(`/api/tracks/${activeTrack.id}`, {
+               method: 'PATCH',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ duration: realDuration })
+            });
+            // Обновляем локальный Zustand, чтобы в списке сразу пропало 0:00
+            usePlayerStore.setState((state) => ({
+              activeTrack: state.activeTrack ? { ...state.activeTrack, duration: realDuration } : null,
+              queue: state.queue.map(t => t.id === activeTrack.id ? { ...t, duration: realDuration } : t)
+            }));
+          } catch (e) {
+            console.error("Не удалось обновить длительность в базе");
+          }
+       }
+    }
+  };
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -194,17 +208,9 @@ export default function Player() {
         src={activeTrack?.audioUrl?.startsWith('/') ? activeTrack.audioUrl : `/api/stream/${activeTrack?.audioUrl}`} 
         onEnded={handleEnded}
         onTimeUpdate={handleTimeUpdate} 
-        onLoadedMetadata={() => {
-          if (audioRef.current) {
-             setDuration(audioRef.current.duration);
-             if (!isFadingOutRef.current) {
-                audioRef.current.volume = isMuted ? 0 : volume / 100;
-             }
-          }
-        }} 
+        onLoadedMetadata={handleLoadedMetadata}
       />
 
-      {/* РАЗВЕРНУТЫЙ ПЛЕЕР */}
       {isPlayerExpanded && activeTrack && (
         <div className="fixed inset-0 z-[150] bg-[#0a0a0a] flex flex-col animate-in slide-in-from-bottom-full duration-500 ease-out">
           {activeTrack.coverUrl && <img src={activeTrack.coverUrl} alt="bg" className="absolute inset-0 w-full h-full object-cover blur-[100px] opacity-30 scale-125 pointer-events-none" />}
@@ -250,7 +256,6 @@ export default function Player() {
         </div>
       )}
 
-      {/* СВЕРНУТЫЙ ПЛЕЕР */}
       <footer className="relative h-[90px] bg-[#121212]/95 backdrop-blur-2xl border-t border-white/10 px-6 grid grid-cols-3 items-center w-full shrink-0 z-50">
         <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-4 w-full cursor-pointer hover:bg-white/5 p-2 rounded-md transition">
           <div className="w-14 h-14 bg-[#222] rounded-md overflow-hidden shrink-0 shadow-lg border border-white/5">
