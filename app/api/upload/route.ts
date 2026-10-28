@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
+import { checkAdmin } from '@/lib/isAdmin';
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
 export async function POST(request: Request) {
   try {
+    const isAdmin = await checkAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -9,8 +17,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Файл не найден" }, { status: 400 });
     }
 
+    // ОГРАНИЧЕНИЕ РАЗМЕРА
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: "Файл слишком большой (макс 20 МБ)" }, { status: 413 });
+    }
+
     const isAudio = file.type.startsWith("audio/");
-    // Если это не аудио, принудительно считаем это картинкой
     const method = isAudio ? "sendAudio" : "sendPhoto";
     const field = isAudio ? "audio" : "photo";
 
@@ -20,8 +32,6 @@ export async function POST(request: Request) {
     const tgFormData = new FormData();
     tgFormData.append("chat_id", chatId!);
     
-    // В Next.js 16 File иногда ломается при передаче.
-    // Явно превращаем в Blob (для картинок), чтобы Telegram понял формат.
     if (isAudio) {
       tgFormData.append(field, file);
     } else {
@@ -38,7 +48,6 @@ export async function POST(request: Request) {
     const tgData = await tgRes.json();
 
     if (!tgRes.ok || !tgData.ok) {
-      console.error("Ошибка Telegram:", tgData);
       return NextResponse.json({ error: "Ошибка загрузки в Telegram" }, { status: 500 });
     }
 
@@ -51,7 +60,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: fileId });
   } catch (error) {
-    console.error("Ошибка сервера:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }

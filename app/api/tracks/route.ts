@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { checkAdmin } from '@/lib/isAdmin';
 
 export async function GET() {
   try {
@@ -8,13 +9,18 @@ export async function GET() {
     })
     return NextResponse.json(tracks)
   } catch (error) {
-    console.error("Ошибка GET треков:", error);
     return NextResponse.json({ error: 'Ошибка при получении треков' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
+    // ПРОВЕРКА: Только админ может добавлять
+    const isAdmin = await checkAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+    }
+
     const body = await request.json()
     const { title, artist, audioUrl, coverUrl, duration, genre, releaseYear } = body
 
@@ -38,7 +44,7 @@ export async function POST(request: Request) {
         coverUrl: coverUrl || null,
         duration: Number(duration) || 0,
         genre: genre || null,
-        releaseYear: releaseYear ? Number(releaseYear) : null, // <--- Сохраняем год
+        releaseYear: releaseYear ? Number(releaseYear) : null,
       },
     })
 
