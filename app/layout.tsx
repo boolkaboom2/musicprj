@@ -6,6 +6,7 @@ import Player from "@/components/Player";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 import TrackOptionsMenu from "@/components/TrackOptionsMenu"; 
 import DisableContextMenu from "@/components/DisableContextMenu";
+import Toast from "@/components/Toast";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -20,7 +21,6 @@ export const metadata: Metadata = {
   description: "Твой личный стриминговый сервис",
 };
 
-// Компонент для получения лайков на сервере
 async function LayoutData() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
@@ -47,12 +47,10 @@ export default function RootLayout({
     <html lang="ru">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white h-screen flex flex-col overflow-hidden`}>
         
-        {/* Инициализация лайков в Zustand (обернута в Suspense, так как читает куки) */}
         <Suspense fallback={null}>
           <LayoutData />
         </Suspense>
         
-        {/* Основная рабочая область (Сайдбар + Контент) */}
         <div className="flex flex-1 overflow-hidden p-2 gap-2">
           <Sidebar />
           
@@ -61,15 +59,12 @@ export default function RootLayout({
           </main>
         </div>
 
-        {/* Нижний плеер */}
         <Player />
-
-        {/* Глобальные модальные окна и меню */}
         <AddToPlaylistModal />
         <TrackOptionsMenu />
-        
-        {/* Отключение системного меню по ПКМ */}
         <DisableContextMenu />
+        
+        <Toast />
         
       </body>
     </html>

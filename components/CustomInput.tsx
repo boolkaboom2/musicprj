@@ -10,11 +10,14 @@ interface CustomInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export default function CustomInput({ isPassword, className, ...props }: CustomInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
+  const inputType = isPassword ? (showPassword ? "text" : "password") : "text";
+  
   return (
     <div className="relative w-full">
       <input
         {...props}
-        type={isPassword ? (showPassword ? "text" : "password") : props.type}
+        type={inputType}
+        required={false}
         className={`w-full bg-[#1a1a1a] text-white p-4 pr-12 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all duration-300 ${className}`}
       />
       {isPassword && (
