@@ -7,6 +7,7 @@ import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 import TrackOptionsMenu from "@/components/TrackOptionsMenu"; 
 import DisableContextMenu from "@/components/DisableContextMenu";
 import Toast from "@/components/Toast";
+import VisitLogger from "@/components/VisitLogger";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -65,6 +66,11 @@ export default function RootLayout({
         <DisableContextMenu />
         
         <Toast />
+        
+        {/* ОБОРАЧИВАЕМ В SUSPENSE */}
+        <Suspense fallback={null}>
+          <VisitLogger /> 
+        </Suspense>
         
       </body>
     </html>

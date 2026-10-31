@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Crown, Ban, Trash2, Shield, User as UserIcon, Loader2, Search } from "lucide-react";
+import { ArrowLeft, Crown, Ban, Trash2, Shield, User as UserIcon, Loader2, Search, Heart, ListMusic, PlayCircle, UserCheck } from "lucide-react";
 import { useToast } from "@/components/Toast";
 
 type User = {
@@ -30,7 +29,6 @@ export default function UsersPage() {
   const [grantingUser, setGrantingUser] = useState<User | null>(null);
   const [grantMonths, setGrantMonths] = useState("1");
   const showToast = useToast((s) => s.show);
-  const router = useRouter();
 
   const fetchUsers = async () => {
     try {
@@ -214,9 +212,11 @@ export default function UsersPage() {
                     )}
                   </td>
                   <td className="p-4">
-                    <p className="text-white/70 text-xs">
-                      ♥ {user._count.likes} • 🎵 {user._count.playlists} • ▶ {user._count.listenHistory}
-                    </p>
+                    <div className="flex items-center gap-3 text-[var(--text-subdued)] text-xs">
+                      <span className="flex items-center gap-1"><Heart size={12} /> {user._count.likes}</span>
+                      <span className="flex items-center gap-1"><ListMusic size={12} /> {user._count.playlists}</span>
+                      <span className="flex items-center gap-1"><PlayCircle size={12} /> {user._count.listenHistory}</span>
+                    </div>
                   </td>
                   <td className="p-4">
                     <span className={`text-xs font-bold ${
@@ -232,7 +232,6 @@ export default function UsersPage() {
                           onClick={() => handleRevokeSubscription(user)}
                           disabled={actionLoading === user.id}
                           className="text-yellow-500 hover:text-yellow-400 p-2 bg-yellow-500/10 rounded-md transition disabled:opacity-50"
-                          title="Отозвать подписку"
                         >
                           {actionLoading === user.id ? <Loader2 size={14} className="animate-spin" /> : <Crown size={14} />}
                         </button>
@@ -241,7 +240,6 @@ export default function UsersPage() {
                           onClick={() => setGrantingUser(user)}
                           disabled={actionLoading === user.id}
                           className="text-yellow-500 hover:text-yellow-400 p-2 bg-yellow-500/10 rounded-md transition disabled:opacity-50"
-                          title="Выдать подписку"
                         >
                           <Crown size={14} />
                         </button>
@@ -252,16 +250,24 @@ export default function UsersPage() {
                           <button
                             onClick={() => handleBan(user)}
                             disabled={actionLoading === user.id}
-                            className="text-orange-500 hover:text-orange-400 p-2 bg-orange-500/10 rounded-md transition disabled:opacity-50"
-                            title={user.status === 'BANNED' ? "Разбанить" : "Забанить"}
+                            className={`p-2 rounded-md transition disabled:opacity-50 ${
+                              user.status === 'BANNED' 
+                                ? 'text-green-500 hover:text-green-400 bg-green-500/10' 
+                                : 'text-orange-500 hover:text-orange-400 bg-orange-500/10'
+                            }`}
                           >
-                            {actionLoading === user.id ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+                            {actionLoading === user.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : user.status === 'BANNED' ? (
+                              <UserCheck size={14} />
+                            ) : (
+                              <Ban size={14} />
+                            )}
                           </button>
                           <button
                             onClick={() => setDeletingUser(user)}
                             disabled={actionLoading === user.id}
                             className="text-red-500 hover:text-red-400 p-2 bg-red-500/10 rounded-md transition disabled:opacity-50"
-                            title="Удалить"
                           >
                             <Trash2 size={14} />
                           </button>

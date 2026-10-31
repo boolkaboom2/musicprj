@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users } from "lucide-react";
+import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/Toast";
 
 type Track = {
   id: string;
@@ -19,7 +20,7 @@ export default function AdminPage() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Состояния формы
+  // Состояния формы (ручная)
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [genre, setGenre] = useState("");
@@ -30,7 +31,13 @@ export default function AdminPage() {
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isSearchingITunes, setIsSearchingITunes] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  
+  // СОСТОЯНИЕ ПРЯМОЙ ССЫЛКИ
+  const [directUrl, setDirectUrl] = useState("");
+  const [isImportingDirect, setIsImportingDirect] = useState(false);
+
+  // Общий Toast
+  const showToast = useToast((s) => s.show);
   
   // Состояния редактирования
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
@@ -59,11 +66,6 @@ export default function AdminPage() {
   };
 
   useEffect(() => { fetchTracks(); }, []);
-
-  const showToast = (message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const handleSearchITunes = async () => {
     if (!title.trim()) {
@@ -169,6 +171,36 @@ export default function AdminPage() {
     }
   };
 
+  // ОБРАБОТЧИК ПРЯМОЙ ССЫЛКИ
+  const handleDirectImport = async () => {
+    if (!directUrl.trim()) {
+      showToast("Вставьте ссылку на MP3-файл", "error");
+      return;
+    }
+
+    setIsImportingDirect(true);
+    try {
+      const res = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directUrl }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(`Трек "${data.track.title}" успешно импортирован!`, "success");
+        setDirectUrl("");
+        fetchTracks();
+      } else {
+        showToast(data.error || "Ошибка импорта", "error");
+      }
+    } catch (error) {
+      showToast("Ошибка сети при импорте", "error");
+    } finally {
+      setIsImportingDirect(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deletingId) return;
     setIsDeleting(true);
@@ -242,44 +274,75 @@ export default function AdminPage() {
       </div>
       
       <div className="flex flex-col lg:flex-row gap-12">
-        {/* Форма добавления */}
-        <div className="w-full lg:w-1/2">
-          <h2 className="text-xl font-bold text-white mb-4">Добавить трек</h2>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-            <div className="flex gap-2 relative">
-              <input 
-                type="text" placeholder="Название трека" value={title} onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all"
-              />
-              <button type="button" onClick={handleSearchITunes} disabled={isSearchingITunes} className="bg-white/10 hover:bg-white/20 text-white px-4 rounded-md transition flex items-center justify-center shrink-0">
-                {isSearchingITunes ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
-              </button>
-            </div>
-            <input type="text" placeholder="Исполнитель" value={artist} onChange={(e) => setArtist(e.target.value)} className="bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
-            <div className="flex gap-4">
-              <input type="text" placeholder="Жанр" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-2/3 bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
-              <input type="number" placeholder="Год" value={releaseYear} onChange={(e) => setReleaseYear(e.target.value)} className="w-1/3 bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
-            </div>
+        {/* ЛЕВАЯ КОЛОНКА: Импорт */}
+        <div className="w-full lg:w-1/2 flex flex-col gap-8">
+          
+          {/* БЛОК: Импорт по прямой ссылке */}
+          <div className="bg-[#121212] border border-white/10 p-6 rounded-xl">
+            <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+              <LinkIcon size={20} className="text-green-500" /> Импорт по ссылке
+            </h2>
+            <p className="text-[var(--text-subdued)] text-sm mb-4">
+              Вставьте прямую ссылку на MP3-файл (заканчивается на .mp3). Сервер скачает его и зальет в Telegram.
+            </p>
             
-            <div className="flex flex-col gap-2">
-              <input type="file" accept="audio/*" className="hidden" ref={audioInputRef} onChange={handleAudioChange} />
-              <button type="button" onClick={() => audioInputRef.current?.click()} disabled={isUploadingAudio} className={`flex items-center justify-between p-3 rounded-md border transition-all duration-300 ${audioUrl ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-[#1a1a1a] border-transparent hover:border-white/20 text-[var(--text-subdued)] hover:text-white"}`}>
-                <span className="text-sm font-medium">{audioUrl ? `Аудио загружено (${formatTime(duration)})` : "Загрузить MP3"}</span>
-                {isUploadingAudio ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="https://example.com/music/track.mp3" 
+                value={directUrl} 
+                onChange={(e) => setDirectUrl(e.target.value)}
+                className="w-full bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all text-sm"
+              />
+              <button 
+                onClick={handleDirectImport} 
+                disabled={isImportingDirect} 
+                className="bg-green-500 text-black font-bold px-6 rounded-md hover:bg-green-400 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+              >
+                {isImportingDirect ? <Loader2 className="animate-spin" size={18} /> : "Загрузить"}
               </button>
             </div>
-            <div className="flex flex-col gap-2">
-              <input type="file" accept="image/*" className="hidden" ref={coverInputRef} onChange={handleCoverChange} />
-              <button type="button" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover} className={`flex items-center justify-between p-3 rounded-md border transition-all duration-300 ${coverUrl ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-[#1a1a1a] border-transparent hover:border-white/20 text-[var(--text-subdued)] hover:text-white"}`}>
-                <span className="text-sm font-medium">{coverUrl ? "Обложка загружена" : "Загрузить обложку (опционально)"}</span>
-                {isUploadingCover ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
-              </button>
-            </div>
-            <button type="submit" className="bg-white text-black font-bold py-3 rounded-md hover:bg-gray-200 transition-colors mt-2">Добавить трек</button>
-          </form>
+          </div>
+
+          {/* БЛОК: Ручное добавление */}
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4">Ручное добавление</h2>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+              <div className="flex gap-2 relative">
+                <input 
+                  type="text" placeholder="Название трека" value={title} onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all"
+                />
+                <button type="button" onClick={handleSearchITunes} disabled={isSearchingITunes} className="bg-white/10 hover:bg-white/20 text-white px-4 rounded-md transition flex items-center justify-center shrink-0">
+                  {isSearchingITunes ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+                </button>
+              </div>
+              <input type="text" placeholder="Исполнитель" value={artist} onChange={(e) => setArtist(e.target.value)} className="bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
+              <div className="flex gap-4">
+                <input type="text" placeholder="Жанр" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-2/3 bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
+                <input type="number" placeholder="Год" value={releaseYear} onChange={(e) => setReleaseYear(e.target.value)} className="w-1/3 bg-[#1a1a1a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all" />
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <input type="file" accept="audio/*" className="hidden" ref={audioInputRef} onChange={handleAudioChange} />
+                <button type="button" onClick={() => audioInputRef.current?.click()} disabled={isUploadingAudio} className={`flex items-center justify-between p-3 rounded-md border transition-all duration-300 ${audioUrl ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-[#1a1a1a] border-transparent hover:border-white/20 text-[var(--text-subdued)] hover:text-white"}`}>
+                  <span className="text-sm font-medium">{audioUrl ? `Аудио загружено (${formatTime(duration)})` : "Загрузить MP3"}</span>
+                  {isUploadingAudio ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                <input type="file" accept="image/*" className="hidden" ref={coverInputRef} onChange={handleCoverChange} />
+                <button type="button" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover} className={`flex items-center justify-between p-3 rounded-md border transition-all duration-300 ${coverUrl ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-[#1a1a1a] border-transparent hover:border-white/20 text-[var(--text-subdued)] hover:text-white"}`}>
+                  <span className="text-sm font-medium">{coverUrl ? "Обложка загружена" : "Загрузить обложку (опционально)"}</span>
+                  {isUploadingCover ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+                </button>
+              </div>
+              <button type="submit" className="bg-white text-black font-bold py-3 rounded-md hover:bg-gray-200 transition-colors mt-2">Добавить трек</button>
+            </form>
+          </div>
         </div>
 
-        {/* Список треков */}
+        {/* ПРАВАЯ КОЛОНКА: Список треков */}
         <div className="w-full lg:w-1/2">
           <h2 className="text-xl font-bold text-white mb-4">Все треки ({tracks.length})</h2>
           {isLoading ? (
@@ -351,14 +414,6 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ТОСТ */}
-      {toast && (
-        <div className={`fixed bottom-24 right-8 flex items-center gap-3 px-6 py-4 rounded-md shadow-2xl border transition-all duration-300 animate-in slide-in-from-right-8 fade-in ${toast.type === "success" ? "bg-[#121212] border-green-500/30 text-green-500" : "bg-[#121212] border-red-500/30 text-red-500"}`}>
-          {toast.type === "success" ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
-          <span className="font-medium text-sm">{toast.message}</span>
         </div>
       )}
     </div>

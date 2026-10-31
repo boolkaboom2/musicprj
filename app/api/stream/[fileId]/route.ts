@@ -23,10 +23,22 @@ export async function GET(
 
     const filePath = getFileData.result.file_path;
 
-    // 2. Возвращаем 302 редирект на прямую ссылку Telegram
+    // 2. Вместо редиректа, скачиваем файл на сервер и отдаем клиенту (Proxy)
     const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
-    
-    return NextResponse.redirect(fileUrl);
+    const fileRes = await fetch(fileUrl);
+
+    if (!fileRes.ok) {
+      return NextResponse.json({ error: 'Ошибка загрузки файла' }, { status: 500 });
+    }
+
+    // 3. Передаем поток байтов клиенту
+    return new NextResponse(fileRes.body, {
+      headers: {
+        'Content-Type': fileRes.headers.get('Content-Type') || 'audio/mpeg',
+        'Content-Length': fileRes.headers.get('Content-Length') || '',
+        'Accept-Ranges': 'bytes', // Для перемотки
+      },
+    });
   } catch (error) {
     console.error('Ошибка стриминга:', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
