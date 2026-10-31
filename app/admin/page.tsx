@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit } from "lucide-react";
+import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users } from "lucide-react";
 import Link from "next/link";
 
 type Track = {
@@ -228,9 +228,17 @@ export default function AdminPage() {
     <div className="p-8 relative">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-black text-[var(--text-base)] tracking-tight">Админ-панель</h1>
-        <Link href="/admin/import" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition">
-          Массовый импорт
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/admin/analytics" className="bg-white text-black hover:bg-gray-200 px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2">
+            <BarChart3 size={18} /> Дашборд
+          </Link>
+          <Link href="/admin/users" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2">
+            <Users size={18} /> Пользователи
+          </Link>
+          <Link href="/admin/import" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition">
+            Массовый импорт
+          </Link>
+        </div>
       </div>
       
       <div className="flex flex-col lg:flex-row gap-12">

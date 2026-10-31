@@ -11,7 +11,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^6.2.1",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.13",
     "lru-cache": "^11.5.3",
@@ -19,6 +19,7 @@
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "recharts": "^3.10.1",
     "yandex-music-api": "^0.0.3",
     "zod": "^4.6.7",
     "zustand": "^5.0.16"

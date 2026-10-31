@@ -7,23 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Пользователи (Админы и Клиенты)
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  avatarUrl String? 
-  role      String   @default("USER")
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  name            String?
+  avatarUrl       String?  
+  role            String    @default("USER")
+  status          String    @default("ACTIVE")
+  subscriptionEnd DateTime?
+  createdAt       DateTime  @default(now())
   
-  playlists Playlist[]
-  likes     Like[]
-  listenHistory ListenHistory[]
-  pinnedTracks PinnedTrack[]
+  playlists       Playlist[]
+  likes           Like[]
+  listenHistory   ListenHistory[]
+  pinnedTracks    PinnedTrack[]
+  visitLogs       VisitLog[]
+  subscriptionLogs SubscriptionLog[]
 }
 
-// Музыкальные треки
 model Track {
   id          String   @id @default(uuid())
   title       String
@@ -32,13 +34,13 @@ model Track {
   audioUrl    String   
   duration    Int      
   genre       String?
-  releaseYear Int?     // <--- ДОБАВИЛИ ГОД ВЫПУСКА
+  releaseYear Int?     
   createdAt   DateTime @default(now())
 
-  playlists PlaylistItem[]
-  likes     Like[]
+  playlists     PlaylistItem[]
+  likes         Like[]
   listenHistory ListenHistory[]
-  pinnedTracks PinnedTrack[]
+  pinnedTracks  PinnedTrack[]
 }
 
 model Playlist {
@@ -78,12 +80,6 @@ model ListenHistory {
   track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
 }
 
-model ImportLog {
-  id        String   @id @default(cuid())
-  ipAddress String
-  createdAt DateTime @default(now())
-}
-
 model PinnedTrack {
   id        String   @id @default(cuid())
   userId    String
@@ -93,4 +89,30 @@ model PinnedTrack {
   track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
   @@unique([userId, trackId])
+}
+
+model ImportLog {
+  id        String   @id @default(cuid())
+  ipAddress String
+  createdAt DateTime @default(now())
+}
+
+model VisitLog {
+  id        String   @id @default(cuid())
+  path      String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model SubscriptionLog {
+  id        String   @id @default(cuid())
+  userId    String
+  plan      String
+  startDate DateTime @default(now())
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
