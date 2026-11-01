@@ -1,54 +1,27 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { downloadAndSaveTrack } from '@/lib/downloader';
+import { revalidatePath } from 'next/cache';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q');
-
-  if (!query || query.trim() === '') {
-    return NextResponse.json([]);
-  }
-
+export async function POST(req: Request) {
   try {
-    let whereClause: any = {};
-
-    if (query.includes(' - ')) {
-      // Разбиваем на исполнителей и название
-      const [artistsStr, title] = query.split(' - ').map(s => s.trim());
-      
-      // Разбиваем исполнителей по запятой (если их несколько)
-      const artists = artistsStr.split(',').map(a => a.trim());
-
-      whereClause = {
-        AND: [
-          // Ищем совпадение хотя бы по одному из артистов
-          {
-            OR: artists.map(artist => ({
-              artist: { contains: artist, mode: 'insensitive' }
-            }))
-          },
-          // И по названию
-          { title: { contains: title, mode: 'insensitive' } }
-        ]
-      };
-    } else {
-      // Если дефиса нет, ищем по совпадению в названии или исполнителе
-      whereClause = {
-        OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { artist: { contains: query, mode: 'insensitive' } },
-        ],
-      };
+    const { query } = await req.json();
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      return NextResponse.json({ error: 'Введите название трека' }, { status: 400 });
     }
 
-    const tracks = await prisma.track.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    });
+    console.log(`[Search Music] Query: ${query}`);
+    const result = await downloadAndSaveTrack(query);
 
-    return NextResponse.json(tracks);
-  } catch (error) {
-    return NextResponse.json({ error: 'Ошибка поиска' }, { status: 500 });
+    if (result.skipped) {
+      return NextResponse.json({ error: 'Трек уже есть в базе', track: result.track }, { status: 409 });
+    }
+
+    revalidatePath('/', 'layout');
+
+    return NextResponse.json({ success: true, track: result.track });
+
+  } catch (error: any) {
+    console.error('[Search Music Fatal]', error);
+    return NextResponse.json({ error: error.message || 'Трек не найден в сети' }, { status: 500 });
   }
 }

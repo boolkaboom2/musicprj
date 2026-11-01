@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { IHeart } from "./Icons";
 
 interface LikeButtonProps {
   trackId: string;
@@ -14,15 +14,13 @@ export default function LikeButton({ trackId, initialIsLiked }: LikeButtonProps)
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
 
-  // Синхронизируем стейт, если пропсы изменились (например, при смене трека в плеере)
   useEffect(() => {
     setIsLiked(initialIsLiked);
   }, [initialIsLiked, trackId]);
 
   const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Чтобы клик по сердечку не запускал сам трек
+    e.stopPropagation();
 
-    // Оптимистичный UI (меняем цвет до ответа сервера для скорости)
     setIsLiked(!isLiked);
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 300);
@@ -35,17 +33,15 @@ export default function LikeButton({ trackId, initialIsLiked }: LikeButtonProps)
       });
 
       if (!res.ok) {
-        // Если ошибка (например, 401), откатываем назад
         setIsLiked(isLiked);
         if (res.status === 401) {
           router.push("/login");
         }
       } else {
-        // Обновляем серверные данные (чтобы медиатека обновилась)
         router.refresh(); 
       }
     } catch (error) {
-      setIsLiked(isLiked); // Откат при ошибке сети
+      setIsLiked(isLiked);
     }
   };
 
@@ -56,7 +52,7 @@ export default function LikeButton({ trackId, initialIsLiked }: LikeButtonProps)
         isLiked ? "text-white" : "text-[var(--text-subdued)] hover:text-white"
       } ${isAnimating ? "scale-125" : "scale-100"}`}
     >
-      <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+      <IHeart size={18} filled={isLiked} />
     </button>
   );
 }

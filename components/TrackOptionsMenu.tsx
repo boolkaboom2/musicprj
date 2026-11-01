@@ -4,16 +4,18 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTrackMenuStore } from "@/store/trackMenuStore";
 import { usePlayerStore } from "@/store/playerStore";
-import { Share2, Pin, Heart, Radio, Loader2, PinOff } from "lucide-react";
+import { useToast } from "@/components/Toast";
+import { IPin, IHeart, IRadio, IShare } from "./Icons";
+import { Loader2 } from "lucide-react";
 
 export default function TrackOptionsMenu() {
   const { isTrackMenuOpen, trackForMenu, menuPosition, closeTrackMenu } = useTrackMenuStore();
-  const { setActiveTrack } = usePlayerStore();
-  const [shareStatus, setShareStatus] = useState("");
+  const { setActiveTrack, likedTrackIds, toggleLikedTrack } = usePlayerStore();
   const [isLoadingWave, setIsLoadingWave] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const router = useRouter();
+  const showToast = useToast((s) => s.show);
 
   useEffect(() => {
     if (isTrackMenuOpen && trackForMenu) {
@@ -25,6 +27,8 @@ export default function TrackOptionsMenu() {
   }, [isTrackMenuOpen, trackForMenu]);
 
   if (!isTrackMenuOpen || !trackForMenu) return null;
+
+  const isLiked = likedTrackIds.includes(trackForMenu.id);
 
   const handlePin = async () => {
     setIsPinning(true);
@@ -44,17 +48,60 @@ export default function TrackOptionsMenu() {
     }
   };
 
+  const handleLike = async () => {
+    toggleLikedTrack(trackForMenu.id);
+    
+    try {
+      const res = await fetch("/api/likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackId: trackForMenu.id }),
+      });
+      
+      if (!res.ok) {
+        toggleLikedTrack(trackForMenu.id);
+        if (res.status === 401) {
+          window.location.href = "/login";
+        } else {
+          showToast("Ошибка при лайке", "error");
+        }
+      } else {
+        router.refresh();
+      }
+    } catch (error) {
+      toggleLikedTrack(trackForMenu.id);
+      showToast("Ошибка сети", "error");
+    }
+  };
+
   const handleShare = async () => {
     const url = `${window.location.origin}/track/${trackForMenu.id}`;
+    
     try {
       if (navigator.share) {
         await navigator.share({ title: trackForMenu.title, url });
+        closeTrackMenu();
       } else {
-        await navigator.clipboard.writeText(url);
-        setShareStatus("Скопировано!");
-        setTimeout(() => setShareStatus(""), 2000);
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          showToast("Ссылка скопирована", "success");
+        } else {
+          showToast("Не удалось скопировать ссылку", "error");
+        }
+        closeTrackMenu();
       }
-    } catch (error) {}
+    } catch (error) {
+      showToast("Ошибка при копировании", "error");
+    }
   };
 
   const handleStartWave = async () => {
@@ -77,7 +124,7 @@ export default function TrackOptionsMenu() {
   };
 
   const menuWidth = 260;
-  const menuHeight = 240; // Чуть уменьшили высоту, так как убрали кнопку
+  const menuHeight = 280;
   let top = menuPosition.top;
   let left = menuPosition.left;
 
@@ -98,12 +145,16 @@ export default function TrackOptionsMenu() {
             disabled={isPinning}
             className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium disabled:opacity-50"
         >
-            {isPinning ? <Loader2 size={18} className="animate-spin" /> : (isPinned ? <PinOff size={18} /> : <Pin size={18} />)} 
+            {isPinning ? <Loader2 size={18} className="animate-spin" /> : <IPin size={18} />} 
             {isPinned ? "Открепить" : "Закрепить"}
         </button>
         
-        <button className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium">
-            <Heart size={18} /> Нравится
+        <button 
+            onClick={handleLike}
+            className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium"
+        >
+            <IHeart size={18} filled={isLiked} /> 
+            {isLiked ? "Убрать лайк" : "Нравится"}
         </button>
 
         <button 
@@ -111,7 +162,7 @@ export default function TrackOptionsMenu() {
             disabled={isLoadingWave}
             className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium disabled:opacity-50"
         >
-            {isLoadingWave ? <Loader2 size={18} className="animate-spin" /> : <Radio size={18} />} 
+            {isLoadingWave ? <Loader2 size={18} className="animate-spin" /> : <IRadio size={18} />} 
             Моя волна по треку
         </button>
         
@@ -120,8 +171,8 @@ export default function TrackOptionsMenu() {
             className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium"
         >
             <div className="flex items-center gap-4">
-               <Share2 size={18} /> 
-               {shareStatus ? <span className="text-green-500">{shareStatus}</span> : "Поделиться"}
+               <IShare size={18} /> 
+               Поделиться
             </div>
             <span className="text-white/40">›</span>
         </button>

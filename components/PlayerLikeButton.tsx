@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Heart } from "lucide-react";
 import { usePlayerStore } from "@/store/playerStore";
 import { useRouter } from "next/navigation";
+import { IHeart } from "./Icons";
 
 export default function PlayerLikeButton({ trackId }: { trackId: string }) {
   const { likedTrackIds, toggleLikedTrack } = usePlayerStore();
@@ -14,7 +14,6 @@ export default function PlayerLikeButton({ trackId }: { trackId: string }) {
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Оптимистичный UI
     toggleLikedTrack(trackId);
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 300);
@@ -26,13 +25,13 @@ export default function PlayerLikeButton({ trackId }: { trackId: string }) {
         body: JSON.stringify({ trackId }),
       });
       if (!res.ok) {
-        toggleLikedTrack(trackId); // Откат
+        toggleLikedTrack(trackId);
         if (res.status === 401) router.push("/login");
       } else {
-        router.refresh(); // Обновляем серверные данные
+        router.refresh();
       }
     } catch (error) {
-      toggleLikedTrack(trackId); // Откат
+      toggleLikedTrack(trackId);
     }
   };
 
@@ -43,7 +42,7 @@ export default function PlayerLikeButton({ trackId }: { trackId: string }) {
         isLiked ? "text-white" : "text-[var(--text-subdued)] hover:text-white"
       } ${isAnimating ? "scale-125" : "scale-100"}`}
     >
-      <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+      <IHeart size={18} filled={isLiked} />
     </button>
   );
 }

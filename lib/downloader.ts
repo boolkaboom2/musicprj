@@ -23,7 +23,6 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
 
   const searchQuery = `${baseArtist} ${baseTitle}`;
 
-  // 1. iTunes
   try {
     const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=1`);
     const itunesData = await itunesRes.json();
@@ -38,17 +37,15 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
           (matchArtist.includes(baseArtistLower) || baseArtistLower.includes(matchArtist))) {
         result.title = match.trackName;
         result.artist = match.artistName;
-        result.coverUrl = match.artworkUrl100.replace('100x100', '1000x1000'); // Максимальное качество
+        result.coverUrl = match.artworkUrl100.replace('100x100', '1000x1000');
         result.genre = match.primaryGenreName;
         result.duration = Math.round(match.trackTimeMillis / 1000);
         if (match.releaseDate) result.releaseYear = parseInt(match.releaseDate.split('-')[0]);
-        console.log(`[Metadata] Источник: iTunes`);
         return result;
       }
     }
   } catch (e) {}
 
-  // 2. Deezer
   try {
     const deezerRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(searchQuery)}`);
     const deezerData = await deezerRes.json();
@@ -59,13 +56,11 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
         result.artist = match.artist.name;
         result.coverUrl = match.album.cover_xl || match.album.cover_big || fallbackCover;
         result.duration = match.duration;
-        console.log(`[Metadata] Источник: Deezer`);
         return result;
       }
     }
   } catch (e) {}
 
-  // 3. Яндекс.Музыка (ОТЛИЧНО ДЛЯ РУССКИХ И НИШЕВЫХ ТРЕКОВ)
   try {
     const yandexRes = await fetch(`https://api.music.yandex.net/search?text=${encodeURIComponent(searchQuery)}&type=all&page=0`, {
       headers: {
@@ -88,31 +83,23 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
           result.duration = Math.round(track.durationMs / 1000);
           
           if (track.coverUri) {
-            // Яндекс отдает путь, заменяем %% на размер
             result.coverUrl = `https://${track.coverUri.replace('%%', '1000x1000')}`;
           }
-          
-          console.log(`[Metadata] Источник: Яндекс.Музыка`);
           return result;
         }
       }
     }
   } catch (e) {}
 
-  // 4. Fallback (Hitmoz)
-  console.log(`[Metadata] Источник: Hitmoz (fallback)`);
   return result;
 }
 
 export async function downloadAndSaveTrack(query: string) {
-  // 1. Поиск на Hitmoz
   const hitmozTrack = await searchHitmoz(query);
-  if (!hitmozTrack) throw new Error('Трек не найден на Hitmoz');
+  if (!hitmozTrack) throw new Error('Трек не найден в сети');
 
-  // 2. Обогащение метаданными
   const meta = await enrichMetadata(hitmozTrack.title, hitmozTrack.artist, hitmozTrack.coverUrl);
 
-  // 3. Проверка дубликата
   const existing = await prisma.track.findFirst({
     where: {
       title: { equals: meta.title, mode: 'insensitive' },
@@ -121,15 +108,13 @@ export async function downloadAndSaveTrack(query: string) {
   });
   if (existing) return { success: true, track: existing, skipped: true };
 
-  // 4. Скачивание MP3
   const audioRes = await fetch(hitmozTrack.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!audioRes.ok) throw new Error('Не удалось скачать MP3 с hitmoz');
+  if (!audioRes.ok) throw new Error('Не удалось скачать файл');
 
   const buffer = await audioRes.arrayBuffer();
   const sizeMB = buffer.byteLength / 1024 / 1024;
   if (sizeMB > 20) throw new Error(`Файл слишком большой (${sizeMB.toFixed(1)} МБ)`);
 
-  // 5. Загрузка в Telegram
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHANNEL_ID;
   if (!botToken || !chatId) throw new Error('Telegram не настроен');
@@ -150,7 +135,6 @@ export async function downloadAndSaveTrack(query: string) {
 
   const fileId = tgData.result.audio.file_id;
 
-  // 6. Сохранение в БД
   const newTrack = await prisma.track.create({
     data: {
       title: meta.title,

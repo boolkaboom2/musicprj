@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon, ListMusic } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
@@ -18,10 +19,10 @@ type Track = {
 };
 
 export default function AdminPage() {
+  const router = useRouter();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Состояния формы (ручная)
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [genre, setGenre] = useState("");
@@ -33,17 +34,13 @@ export default function AdminPage() {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isSearchingITunes, setIsSearchingITunes] = useState(false);
   
-  // Состояние прямой ссылки
   const [directUrl, setDirectUrl] = useState("");
   const [isImportingDirect, setIsImportingDirect] = useState(false);
 
-  // Состояние модалки импорта плейлиста
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Общий Toast
   const showToast = useToast((s) => s.show);
   
-  // Состояния редактирования
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editArtist, setEditArtist] = useState("");
@@ -51,7 +48,6 @@ export default function AdminPage() {
   const [editYear, setEditYear] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Состояние удаления
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -60,7 +56,7 @@ export default function AdminPage() {
 
   const fetchTracks = async () => {
     try {
-      const res = await fetch("/api/tracks");
+      const res = await fetch("/api/tracks", { cache: "no-store" });
       if (res.ok) setTracks(await res.json());
     } catch (error) {
       console.error(error);
@@ -166,6 +162,7 @@ export default function AdminPage() {
         showToast("Трек успешно добавлен!", "success");
         setTitle(""); setArtist(""); setGenre(""); setDuration(0); setAudioUrl(""); setCoverUrl(""); setReleaseYear("");
         fetchTracks();
+        router.refresh();
       } else {
         const data = await res.json();
         showToast(data.error || "Ошибка при добавлении трека", "error");
@@ -175,7 +172,6 @@ export default function AdminPage() {
     }
   };
 
-  // ОБРАБОТЧИК ПРЯМОЙ ССЫЛКИ
   const handleDirectImport = async () => {
     if (!directUrl.trim()) {
       showToast("Вставьте ссылку на MP3-файл", "error");
@@ -195,6 +191,7 @@ export default function AdminPage() {
         showToast(`Трек "${data.track.title}" успешно импортирован!`, "success");
         setDirectUrl("");
         fetchTracks();
+        router.refresh();
       } else {
         showToast(data.error || "Ошибка импорта", "error");
       }
@@ -214,6 +211,7 @@ export default function AdminPage() {
         setTracks(tracks.filter(t => t.id !== deletingId));
         showToast("Трек удален", "success");
         setDeletingId(null);
+        router.refresh();
       } else {
         const errorData = await res.json();
         showToast(errorData.error || "Ошибка удаления", "error");
@@ -252,12 +250,18 @@ export default function AdminPage() {
         showToast("Трек обновлен", "success");
         setEditingTrack(null);
         fetchTracks();
+        router.refresh();
       }
     } catch (error) {
       showToast("Ошибка обновления", "error");
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleImportSuccess = () => {
+    fetchTracks();
+    router.refresh();
   };
 
   return (
@@ -284,10 +288,7 @@ export default function AdminPage() {
       </div>
       
       <div className="flex flex-col lg:flex-row gap-12">
-        {/* ЛЕВАЯ КОЛОНКА: Импорт */}
         <div className="w-full lg:w-1/2 flex flex-col gap-8">
-          
-          {/* БЛОК: Импорт по прямой ссылке */}
           <div className="bg-[#121212] border border-white/10 p-6 rounded-xl">
             <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
               <LinkIcon size={20} className="text-green-500" /> Импорт по ссылке
@@ -314,7 +315,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* БЛОК: Ручное добавление */}
           <div>
             <h2 className="text-xl font-bold text-white mb-4">Ручное добавление</h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -352,7 +352,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА: Список треков */}
         <div className="w-full lg:w-1/2">
           <h2 className="text-xl font-bold text-white mb-4">Все треки ({tracks.length})</h2>
           {isLoading ? (
@@ -386,7 +385,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* МОДАЛКА РЕДАКТИРОВАНИЯ */}
       {editingTrack && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
           <div className="absolute inset-0" onClick={() => setEditingTrack(null)} />
@@ -408,7 +406,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* МОДАЛКА УДАЛЕНИЯ */}
       {deletingId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
           <div className="absolute inset-0" onClick={() => setDeletingId(null)} />
@@ -427,8 +424,11 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* МОДАЛКА ИМПОРТА ПЛЕЙЛИСТА */}
-      <ImportPlaylistModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+      <ImportPlaylistModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 }

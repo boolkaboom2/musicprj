@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Loader2, DownloadCloud, AlertCircle } from "lucide-react";
 import TrackList from "./TrackList";
 import { usePlayerStore } from "@/store/playerStore";
 
 export default function SearchClient() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [tracks, setTracks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function SearchClient() {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         if (res.ok) setTracks(await res.json());
-      } catch (error) { console.error(error); }
+      } catch (error) { console.error(error); } 
       finally { setIsLoading(false); }
     }, 500);
 
@@ -48,16 +50,19 @@ export default function SearchClient() {
           setErrorMsg("Трек уже есть в базе");
           return;
         }
-        setErrorMsg(data.error || "Ошибка импорта");
+        setErrorMsg(data.error || "Трек не найден в сети");
         return;
       }
 
+      // Успех: ищем в базе, показываем и обновляем страницу
       const searchRes = await fetch(`/api/search?q=${encodeURIComponent(data.track.title)}`);
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         setTracks(searchData);
         if (searchData.length > 0) setQuery(data.track.title);
       }
+      
+      router.refresh(); // <--- ГЛАВНЫЙ ФИКС
     } catch (error) {
       setErrorMsg("Ошибка сети при импорте");
     } finally {

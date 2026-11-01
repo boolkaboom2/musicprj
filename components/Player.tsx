@@ -6,9 +6,9 @@ import { useSoundStore } from "@/store/soundStore";
 import { useTrackMenuStore } from "@/store/trackMenuStore";
 import { useUIStore } from "@/store/uiStore";
 import { 
-  Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, MoreHorizontal, 
-  Music, Settings2, ChevronDown 
-} from "lucide-react";
+  IPlay, IPause, ISkipBack, ISkipForward, IVolume, IMute, 
+  IMore, IMusic, ISettings, IChevronDown 
+} from "./Icons";
 import PlayerLikeButton from "./PlayerLikeButton";
 import SoundSettingsModal from "./SoundSettingsModal";
 import VolumeSlider from "./VolumeSlider";
@@ -218,14 +218,18 @@ export default function Player() {
           <div className="absolute inset-0 bg-black/50 pointer-events-none" />
 
           <div className="relative z-10 flex justify-between items-center p-6">
-            <button onClick={() => setPlayerExpanded(false)} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full"><ChevronDown size={32} /></button>
+            <button onClick={() => setPlayerExpanded(false)} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full">
+              <IChevronDown size={32} />
+            </button>
             <span className="text-xs text-white/60 uppercase tracking-widest font-bold">Сейчас играет</span>
-            <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full z-[200]"><MoreHorizontal size={28} /></button>
+            <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full z-[200]">
+              <IMore size={28} />
+            </button>
           </div>
 
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-10 p-6">
             <div className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-[#222] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-              {activeTrack.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white/20"><Music size={64} /></div>}
+              {activeTrack.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white/20"><IMusic size={64} /></div>}
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-full px-8 py-4 flex items-center justify-between w-full max-w-md border border-white/10">
               <div className="flex flex-col overflow-hidden">
@@ -247,11 +251,11 @@ export default function Player() {
               <span className="text-sm text-white/50 font-medium w-10 text-left">{formatTime(duration)}</span>
             </div>
             <div className="flex items-center justify-between px-4">
-              <button onClick={playPrevious} className="text-white/60 hover:text-white transition"><SkipBack size={32} fill="currentColor" /></button>
+              <button onClick={playPrevious} className="text-white/60 hover:text-white transition"><ISkipBack size={36} /></button>
               <button onClick={() => setIsPlaying(!isPlaying)} className="bg-white text-black w-20 h-20 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                {isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="translate-x-[2px]" />}
+                {isPlaying ? <IPause size={32} /> : <IPlay size={32} />}
               </button>
-              <button onClick={playNext} className="text-white/60 hover:text-white transition"><SkipForward size={32} fill="currentColor" /></button>
+              <button onClick={playNext} className="text-white/60 hover:text-white transition"><ISkipForward size={36} /></button>
             </div>
           </div>
         </div>
@@ -260,7 +264,7 @@ export default function Player() {
       <footer className="relative h-[90px] bg-[#121212]/95 backdrop-blur-2xl border-t border-white/10 px-6 grid grid-cols-3 items-center w-full shrink-0 z-50">
         <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-4 w-full cursor-pointer hover:bg-white/5 p-2 rounded-md transition">
           <div className="w-14 h-14 bg-[#222] rounded-md overflow-hidden shrink-0 shadow-lg border border-white/5">
-            {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><Music size={24} /></div>}
+            {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><IMusic size={24} /></div>}
           </div>
           <div className="overflow-hidden flex flex-col justify-center">
             <div className="text-sm font-bold text-white truncate hover:underline">{activeTrack ? activeTrack.title : "Выберите трек"}</div>
@@ -270,11 +274,11 @@ export default function Player() {
         
         <div className="flex flex-col items-center justify-center gap-2 w-full max-w-[500px] mx-auto">
           <div className="flex items-center gap-6">
-            <button onClick={playPrevious} className="text-[var(--text-subdued)] hover:text-white transition"><SkipBack size={20} fill="currentColor" /></button>
+            <button onClick={playPrevious} className="text-[var(--text-subdued)] hover:text-white transition"><ISkipBack size={22} /></button>
             <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} disabled={!activeTrack} className="bg-white text-black hover:scale-105 w-10 h-10 rounded-full flex items-center justify-center transition-transform disabled:opacity-30 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-              {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="translate-x-[1px]" />}
+              {isPlaying ? <IPause size={18} /> : <IPlay size={18} />}
             </button>
-            <button onClick={playNext} className="text-[var(--text-subdued)] hover:text-white transition"><SkipForward size={20} fill="currentColor" /></button>
+            <button onClick={playNext} className="text-[var(--text-subdued)] hover:text-white transition"><ISkipForward size={22} /></button>
           </div>
           
           <div className="w-full flex items-center gap-3">
@@ -289,14 +293,14 @@ export default function Player() {
         </div>
         
         <div className="w-full flex justify-end items-center gap-4">
-           <button onClick={() => setIsSoundModalOpen(true)} className="text-[var(--text-subdued)] hover:text-white transition p-2"><Settings2 size={20} /></button>
+           <button onClick={() => setIsSoundModalOpen(true)} className="text-[var(--text-subdued)] hover:text-white transition p-2"><ISettings size={20} /></button>
            <div className="relative group flex items-center justify-center p-2">
              <button onClick={toggleMute} className="text-[var(--text-subdued)] hover:text-white transition">
-               {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+               {isMuted || volume === 0 ? <IMute size={20} /> : <IVolume size={20} />}
              </button>
              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-[#1c1c1c] rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl border border-white/5 flex flex-col items-center"><VolumeSlider /></div>
            </div>
-           <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-white transition p-2"><MoreHorizontal size={20} /></button>
+           <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-white transition p-2"><IMore size={20} /></button>
         </div>
       </footer>
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Player from "@/components/Player";
@@ -8,14 +8,18 @@ import TrackOptionsMenu from "@/components/TrackOptionsMenu";
 import DisableContextMenu from "@/components/DisableContextMenu";
 import Toast from "@/components/Toast";
 import VisitLogger from "@/components/VisitLogger";
+import AutoRefresher from "@/components/AutoRefresher";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import UserLikesInit from "@/components/UserLikesInit";
 import { Suspense } from "react";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const manrope = Manrope({ 
+  variable: "--font-manrope", 
+  subsets: ["latin", "cyrillic"], 
+  weight: ["400", "500", "600", "700", "800"] 
+});
 
 export const metadata: Metadata = {
   title: "SADOVOD",
@@ -45,8 +49,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white h-screen flex flex-col overflow-hidden`}>
+    <html lang="ru" className={manrope.variable}>
+      <body className="antialiased bg-black text-white h-screen flex flex-col overflow-hidden font-sans">
         
         <Suspense fallback={null}>
           <LayoutData />
@@ -67,10 +71,11 @@ export default function RootLayout({
         
         <Toast />
         
-        {/* ОБОРАЧИВАЕМ В SUSPENSE */}
         <Suspense fallback={null}>
           <VisitLogger /> 
         </Suspense>
+        
+        <AutoRefresher />
         
       </body>
     </html>

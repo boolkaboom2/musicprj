@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
-/* 1. Глобальные переменные (если используешь) */
+@theme {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* 1. Глобальные переменные */
 :root {
   --text-base: #ffffff;
   --text-subdued: #a7a7a7;

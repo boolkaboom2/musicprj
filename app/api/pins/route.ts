@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
 
 export async function GET(req: Request) {
   try {
@@ -44,9 +45,11 @@ export async function POST(req: Request) {
 
     if (existingPin) {
       await prisma.pinnedTrack.delete({ where: { id: existingPin.id } });
+      revalidatePath('/', 'layout');
       return NextResponse.json({ pinned: false });
     } else {
       await prisma.pinnedTrack.create({ data: { userId, trackId } });
+      revalidatePath('/', 'layout');
       return NextResponse.json({ pinned: true });
     }
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkAdmin } from '@/lib/isAdmin';
+import { revalidatePath } from 'next/cache';
 
 export async function DELETE(request: Request) {
   try {
@@ -14,6 +15,7 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: 'ID не найден' }, { status: 400 });
 
     await prisma.track.delete({ where: { id } });
+    revalidatePath('/', 'layout');
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Ошибка при удалении' }, { status: 500 });
@@ -45,6 +47,8 @@ export async function PATCH(request: Request) {
         releaseYear: releaseYear !== undefined ? (releaseYear ? Number(releaseYear) : null) : undefined 
       },
     });
+
+    revalidatePath('/', 'layout');
 
     return NextResponse.json(updatedTrack);
   } catch (error) {

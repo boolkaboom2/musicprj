@@ -1,31 +1,31 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkAdmin } from '@/lib/isAdmin';
+import { revalidatePath } from 'next/cache';
 
 export async function GET() {
   try {
     const tracks = await prisma.track.findMany({
       orderBy: { createdAt: 'desc' }
-    })
-    return NextResponse.json(tracks)
+    });
+    return NextResponse.json(tracks);
   } catch (error) {
-    return NextResponse.json({ error: 'Ошибка при получении треков' }, { status: 500 })
+    return NextResponse.json({ error: 'Ошибка при получении треков' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    // ПРОВЕРКА: Только админ может добавлять
     const isAdmin = await checkAdmin();
     if (!isAdmin) {
       return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
     }
 
-    const body = await request.json()
-    const { title, artist, audioUrl, coverUrl, duration, genre, releaseYear } = body
+    const body = await request.json();
+    const { title, artist, audioUrl, coverUrl, duration, genre, releaseYear } = body;
 
     if (!title || !artist || !audioUrl) {
-      return NextResponse.json({ error: 'Заполните обязательные поля' }, { status: 400 })
+      return NextResponse.json({ error: 'Заполните обязательные поля' }, { status: 400 });
     }
 
     const existingTrack = await prisma.track.findFirst({
@@ -46,11 +46,13 @@ export async function POST(request: Request) {
         genre: genre || null,
         releaseYear: releaseYear ? Number(releaseYear) : null,
       },
-    })
+    });
 
-    return NextResponse.json(track, { status: 201 })
+    revalidatePath('/', 'layout');
+
+    return NextResponse.json(track, { status: 201 });
   } catch (error) {
-    console.error('Ошибка создания трека:', error)
-    return NextResponse.json({ error: 'Ошибка при создании трека' }, { status: 500 })
+    console.error('Ошибка создания трека:', error);
+    return NextResponse.json({ error: 'Ошибка при создании трека' }, { status: 500 });
   }
 }

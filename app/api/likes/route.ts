@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import { trackIdSchema } from '@/lib/validations';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: Request) {
   try {
@@ -30,9 +31,11 @@ export async function POST(req: Request) {
 
     if (existingLike) {
       await prisma.like.delete({ where: { id: existingLike.id } });
+      revalidatePath('/', 'layout');
       return NextResponse.json({ liked: false });
     } else {
       await prisma.like.create({ data: { userId, trackId } });
+      revalidatePath('/', 'layout');
       return NextResponse.json({ liked: true });
     }
   } catch (error) {

@@ -24,7 +24,8 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
 
     const html = await res.text();
 
-    const metaRegex = /data-musmeta='(\{.*?\})'/;
+    // Захватываем JSON внутри одинарных кавычек без порчи бэкслешей
+    const metaRegex = /data-musmeta='([^']+)'/;
     const match = html.match(metaRegex);
 
     if (!match || !match[1]) {
@@ -32,20 +33,31 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       return null;
     }
 
-    const cleanJson = match[1].replace(/\\/g, '');
-    const meta = JSON.parse(cleanJson);
+    // HTML-entities → символы
+    let rawJson = match[1]
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&');
+
+    // ВАЖНО: JSON.parse сам разберется с \/ и \uXXXX. Никаких .replace(/\\/g, '')!
+    let meta: any;
+    try {
+      meta = JSON.parse(rawJson);
+    } catch (e) {
+      console.error('[Hitmoz] Не удалось распарсить JSON:', rawJson.slice(0, 200));
+      return null;
+    }
 
     if (!meta.url || !meta.artist || !meta.title) {
       return null;
     }
 
-    // ФИКС: Если ссылка относительная (начинается с /), добавляем домен
     let finalUrl = meta.url;
     if (finalUrl.startsWith('/')) {
       finalUrl = `https://rue.hitmoz.org${finalUrl}`;
     }
 
-    console.log(`[Hitmoz] Найден: ${meta.artist} - ${meta.title} (URL: ${finalUrl})`);
+    console.log(`[Hitmoz] Найден: ${meta.artist} - ${meta.title}`);
 
     return {
       title: meta.title,
