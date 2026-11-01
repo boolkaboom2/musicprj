@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon, ListMusic } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
+import ImportPlaylistModal from "@/components/ImportPlaylistModal";
 
 type Track = {
   id: string;
@@ -32,9 +33,12 @@ export default function AdminPage() {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isSearchingITunes, setIsSearchingITunes] = useState(false);
   
-  // СОСТОЯНИЕ ПРЯМОЙ ССЫЛКИ
+  // Состояние прямой ссылки
   const [directUrl, setDirectUrl] = useState("");
   const [isImportingDirect, setIsImportingDirect] = useState(false);
+
+  // Состояние модалки импорта плейлиста
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Общий Toast
   const showToast = useToast((s) => s.show);
@@ -267,6 +271,12 @@ export default function AdminPage() {
           <Link href="/admin/users" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2">
             <Users size={18} /> Пользователи
           </Link>
+          <button 
+            onClick={() => setIsImportModalOpen(true)} 
+            className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2"
+          >
+            <ListMusic size={18} /> Импорт плейлиста
+          </button>
           <Link href="/admin/import" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition">
             Массовый импорт
           </Link>
@@ -416,6 +426,9 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* МОДАЛКА ИМПОРТА ПЛЕЙЛИСТА */}
+      <ImportPlaylistModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
     </div>
   );
 }

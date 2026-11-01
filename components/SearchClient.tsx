@@ -22,7 +22,7 @@ export default function SearchClient() {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         if (res.ok) setTracks(await res.json());
-      } catch (error) { console.error(error); } 
+      } catch (error) { console.error(error); }
       finally { setIsLoading(false); }
     }, 500);
 
@@ -33,34 +33,31 @@ export default function SearchClient() {
     setIsImporting(true);
     setErrorMsg("");
     try {
-      const res = await fetch("/api/import", {
+      const res = await fetch("/api/search-music", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ textList: query }),
+        body: JSON.stringify({ query }),
       });
-      
+
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 409 && data.track) {
+          const searchRes = await fetch(`/api/search?q=${encodeURIComponent(data.track.title)}`);
+          if (searchRes.ok) setTracks(await searchRes.json());
+          setErrorMsg("Трек уже есть в базе");
+          return;
+        }
         setErrorMsg(data.error || "Ошибка импорта");
         return;
       }
 
-      if (data.results && data.results[0] && !data.results[0].success) {
-         const cleanError = data.results[0].error.replace(/.*Command failed.*/, "Трек не найден на наших источниках");
-         setErrorMsg(cleanError);
-         return;
-      }
-
-      const importedTitle = data.results[0].title;
-      const searchRes = await fetch(`/api/search?q=${encodeURIComponent(importedTitle)}`);
-      
+      const searchRes = await fetch(`/api/search?q=${encodeURIComponent(data.track.title)}`);
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         setTracks(searchData);
-        if (searchData.length > 0) setQuery(importedTitle);
+        if (searchData.length > 0) setQuery(data.track.title);
       }
-      
     } catch (error) {
       setErrorMsg("Ошибка сети при импорте");
     } finally {
@@ -89,14 +86,14 @@ export default function SearchClient() {
           <TrackList initialTracks={tracks} userLikes={userLikes} />
         ) : query.length > 0 && !isLoading ? (
           <div className="p-8 flex flex-col items-start gap-4">
-            
+
             {!isImporting && (
               <p className="text-[var(--text-subdued)]">Трека нет в базе. Хотите скачать его из сети?</p>
             )}
-            
+
             {errorMsg && (
               <div className="flex items-center gap-3 text-red-400 bg-red-500/10 px-4 py-3 rounded-lg border border-red-500/20 text-sm font-medium animate-in slide-in-from-top-2 fade-in">
-                <AlertCircle size={18} className="shrink-0" /> 
+                <AlertCircle size={18} className="shrink-0" />
                 {errorMsg}
               </div>
             )}
@@ -107,9 +104,13 @@ export default function SearchClient() {
               className="bg-white text-black font-bold py-2.5 px-6 rounded-full hover:bg-gray-200 transition flex items-center gap-2 disabled:opacity-50"
             >
               {isImporting ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-              {isImporting ? "Скачиваем (около 15 сек)..." : "Не нашлось? Нажми!"}
+              {isImporting ? "Скачиваем трек..." : "Не нашлось? Скачаем!"}
             </button>
-            <p className="text-xs text-[var(--text-subdued)]">Скрипт сам скачает этот трек из открытых источников.</p>
+            <p className="text-xs text-[var(--text-subdued)]">
+              {isImporting 
+                ? "Ищем MP3, обложку и данные о треке..." 
+                : "Скрипт сам найдет трек в интернете и добавит в базу."}
+            </p>
           </div>
         ) : null}
       </div>
