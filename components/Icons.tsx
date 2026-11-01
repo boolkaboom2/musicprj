@@ -6,20 +6,27 @@ type IconProps = React.SVGProps<SVGSVGElement> & {
 
 const baseStyle = "pointer-events-none";
 
-// PLAY — треугольник отцентрован математически
+// PLAY — аккуратный треугольник со скругленными углами (как на референсе)
 export function IPlay({ size = 24, className = "", ...props }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={`${baseStyle} ${className}`} {...props}>
-      <path d="M10 4L22 12L10 20V4Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="miter" />
+      <path 
+        d="M 8.5 3.5 L 20 12 L 8.5 20.5 Z" 
+        fill="currentColor" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinejoin="round" 
+      />
     </svg>
   );
 }
+
 // PAUSE
 export function IPause({ size = 24, className = "", ...props }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={`${baseStyle} ${className}`} {...props}>
-      <rect x="5" y="4" width="5" height="16" fill="currentColor" />
-      <rect x="14" y="4" width="5" height="16" fill="currentColor" />
+      <rect x="5" y="4" width="5" height="16" rx="1" fill="currentColor" />
+      <rect x="14" y="4" width="5" height="16" rx="1" fill="currentColor" />
     </svg>
   );
 }
@@ -167,6 +174,35 @@ export function IShare({ size = 24, className = "", ...props }: IconProps) {
       <circle cx="18" cy="6" r="2.5" stroke="currentColor" strokeWidth="2.5" />
       <circle cx="18" cy="18" r="2.5" stroke="currentColor" strokeWidth="2.5" />
       <path d="M8 11L16 7M8 13L16 17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+
+
+
+// SHUFFLE — перемешать (стрелки крест-накрест)
+export function IShuffle({ size = 24, className = "", ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={`${baseStyle} ${className}`} fill="none" {...props}>
+      <path d="M3 7H7L17 17H21M21 17L18 14M21 17L18 20M3 17H7L17 7H21M21 7L18 4M21 7L18 10" 
+        stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+    </svg>
+  );
+}
+
+// REPEAT — четкая петля с двумя острыми стрелками
+export function IRepeat({ size = 24, className = "", ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={`${baseStyle} ${className}`} fill="none" {...props}>
+      {/* Верхняя стрелка (вправо) */}
+      <path d="M16 3L21 7L16 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" strokeLinejoin="miter" />
+      {/* Верхняя линия */}
+      <path d="M3 12V9C3 7.3 4.3 6 6 6H20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" />
+      {/* Нижняя стрелка (влево) */}
+      <path d="M8 21L3 17L8 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" strokeLinejoin="miter" />
+      {/* Нижняя линия */}
+      <path d="M21 12V15C21 16.7 19.7 18 18 18H4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" />
     </svg>
   );
 }

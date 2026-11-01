@@ -54,7 +54,7 @@ export default function ProfileModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-[#1c1c1c] w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 border border-white/5 flex flex-col items-center">
+      <div className="relative bg-[#1c1c1c] w-full h-full sm:h-auto sm:max-w-sm sm:rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 border border-white/5 flex flex-col items-center justify-center sm:justify-start">
         <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white"><X size={20} /></button>
         
         <h2 className="text-xl font-bold text-white mb-6">Профиль</h2>

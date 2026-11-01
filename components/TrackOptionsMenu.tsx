@@ -4,13 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTrackMenuStore } from "@/store/trackMenuStore";
 import { usePlayerStore } from "@/store/playerStore";
+import { useModalStore } from "@/store/modalStore";
 import { useToast } from "@/components/Toast";
-import { IPin, IHeart, IRadio, IShare } from "./Icons";
-import { Loader2 } from "lucide-react";
+import { IPin, IRadio, IShare } from "./Icons";
+import { ListMusic, Loader2, Heart } from "lucide-react"; // <-- Heart из lucide
 
 export default function TrackOptionsMenu() {
   const { isTrackMenuOpen, trackForMenu, menuPosition, closeTrackMenu } = useTrackMenuStore();
   const { setActiveTrack, likedTrackIds, toggleLikedTrack } = usePlayerStore();
+  const { openAddToPlaylist } = useModalStore();
   const [isLoadingWave, setIsLoadingWave] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
@@ -50,21 +52,15 @@ export default function TrackOptionsMenu() {
 
   const handleLike = async () => {
     toggleLikedTrack(trackForMenu.id);
-    
     try {
       const res = await fetch("/api/likes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackId: trackForMenu.id }),
       });
-      
       if (!res.ok) {
         toggleLikedTrack(trackForMenu.id);
-        if (res.status === 401) {
-          window.location.href = "/login";
-        } else {
-          showToast("Ошибка при лайке", "error");
-        }
+        if (res.status === 401) window.location.href = "/login";
       } else {
         router.refresh();
       }
@@ -76,7 +72,6 @@ export default function TrackOptionsMenu() {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/track/${trackForMenu.id}`;
-    
     try {
       if (navigator.share) {
         await navigator.share({ title: trackForMenu.title, url });
@@ -88,15 +83,9 @@ export default function TrackOptionsMenu() {
         textArea.style.opacity = "0";
         document.body.appendChild(textArea);
         textArea.select();
-        
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-        
-        if (successful) {
-          showToast("Ссылка скопирована", "success");
-        } else {
-          showToast("Не удалось скопировать ссылку", "error");
-        }
+        showToast(successful ? "Ссылка скопирована" : "Не удалось скопировать", successful ? "success" : "error");
         closeTrackMenu();
       }
     } catch (error) {
@@ -124,13 +113,17 @@ export default function TrackOptionsMenu() {
   };
 
   const menuWidth = 260;
-  const menuHeight = 280;
+  const menuHeight = 260; 
   let top = menuPosition.top;
   let left = menuPosition.left;
 
   if (typeof window !== "undefined") {
-    if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 16;
-    if (top + menuHeight > window.innerHeight) top = menuPosition.top - menuHeight - 40; 
+    if (left + menuWidth > window.innerWidth) {
+      left = window.innerWidth - menuWidth - 16;
+    }
+    if (top + menuHeight > window.innerHeight) {
+      top = menuPosition.buttonTop - menuHeight - 25; 
+    }
   }
 
   return (
@@ -140,6 +133,16 @@ export default function TrackOptionsMenu() {
         style={{ top, left }}
         className="absolute w-[260px] bg-[#232323] rounded-xl p-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 duration-150 border border-white/5"
       >
+        <button 
+            onClick={() => {
+              openAddToPlaylist(trackForMenu);
+              closeTrackMenu();
+            }}
+            className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium"
+        >
+            <ListMusic size={18} /> Добавить в плейлист
+        </button>
+
         <button 
             onClick={handlePin}
             disabled={isPinning}
@@ -153,7 +156,7 @@ export default function TrackOptionsMenu() {
             onClick={handleLike}
             className="flex items-center gap-4 w-full p-3 hover:bg-white/5 rounded-lg transition text-left text-white/80 hover:text-white text-sm font-medium"
         >
-            <IHeart size={18} filled={isLiked} /> 
+            <Heart size={18} fill={isLiked ? "currentColor" : "none"} /> 
             {isLiked ? "Убрать лайк" : "Нравится"}
         </button>
 

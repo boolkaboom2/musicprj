@@ -12,17 +12,17 @@ model User {
   email           String    @unique
   password        String
   name            String?
-  avatarUrl       String?  
+  avatarUrl       String?
   role            String    @default("USER")
   status          String    @default("ACTIVE")
   subscriptionEnd DateTime?
   createdAt       DateTime  @default(now())
   
-  playlists       Playlist[]
-  likes           Like[]
-  listenHistory   ListenHistory[]
-  pinnedTracks    PinnedTrack[]
-  visitLogs       VisitLog[]
+  playlists        Playlist[]
+  likes            Like[]
+  listenHistory    ListenHistory[]
+  pinnedTracks     PinnedTrack[]
+  visitLogs        VisitLog[]
   subscriptionLogs SubscriptionLog[]
 }
 
@@ -30,11 +30,11 @@ model Track {
   id          String   @id @default(uuid())
   title       String
   artist      String
-  coverUrl    String?  
-  audioUrl    String   
-  duration    Int      
+  coverUrl    String?
+  audioUrl    String
+  duration    Int
   genre       String?
-  releaseYear Int?     
+  releaseYear Int?
   createdAt   DateTime @default(now())
 
   playlists     PlaylistItem[]
@@ -46,10 +46,12 @@ model Track {
 model Playlist {
   id        String         @id @default(cuid())
   title     String
+  isPublic  Boolean        @default(false)
+  coverUrl  String?
   createdAt DateTime       @default(now())
   userId    String
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     PlaylistItem[] 
+  items     PlaylistItem[]
 }
 
 model PlaylistItem {

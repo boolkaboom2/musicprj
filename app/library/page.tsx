@@ -4,20 +4,23 @@ import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import TrackList from "@/components/TrackList";
 import Link from "next/link";
-import { Heart, Music, Play } from "lucide-react";
+import { Heart, Music, Play, ListMusic } from "lucide-react";
+import PageTransition from "@/components/PageTransition";
 
 export default function LibraryPage() {
   return (
-    <div className="flex flex-col h-full w-full">
-      <div className="p-8 pb-0">
-        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-          Моя медиатека
-        </h1>
+    <PageTransition>
+      <div className="flex flex-col h-full w-full">
+        <div className="p-8 pb-0">
+          <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+            Моя медиатека
+          </h1>
+        </div>
+        <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка...</div>}>
+          <LibraryData />
+        </Suspense>
       </div>
-      <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка...</div>}>
-        <LibraryData />
-      </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -37,7 +40,6 @@ async function LibraryData() {
     );
   }
 
-  // 1. Достаем лайки
   const likes = await prisma.like.findMany({
     where: { userId: payload.userId },
     include: { track: true },
@@ -46,16 +48,15 @@ async function LibraryData() {
   const likedTracks = likes.map(like => like.track);
   const userLikes = likedTracks.map(t => t.id);
 
-  // 2. Достаем плейлисты
   const playlists = await prisma.playlist.findMany({
     where: { userId: payload.userId },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    include: { _count: { select: { items: true } } }
   });
 
   return (
     <div className="p-8 flex flex-col gap-12">
       
-      {/* Секция Плейлистов */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
           <Music size={24} /> Мои плейлисты
@@ -64,30 +65,46 @@ async function LibraryData() {
           <p className="text-[var(--text-subdued)]">У вас пока нет плейлистов. Создайте их через меню трека.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {playlists.map((pl) => (
-              <Link 
-                key={pl.id} 
-                href={`/playlist/${pl.id}`}
-                className="group flex flex-col gap-4 p-4 bg-[#121212] hover:bg-[#1a1a1a] rounded-xl transition-all duration-300"
-              >
-                {/* Заглушка обложки (позже добавим загрузку своих) */}
-                <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all">
-                  <Music size={48} className="text-white/20" />
-                  <div className="absolute bottom-3 right-3 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
-                    <Play size={20} fill="black" className="text-black translate-x-[1px]" />
-                  </div>
+            {playlists.map((pl, index) => {
+              const cover = pl.coverUrl
+                ? (pl.coverUrl.startsWith('http') || pl.coverUrl.startsWith('/') 
+                    ? pl.coverUrl 
+                    : `/api/stream/${pl.coverUrl}`)
+                : null;
+              return (
+                <div
+                  key={pl.id}
+                  className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                  style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s`, animationFillMode: 'both' }}
+                >
+                  <Link 
+                    href={`/playlist/${pl.id}`}
+                    className="group flex flex-col gap-4 p-4 bg-[#121212] hover:bg-[#1a1a1a] rounded-xl transition-all duration-300"
+                  >
+                    <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all">
+                      {cover ? (
+                        <img src={cover} alt={pl.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <ListMusic size={48} className="text-white/20" />
+                      )}
+                      <div className="absolute bottom-3 right-3 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+                        <Play size={20} fill="black" className="text-black translate-x-[1px]" />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg truncate">{pl.title}</h3>
+                      <p className="text-[var(--text-subdued)] text-sm mt-1">
+                        {pl.isPublic ? "Публичный" : "Приватный"} • {pl._count.items} треков
+                      </p>
+                    </div>
+                  </Link>
                 </div>
-                <div>
-                  <h3 className="text-white font-bold text-lg truncate">{pl.title}</h3>
-                  <p className="text-[var(--text-subdued)] text-sm mt-1">Плейлист</p>
-                </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Секция Лайков */}
       <div>
         <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
           <Heart size={24} /> Мне нравится

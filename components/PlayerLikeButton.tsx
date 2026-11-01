@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePlayerStore } from "@/store/playerStore";
 import { useRouter } from "next/navigation";
-import { IHeart } from "./Icons";
+import { Heart } from "lucide-react"; // <-- вернули lucide
 
 export default function PlayerLikeButton({ trackId }: { trackId: string }) {
   const { likedTrackIds, toggleLikedTrack } = usePlayerStore();
@@ -42,7 +42,7 @@ export default function PlayerLikeButton({ trackId }: { trackId: string }) {
         isLiked ? "text-white" : "text-[var(--text-subdued)] hover:text-white"
       } ${isAnimating ? "scale-125" : "scale-100"}`}
     >
-      <IHeart size={18} filled={isLiked} />
+      <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
     </button>
   );
 }

@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 interface ToastState {
   message: string | null;
   type: "success" | "error" | "info";
+  toastId: number;
   show: (message: string, type?: "success" | "error" | "info") => void;
   hide: () => void;
 }
@@ -13,9 +14,20 @@ interface ToastState {
 export const useToast = create<ToastState>((set) => ({
   message: null,
   type: "info",
+  toastId: 0,
   show: (message, type = "info") => {
-    set({ message, type });
-    setTimeout(() => set({ message: null }), 4000);
+    const newId = Date.now();
+    set({ message, type, toastId: newId });
+    
+    // Сбрасываем только если ID совпадает (значит, не пришел новый тост)
+    setTimeout(() => {
+      useToast.setState((state) => {
+        if (state.toastId === newId) {
+          return { message: null };
+        }
+        return state;
+      });
+    }, 4000);
   },
   hide: () => set({ message: null }),
 }));
@@ -30,7 +42,7 @@ export default function Toast() {
       type === "success" ? "bg-[#121212] border-green-500/50 text-green-500" :
       type === "error" ? "bg-[#121212] border-red-500/50 text-red-500" :
       "bg-[#121212] border-white/20 text-white"
-    }`} style={{ bottom: '120px', right: '20px' }}> {/* <--- Подняли на 120px */}
+    }`} style={{ bottom: '120px', right: '20px' }}>
       <span className="font-bold text-sm">{message}</span>
       <button onClick={hide} className="ml-4 text-white/50 hover:text-white transition-colors"><X size={16} /></button>
     </div>

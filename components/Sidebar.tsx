@@ -1,69 +1,114 @@
+"use client";
+
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { verifyToken } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { Suspense } from "react";
+import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useUIStore } from "@/store/uiStore";
+import { Suspense, useEffect } from "react";
 import UserProfileClient from "./UserProfileClient";
 
-async function UserProfile() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-  const payload = token ? await verifyToken(token) : null;
-  
-  let user = null;
-  if (payload) {
-    // Приводим тип к any, чтобы TS не ругался
-    user = await prisma.user.findUnique({ where: { id: payload.userId } }) as any;
-  }
-
-  return <UserProfileClient user={user} />;
+interface SidebarProps {
+  user: any;
+  isAdmin: boolean;
 }
 
-async function AdminLink() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-  const payload = token ? await verifyToken(token) : null;
+function SidebarContent({ user, isAdmin }: SidebarProps) {
+  const pathname = usePathname();
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
 
-  if (payload?.role === "ADMIN") {
-    return (
-      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-white transition font-medium text-sm tracking-wide mt-4 pt-4 border-t border-[#333]">
-        Админ-панель
-      </Link>
-    );
-  }
-  return null;
-}
+  const linkClass = (href: string) => 
+    `transition font-medium text-sm tracking-wide ${
+      pathname === href ? "text-white" : "text-[var(--text-subdued)] hover:text-white"
+    }`;
 
-export default function Sidebar() {
   return (
-    <aside className="w-[280px] bg-[#121212] rounded-lg flex flex-col p-6 shrink-0 justify-between h-full">
+    <div className="flex flex-col h-full justify-between">
       <div>
-        <Link href="/" className="text-2xl font-black uppercase tracking-tighter text-white">
-          Sadovod
-        </Link>
+        <div className="flex items-center justify-between mb-8">
+          <Link 
+            href="/" 
+            className="text-2xl font-black uppercase tracking-tighter text-white"
+            onClick={() => setSidebarOpen(false)}
+          >
+            Sadovod
+          </Link>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden text-white/50 hover:text-white p-1"
+          >
+            <X size={20} />
+          </button>
+        </div>
         
-        <nav className="flex flex-col gap-4 mt-8">
-          <Link href="/" className="text-[var(--text-subdued)] hover:text-white transition font-medium text-sm tracking-wide">
+        <nav className="flex flex-col gap-4">
+          <Link href="/" onClick={() => setSidebarOpen(false)} className={linkClass('/')}>
             Главная
           </Link>
-          <Link href="/search" className="text-[var(--text-subdued)] hover:text-white transition font-medium text-sm tracking-wide">
+          <Link href="/search" onClick={() => setSidebarOpen(false)} className={linkClass('/search')}>
             Поиск
           </Link>
-          <Link href="/library" className="text-[var(--text-subdued)] hover:text-white transition font-medium text-sm tracking-wide">
+          <Link href="/library" onClick={() => setSidebarOpen(false)} className={linkClass('/library')}>
             Моя медиатека
           </Link>
+          <Link href="/playlists" onClick={() => setSidebarOpen(false)} className={linkClass('/playlists')}>
+            Публичные плейлисты
+          </Link>
           
-          <Suspense fallback={null}>
-            <AdminLink />
-          </Suspense>
+          {isAdmin && (
+            <Link 
+              href="/admin" 
+              onClick={() => setSidebarOpen(false)} 
+              className={`${linkClass('/admin')} mt-4 pt-4 border-t border-[#333]`}
+            >
+              Админ-панель
+            </Link>
+          )}
         </nav>
       </div>
 
       <div className="border-t border-[#333] pt-4">
-        <Suspense fallback={<div className="h-10 bg-white/5 animate-pulse rounded-md"></div>}>
-          <UserProfile />
-        </Suspense>
+        <UserProfileClient user={user} />
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export default function Sidebar({ user, isAdmin }: SidebarProps) {
+  const { isSidebarOpen, setSidebarOpen } = useUIStore();
+
+  // Закрываем сайдбар при смене страницы на мобилке
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isSidebarOpen]);
+
+  return (
+    <>
+      {/* Desktop */}
+      <aside className="hidden md:flex w-[280px] bg-[#121212] rounded-lg flex-col p-6 shrink-0 h-full">
+        <Suspense fallback={null}>
+          <SidebarContent user={user} isAdmin={isAdmin} />
+        </Suspense>
+      </aside>
+
+      {/* Mobile drawer */}
+      {isSidebarOpen && (
+        <>
+          <div 
+            className="md:hidden fixed inset-0 bg-black/70 z-[200] animate-in fade-in duration-200"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[#121212] z-[201] p-6 animate-in slide-in-from-left-full duration-300">
+            <Suspense fallback={null}>
+              <SidebarContent user={user} isAdmin={isAdmin} />
+            </Suspense>
+          </aside>
+        </>
+      )}
+    </>
   );
 }

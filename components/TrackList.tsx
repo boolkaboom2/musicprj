@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { usePlayerStore } from "@/store/playerStore";
 import { useModalStore } from "@/store/modalStore";
 import { useTrackMenuStore } from "@/store/trackMenuStore";
@@ -38,78 +39,88 @@ export default function TrackList({
   };
 
   return (
-    <div className="flex flex-col gap-1 p-8">
+    <div className="flex flex-col gap-1 p-4 md:p-8">
       {tracks.map((track, index) => {
         const isLiked = userLikes.includes(track.id);
         const isPinned = userPins.includes(track.id);
         const isMenuOpenForThisTrack = isTrackMenuOpen && trackForMenu?.id === track.id;
 
         return (
-          <div 
-            key={track.id} 
+          <motion.div
+            key={track.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              duration: 0.3, 
+              delay: Math.min(index * 0.03, 0.5),
+              ease: [0.22, 1, 0.36, 1]
+            }}
             onClick={() => setActiveTrack(track, tracks)} 
             onContextMenu={(e) => { 
               e.preventDefault();
               openTrackMenu(track, e.currentTarget.getBoundingClientRect());
             }}
-            className={`flex items-center gap-4 p-2 rounded-md transition cursor-pointer group ${
+            className={`flex items-center gap-2 md:gap-4 p-2 rounded-md transition cursor-pointer group ${
               isMenuOpenForThisTrack ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
             }`}
           >
-            <div className={`w-6 flex justify-center items-center text-sm transition-colors ${
+            <div className={`hidden sm:flex w-6 justify-center items-center text-sm transition-colors ${
               isMenuOpenForThisTrack ? "text-white" : "text-[#777] group-hover:text-white"
             }`}>
                <span className={isMenuOpenForThisTrack ? "hidden" : "group-hover:hidden"}>{index + 1}</span>
                {isMenuOpenForThisTrack ? <IPlay size={12} /> : <IPlay size={12} className="hidden group-hover:block" />}
             </div>
 
-            <div className="w-12 h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center text-[#555]">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center text-[#555]">
               {track.coverUrl ? (
                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
               ) : (
-                <IMusic size={20} /> 
+                <IMusic size={18} /> 
               )}
             </div>
             
-            <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex flex-col flex-1 overflow-hidden min-w-0">
               <div className="flex items-center gap-2">
                 <Link 
                   href={`/track/${track.id}`} 
                   onClick={(e) => e.stopPropagation()}
                   onContextMenu={(e) => e.stopPropagation()}
-                  className="text-white font-medium truncate hover:underline w-fit"
+                  className="text-white font-medium truncate hover:underline w-fit text-sm md:text-base"
                 >
                   {track.title}
                 </Link>
                 
                 {isPinned && (
-                  <div className="flex items-center justify-center bg-white/10 p-1 rounded-full border border-white/5 shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                  <div className="hidden sm:flex items-center justify-center bg-white/10 p-1 rounded-full border border-white/5">
                     <IPin size={12} className="text-white fill-white" />
                   </div>
                 )}
               </div>
-              <span className="text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
+              <span className="text-xs md:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
             </div>
 
-            <div className={`transition-opacity flex items-center gap-4 ${
-              isMenuOpenForThisTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            {/* Кнопки на мобилке: только IMore (LikeButton ниже для десктопа) */}
+            <div className={`transition-opacity flex items-center gap-1 md:gap-4 ${
+              isMenuOpenForThisTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-100 md:group-hover:opacity-100"
             }`}>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   openTrackMenu(track, e.currentTarget.getBoundingClientRect());
                 }}
-                className="text-[var(--text-subdued)] hover:text-white transition-colors"
+                className="text-[var(--text-subdued)] hover:text-white transition-colors p-1 md:p-0"
               >
                 <IMore size={20} />
               </button>
-              <LikeButton trackId={track.id} initialIsLiked={isLiked} />
+              <div className="hidden md:block">
+                <LikeButton trackId={track.id} initialIsLiked={isLiked} />
+              </div>
             </div>
 
-            <span className="text-sm text-[var(--text-subdued)] w-12 text-right tabular-nums">
+            <span className="text-xs md:text-sm text-[var(--text-subdued)] w-10 md:w-12 text-right tabular-nums">
               {formatTime(track.duration)}
             </span>
-          </div>
+          </motion.div>
         );
       })}
     </div>

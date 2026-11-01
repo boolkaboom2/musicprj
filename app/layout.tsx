@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import MobileHeader from "@/components/MobileHeader";
 import Player from "@/components/Player";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 import TrackOptionsMenu from "@/components/TrackOptionsMenu"; 
@@ -31,8 +32,17 @@ async function LayoutData() {
   const token = cookieStore.get("auth_token")?.value;
   const payload = token ? await verifyToken(token) : null;
   
+  let user: any = null;
   let userLikes: string[] = [];
+  let isAdmin = false;
+
   if (payload?.userId) {
+    user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, email: true, name: true, avatarUrl: true, role: true }
+    });
+    isAdmin = user?.role === 'ADMIN';
+
     const likes = await prisma.like.findMany({
       where: { userId: payload.userId },
       select: { trackId: true }
@@ -40,7 +50,12 @@ async function LayoutData() {
     userLikes = likes.map(l => l.trackId);
   }
   
-  return <UserLikesInit initialLikes={userLikes} />;
+  return (
+    <>
+      <UserLikesInit initialLikes={userLikes} />
+      <Sidebar user={user} isAdmin={isAdmin} />
+    </>
+  );
 }
 
 export default function RootLayout({
@@ -52,14 +67,14 @@ export default function RootLayout({
     <html lang="ru" className={manrope.variable}>
       <body className="antialiased bg-black text-white h-screen flex flex-col overflow-hidden font-sans">
         
-        <Suspense fallback={null}>
-          <LayoutData />
-        </Suspense>
-        
-        <div className="flex flex-1 overflow-hidden p-2 gap-2">
-          <Sidebar />
+        <MobileHeader />
+
+        <div className="flex flex-1 overflow-hidden md:p-2 gap-2">
+          <Suspense fallback={null}>
+            <LayoutData />
+          </Suspense>
           
-          <main className="flex-1 h-full overflow-y-auto bg-[#121212] rounded-lg custom-scrollbar relative">
+          <main className="flex-1 h-full overflow-y-auto bg-[#121212] md:rounded-lg custom-scrollbar relative">
             {children}
           </main>
         </div>

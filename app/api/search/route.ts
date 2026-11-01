@@ -1,27 +1,73 @@
 import { NextResponse } from 'next/server';
-import { downloadAndSaveTrack } from '@/lib/downloader';
-import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/prisma';
 
-export async function POST(req: Request) {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('q');
+
+  if (!query || query.trim() === '') {
+    return NextResponse.json({ tracks: [], playlists: [] });
+  }
+
   try {
-    const { query } = await req.json();
-    if (!query || typeof query !== 'string' || query.trim().length < 2) {
-      return NextResponse.json({ error: 'Введите название трека' }, { status: 400 });
+    let tracks: any[] = [];
+
+    if (query.includes(' - ')) {
+      const [artistsStr, title] = query.split(' - ').map(s => s.trim());
+      const artists = artistsStr.split(',').map(a => a.trim());
+
+      tracks = await prisma.track.findMany({
+        where: {
+          AND: [
+            { OR: artists.map(a => ({ artist: { contains: a, mode: 'insensitive' as const } })) },
+            { title: { contains: title, mode: 'insensitive' as const } },
+          ]
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      });
+
+      if (tracks.length === 0) {
+        tracks = await prisma.track.findMany({
+          where: { title: { contains: title, mode: 'insensitive' } },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        });
+      }
+    } else {
+      tracks = await prisma.track.findMany({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { artist: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      });
     }
 
-    console.log(`[Search Music] Query: ${query}`);
-    const result = await downloadAndSaveTrack(query);
+    // Публичные плейлисты по названию
+    const playlists = await prisma.playlist.findMany({
+      where: {
+        isPublic: true,
+        title: { contains: query, mode: 'insensitive' }
+      },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        items: {
+          take: 1,
+          include: { track: { select: { coverUrl: true } } }
+        },
+        _count: { select: { items: true } }
+      }
+    });
 
-    if (result.skipped) {
-      return NextResponse.json({ error: 'Трек уже есть в базе', track: result.track }, { status: 409 });
-    }
-
-    revalidatePath('/', 'layout');
-
-    return NextResponse.json({ success: true, track: result.track });
-
-  } catch (error: any) {
-    console.error('[Search Music Fatal]', error);
-    return NextResponse.json({ error: error.message || 'Трек не найден в сети' }, { status: 500 });
+    return NextResponse.json({ tracks, playlists });
+  } catch (error) {
+    console.error('[Search Error]', error);
+    return NextResponse.json({ error: 'Ошибка поиска' }, { status: 500 });
   }
 }

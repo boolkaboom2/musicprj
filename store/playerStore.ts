@@ -15,12 +15,16 @@ interface PlayerState {
   likedTrackIds: string[];
   queue: Track[];
   currentIndex: number;
-  isRadioMode: boolean; // Флаг "Моей волны"
+  isRadioMode: boolean;
+  isShuffle: boolean;
+  isRepeat: boolean;
   
   setActiveTrack: (track: Track, newQueue?: Track[], radioMode?: boolean) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   setLikedTrackIds: (ids: string[]) => void;
   toggleLikedTrack: (id: string) => void;
+  toggleShuffle: () => void;
+  toggleRepeat: () => void;
   playNext: () => void;
   playPrevious: () => void;
   addToQueue: (newTracks: Track[]) => void;
@@ -33,6 +37,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   queue: [],
   currentIndex: -1,
   isRadioMode: false,
+  isShuffle: false,
+  isRepeat: false,
   
   setActiveTrack: (track, newQueue, radioMode = false) => set((state) => {
     const q = newQueue || state.queue;
@@ -54,24 +60,39 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       : [...state.likedTrackIds, id]
   })),
 
+  toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
+  toggleRepeat: () => set((state) => ({ isRepeat: !state.isRepeat })),
+
   playNext: () => {
-    const { queue, currentIndex } = get();
-    if (queue.length > 0 && currentIndex < queue.length - 1) {
-      const nextTrack = queue[currentIndex + 1];
-      set({ activeTrack: nextTrack, currentIndex: currentIndex + 1, isPlaying: true });
+    const { queue, currentIndex, isShuffle } = get();
+    if (queue.length === 0) return;
+
+    // ВАЖНО: ручное "далее" всегда листает, даже если включен повтор.
+    // Повтор срабатывает только при естественном окончании трека (handleEnded).
+
+    if (isShuffle) {
+      let nextIdx = currentIndex;
+      if (queue.length > 1) {
+        while (nextIdx === currentIndex) {
+          nextIdx = Math.floor(Math.random() * queue.length);
+        }
+      }
+      set({ activeTrack: queue[nextIdx], currentIndex: nextIdx, isPlaying: true });
+    } else {
+      if (currentIndex < queue.length - 1) {
+        set({ activeTrack: queue[currentIndex + 1], currentIndex: currentIndex + 1, isPlaying: true });
+      }
     }
   },
   
   playPrevious: () => {
     const { queue, currentIndex } = get();
     if (queue.length > 0 && currentIndex > 0) {
-      const prevTrack = queue[currentIndex - 1];
-      set({ activeTrack: prevTrack, currentIndex: currentIndex - 1, isPlaying: true });
+      set({ activeTrack: queue[currentIndex - 1], currentIndex: currentIndex - 1, isPlaying: true });
     }
   },
 
   addToQueue: (newTracks) => set((state) => {
-    // Фильтруем дубликаты, которые уже есть в очереди
     const existingIds = new Set(state.queue.map(t => t.id));
     const filteredNewTracks = newTracks.filter(t => !existingIds.has(t.id));
     return { queue: [...state.queue, ...filteredNewTracks] };

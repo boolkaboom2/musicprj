@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkAdmin } from '@/lib/isAdmin';
 
+// export const dynamic = 'force-dynamic'; <--- УДАЛЕНО, ОНО ЛОМАЕТ СБОРКУ
+
 export async function GET() {
   try {
     const isAdmin = await checkAdmin();
@@ -19,13 +21,7 @@ export async function GET() {
         status: true,
         subscriptionEnd: true,
         createdAt: true,
-        _count: {
-          select: {
-            likes: true,
-            playlists: true,
-            listenHistory: true,
-          }
-        }
+        _count: { select: { likes: true, playlists: true, listenHistory: true } }
       }
     });
 

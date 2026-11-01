@@ -71,7 +71,7 @@ export default function AddToPlaylistModal() {
       <div className="absolute inset-0" onClick={closeAddToPlaylist} />
 
       {/* Само окно */}
-      <div className="relative w-full max-w-[480px] bg-[#1a1a1a] rounded-t-[24px] sm:rounded-[20px] p-6 shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300 ease-out border border-white/5">
+      <div className="relative w-full h-[85vh] sm:h-auto sm:max-h-[80vh] max-w-[480px] bg-[#1a1a1a] rounded-t-[24px] sm:rounded-[20px] p-6 shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300 ease-out border border-white/5 flex flex-col">
         
         {/* Полоска для свайпа (только на мобилках) */}
         <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6 sm:hidden" />

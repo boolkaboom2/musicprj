@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { IHeart } from "./Icons";
+import { Heart } from "lucide-react"; // <-- вернули lucide
 
 interface LikeButtonProps {
   trackId: string;
@@ -52,7 +52,7 @@ export default function LikeButton({ trackId, initialIsLiked }: LikeButtonProps)
         isLiked ? "text-white" : "text-[var(--text-subdued)] hover:text-white"
       } ${isAnimating ? "scale-125" : "scale-100"}`}
     >
-      <IHeart size={18} filled={isLiked} />
+      <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
     </button>
   );
 }

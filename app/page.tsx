@@ -3,20 +3,29 @@ import { prisma } from "@/lib/prisma";
 import TrackList from "@/components/TrackList";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
+import Link from "next/link";
+import { ListMusic, Play } from "lucide-react";
+import PageTransition from "@/components/PageTransition";
 
 export default function Home() {
   return (
-    <div className="flex flex-col h-full w-full">
-      <div className="p-8 pb-0">
-        <h1 className="text-3xl md:text-4xl font-black text-[var(--text-base)] tracking-tight">
-          Рекомендации
-        </h1>
+    <PageTransition>
+      <div className="flex flex-col h-full w-full">
+        <div className="p-8 pb-0">
+          <h1 className="text-3xl md:text-4xl font-black text-[var(--text-base)] tracking-tight">
+            Рекомендации
+          </h1>
+        </div>
+        
+        <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка треков...</div>}>
+          <TrackListData />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <PublicPlaylistsSection />
+        </Suspense>
       </div>
-      
-      <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка треков...</div>}>
-        <TrackListData />
-      </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 
@@ -46,7 +55,6 @@ async function TrackListData() {
     userPins = pins.map(p => p.trackId);
   }
 
-  // Сортируем: закрепленные треки идут первыми, остальные — по дате
   const sortedTracks = [...tracks].sort((a, b) => {
     const aPinned = userPins.includes(a.id);
     const bPinned = userPins.includes(b.id);
@@ -56,4 +64,72 @@ async function TrackListData() {
   });
 
   return <TrackList initialTracks={sortedTracks} userLikes={userLikes} userPins={userPins} />;
+}
+
+async function PublicPlaylistsSection() {
+  await cookies();
+
+  const playlists = await prisma.playlist.findMany({
+    where: { isPublic: true },
+    take: 10,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { name: true, email: true } },
+      _count: { select: { items: true } }
+    }
+  });
+
+  if (playlists.length === 0) return null;
+
+  return (
+    <div className="p-8 pt-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-black text-white flex items-center gap-3">
+          <ListMusic size={26} /> Публичные плейлисты
+        </h2>
+        <Link href="/playlists" className="text-sm text-[var(--text-subdued)] hover:text-white transition">
+          Все →
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {playlists.map((pl, index) => {
+          const cover = pl.coverUrl
+            ? (pl.coverUrl.startsWith('http') || pl.coverUrl.startsWith('/') 
+                ? pl.coverUrl 
+                : `/api/stream/${pl.coverUrl}`)
+            : null;
+          const ownerName = pl.user.name || pl.user.email.split('@')[0];
+          return (
+            <div
+              key={pl.id}
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+              style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s`, animationFillMode: 'both' }}
+            >
+              <Link
+                href={`/playlist/${pl.id}`}
+                className="group flex flex-col gap-3 p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] rounded-xl transition-colors"
+              >
+                <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden">
+                  {cover ? (
+                    <img src={cover} alt={pl.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <ListMusic size={40} className="text-white/20" />
+                  )}
+                  <div className="absolute bottom-2 right-2 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+                    <Play size={18} fill="black" className="text-black translate-x-[1px]" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-sm truncate">{pl.title}</h3>
+                  <p className="text-[var(--text-subdued)] text-xs mt-0.5 truncate">
+                    {ownerName} • {pl._count.items}
+                  </p>
+                </div>
+              </Link>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

@@ -12,7 +12,7 @@ type Track = {
 interface TrackMenuState {
   isTrackMenuOpen: boolean;
   trackForMenu: Track | null;
-  menuPosition: { top: number; left: number };
+  menuPosition: { top: number; left: number; buttonTop: number; buttonHeight: number };
   openTrackMenu: (track: Track, rect: DOMRect) => void;
   closeTrackMenu: () => void;
 }
@@ -20,12 +20,16 @@ interface TrackMenuState {
 export const useTrackMenuStore = create<TrackMenuState>((set) => ({
   isTrackMenuOpen: false,
   trackForMenu: null,
-  menuPosition: { top: 0, left: 0 },
+  menuPosition: { top: 0, left: 0, buttonTop: 0, buttonHeight: 0 },
   openTrackMenu: (track, rect) => set({ 
     isTrackMenuOpen: true, 
     trackForMenu: track, 
-    // Вычисляем позицию: под кнопкой и выравниваем по её левому краю (или можно чуть сдвинуть)
-    menuPosition: { top: rect.bottom + 8, left: rect.left - 100 } 
+    menuPosition: { 
+      top: rect.bottom + 8, 
+      left: rect.left - 140, // <--- было -100, стало -140 (левее)
+      buttonTop: rect.top,
+      buttonHeight: rect.height
+    } 
   }),
   closeTrackMenu: () => set({ isTrackMenuOpen: false, trackForMenu: null }),
 }));
