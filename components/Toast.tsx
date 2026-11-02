@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ToastState {
   message: string | null;
@@ -19,7 +20,6 @@ export const useToast = create<ToastState>((set) => ({
     const newId = Date.now();
     set({ message, type, toastId: newId });
     
-    // Сбрасываем только если ID совпадает (значит, не пришел новый тост)
     setTimeout(() => {
       useToast.setState((state) => {
         if (state.toastId === newId) {
@@ -27,7 +27,7 @@ export const useToast = create<ToastState>((set) => ({
         }
         return state;
       });
-    }, 4000);
+    }, 2500);
   },
   hide: () => set({ message: null }),
 }));
@@ -35,16 +35,33 @@ export const useToast = create<ToastState>((set) => ({
 export default function Toast() {
   const { message, type, hide } = useToast();
 
-  if (!message) return null;
+  const colorClasses = 
+    type === "success" ? "border-green-500/50 text-green-400" :
+    type === "error" ? "border-red-500/50 text-red-400" :
+    "border-white/20 text-white";
 
   return (
-    <div className={`fixed z-[9999] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl border transition-all duration-300 ${
-      type === "success" ? "bg-[#121212] border-green-500/50 text-green-500" :
-      type === "error" ? "bg-[#121212] border-red-500/50 text-red-500" :
-      "bg-[#121212] border-white/20 text-white"
-    }`} style={{ bottom: '120px', right: '20px' }}>
-      <span className="font-bold text-sm">{message}</span>
-      <button onClick={hide} className="ml-4 text-white/50 hover:text-white transition-colors"><X size={16} /></button>
+    <div className="fixed top-3 left-3 right-3 md:left-auto md:top-6 md:right-6 md:max-w-sm z-[9999] pointer-events-none">
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            key={message}
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className={`flex items-center gap-3 px-4 py-3 bg-[#1c1c1c] rounded-xl shadow-2xl border ${colorClasses} pointer-events-auto`}
+          >
+            <span className="font-medium text-sm flex-1 min-w-0 break-words">{message}</span>
+            <button 
+              onClick={hide} 
+              className="text-white/40 hover:text-white transition-colors shrink-0 p-1"
+            >
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -56,11 +56,16 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
 
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="flex items-end gap-6 p-8 bg-gradient-to-b from-[#2a2a2a] to-[#121212]">
+      {/* Хедер: на мобилке столбиком, на десктопе в строку */}
+      <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 p-4 md:p-8 bg-gradient-to-b from-[#2a2a2a] to-[#121212] pb-8 md:pb-12">
+        
+        {/* Обложка — загрузчик только для владельца */}
         {isOwner ? (
-          <PlaylistCoverUploader playlistId={playlist.id} coverUrl={playlist.coverUrl} />
+          <div className="self-start md:self-end">
+            <PlaylistCoverUploader playlistId={playlist.id} coverUrl={playlist.coverUrl} />
+          </div>
         ) : (
-          <div className="w-48 h-48 md:w-56 md:h-56 bg-[#282828] rounded-lg shadow-2xl shrink-0 overflow-hidden flex items-center justify-center">
+          <div className="w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 bg-[#282828] rounded-lg shadow-2xl shrink-0 overflow-hidden flex items-center justify-center self-start md:self-end">
             {playlist.coverUrl ? (
               <img 
                 src={playlist.coverUrl.startsWith('http') || playlist.coverUrl.startsWith('/') 
@@ -70,22 +75,23 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
                 className="w-full h-full object-cover" 
               />
             ) : (
-              <span className="text-white/20 text-6xl">♪</span>
+              <span className="text-white/20 text-5xl">♪</span>
             )}
           </div>
         )}
-        <div className="flex flex-col gap-3">
-          <span className="text-sm font-bold uppercase tracking-widest text-[var(--text-subdued)]">
+        
+        <div className="flex flex-col gap-3 md:gap-4 min-w-0 flex-1">
+          <span className="text-xs md:text-sm font-bold uppercase tracking-widest text-[var(--text-subdued)]">
             {playlist.isPublic ? "Публичный плейлист" : "Приватный плейлист"}
           </span>
-          <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter break-words">
             {playlist.title}
           </h1>
-          <p className="text-[var(--text-subdued)] text-sm">
+          <p className="text-[var(--text-subdued)] text-sm break-words">
             {ownerName} • {tracks.length} треков
           </p>
           {isOwner && (
-            <div className="flex gap-3 mt-2">
+            <div className="flex flex-wrap gap-3 mt-2">
               <PlaylistPrivacyToggle playlistId={playlist.id} isPublic={playlist.isPublic} />
             </div>
           )}
@@ -94,7 +100,7 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
 
       <div className="flex-1 overflow-y-auto">
         {tracks.length === 0 ? (
-          <p className="p-8 text-[var(--text-subdued)]">В этом плейлисте пока нет треков.</p>
+          <p className="p-4 md:p-8 text-[var(--text-subdued)]">В этом плейлисте пока нет треков.</p>
         ) : (
           <TrackList initialTracks={tracks} userLikes={userLikes} />
         )}

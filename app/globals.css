@@ -14,8 +14,8 @@
 body {
   background-color: #000000;
   color: #ffffff;
+  overflow-x: hidden;
 }
-
 /* 3. Кастомный тонкий скроллбар */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;

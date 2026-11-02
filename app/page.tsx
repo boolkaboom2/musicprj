@@ -6,6 +6,7 @@ import { verifyToken } from "@/lib/auth";
 import Link from "next/link";
 import { ListMusic, Play } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import { TrackListSkeleton, PlaylistGridSkeleton } from "@/components/Skeletons";
 
 export default function Home() {
   return (
@@ -17,11 +18,11 @@ export default function Home() {
           </h1>
         </div>
         
-        <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка треков...</div>}>
+        <Suspense fallback={<TrackListSkeleton />}>
           <TrackListData />
         </Suspense>
 
-        <Suspense fallback={null}>
+        <Suspense fallback={<PlaylistGridSkeleton count={5} />}>
           <PublicPlaylistsSection />
         </Suspense>
       </div>

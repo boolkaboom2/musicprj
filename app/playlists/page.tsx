@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ListMusic, Play, Loader2 } from "lucide-react";
+import { ListMusic, Play } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import { PlaylistGridSkeleton } from "@/components/Skeletons";
 
 type PlaylistItem = {
   id: string;
@@ -31,22 +32,19 @@ export default function PublicPlaylistsPage() {
 
   return (
     <PageTransition>
-      <div className="p-8">
-        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-8">
+      <div className="p-4 md:p-8">
+        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-6 md:mb-8">
           Публичные плейлисты
         </h1>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-[var(--text-subdued)]">
-            <Loader2 className="animate-spin" size={20} />
-            Загрузка...
-          </div>
+          <PlaylistGridSkeleton count={10} />
         ) : playlists.length === 0 ? (
           <p className="text-[var(--text-subdued)]">
             Пока никто не сделал плейлисты публичными. Зайди в свой плейлист и переключи на "Публичный".
           </p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {playlists.map((pl, index) => {
               const cover = pl.coverUrl
                 ? (pl.coverUrl.startsWith('http') || pl.coverUrl.startsWith('/') 

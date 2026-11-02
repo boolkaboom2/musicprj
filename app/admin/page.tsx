@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon, ListMusic } from "lucide-react";
+import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon, ListMusic, MessageSquarePlus } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import ImportPlaylistModal from "@/components/ImportPlaylistModal";
@@ -265,31 +265,34 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="p-8 relative">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-black text-[var(--text-base)] tracking-tight">Админ-панель</h1>
-        <div className="flex gap-3">
-          <Link href="/admin/analytics" className="bg-white text-black hover:bg-gray-200 px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2">
-            <BarChart3 size={18} /> Дашборд
+    <div className="p-4 md:p-8 relative">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-[var(--text-base)] tracking-tight">Админ-панель</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/analytics" className="bg-white text-black hover:bg-gray-200 px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <BarChart3 size={14} className="md:w-[18px] md:h-[18px]" /> Дашборд
           </Link>
-          <Link href="/admin/users" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2">
-            <Users size={18} /> Пользователи
+          <Link href="/admin/users" className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <Users size={14} className="md:w-[18px] md:h-[18px]" /> Пользователи
+          </Link>
+          <Link href="/admin/feedback" className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <MessageSquarePlus size={14} className="md:w-[18px] md:h-[18px]" /> Feedback
           </Link>
           <button 
             onClick={() => setIsImportModalOpen(true)} 
-            className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition flex items-center gap-2"
+            className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
           >
-            <ListMusic size={18} /> Импорт плейлиста
+            <ListMusic size={14} className="md:w-[18px] md:h-[18px]" /> Импорт
           </button>
-          <Link href="/admin/import" className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-sm font-bold transition">
-            Массовый импорт
+          <Link href="/admin/import" className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition whitespace-nowrap">
+            Массовый
           </Link>
         </div>
       </div>
       
-      <div className="flex flex-col lg:flex-row gap-12">
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         <div className="w-full lg:w-1/2 flex flex-col gap-8">
-          <div className="bg-[#121212] border border-white/10 p-6 rounded-xl">
+          <div className="bg-[#121212] border border-white/10 p-4 md:p-6 rounded-xl">
             <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
               <LinkIcon size={20} className="text-green-500" /> Импорт по ссылке
             </h2>
@@ -308,7 +311,7 @@ export default function AdminPage() {
               <button 
                 onClick={handleDirectImport} 
                 disabled={isImportingDirect} 
-                className="bg-green-500 text-black font-bold px-6 rounded-md hover:bg-green-400 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+                className="bg-green-500 text-black font-bold px-4 md:px-6 rounded-md hover:bg-green-400 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
               >
                 {isImportingDirect ? <Loader2 className="animate-spin" size={18} /> : "Загрузить"}
               </button>
@@ -360,17 +363,17 @@ export default function AdminPage() {
             <ul className="flex flex-col gap-3">
                {tracks.map(track => (
                   <li key={track.id} className="bg-[#121212] p-3 rounded-md flex items-center justify-between border border-white/5 group">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
                       <div className="w-12 h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center">
                         {track.coverUrl ? <img src={track.coverUrl.startsWith('http') ? track.coverUrl : `/api/stream/${track.coverUrl}`} alt={track.title} className="w-full h-full object-cover" /> : <Music size={20} className="text-[#555]" />}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium">{track.title}</span>
-                        <span className="text-[var(--text-subdued)] text-sm">{track.artist} {track.genre ? `• ${track.genre}` : ''} {track.releaseYear ? `• ${track.releaseYear}` : ''}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-white font-medium truncate">{track.title}</span>
+                        <span className="text-[var(--text-subdued)] text-sm truncate">{track.artist} {track.genre ? `• ${track.genre}` : ''} {track.releaseYear ? `• ${track.releaseYear}` : ''}</span>
                       </div>
                     </div>
                     
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 shrink-0">
                       <button onClick={() => openEdit(track)} className="text-[var(--text-subdued)] hover:text-white p-2 bg-white/5 rounded-md transition">
                         <Edit size={16} />
                       </button>

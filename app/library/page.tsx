@@ -6,6 +6,7 @@ import TrackList from "@/components/TrackList";
 import Link from "next/link";
 import { Heart, Music, Play, ListMusic } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import { PlaylistGridSkeleton } from "@/components/Skeletons";
 
 export default function LibraryPage() {
   return (
@@ -16,7 +17,7 @@ export default function LibraryPage() {
             Моя медиатека
           </h1>
         </div>
-        <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка...</div>}>
+        <Suspense fallback={<PlaylistGridSkeleton count={5} />}>
           <LibraryData />
         </Suspense>
       </div>
@@ -55,7 +56,7 @@ async function LibraryData() {
   });
 
   return (
-    <div className="p-8 flex flex-col gap-12">
+    <div className="p-4 md:p-8 flex flex-col gap-12">
       
       <div>
         <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
@@ -64,7 +65,7 @@ async function LibraryData() {
         {playlists.length === 0 ? (
           <p className="text-[var(--text-subdued)]">У вас пока нет плейлистов. Создайте их через меню трека.</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {playlists.map((pl, index) => {
               const cover = pl.coverUrl
                 ? (pl.coverUrl.startsWith('http') || pl.coverUrl.startsWith('/') 

@@ -65,7 +65,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={manrope.variable}>
-      <body className="antialiased bg-black text-white h-screen flex flex-col overflow-hidden font-sans">
+      <body className="antialiased bg-black text-white h-[100dvh] flex flex-col overflow-hidden font-sans">
         
         <MobileHeader />
 
@@ -74,12 +74,15 @@ export default function RootLayout({
             <LayoutData />
           </Suspense>
           
-          <main className="flex-1 h-full overflow-y-auto bg-[#121212] md:rounded-lg custom-scrollbar relative">
+          <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[#121212] md:rounded-lg custom-scrollbar relative">
             {children}
           </main>
         </div>
 
-        <Player />
+        <Suspense fallback={null}>
+          <Player />
+        </Suspense>
+        
         <AddToPlaylistModal />
         <TrackOptionsMenu />
         <DisableContextMenu />

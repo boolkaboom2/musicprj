@@ -39,7 +39,7 @@ export default function TrackList({
   };
 
   return (
-    <div className="flex flex-col gap-1 p-4 md:p-8">
+    <div className="flex flex-col gap-1 md:gap-1 p-2 md:p-8">
       {tracks.map((track, index) => {
         const isLiked = userLikes.includes(track.id);
         const isPinned = userPins.includes(track.id);
@@ -55,12 +55,13 @@ export default function TrackList({
               delay: Math.min(index * 0.03, 0.5),
               ease: [0.22, 1, 0.36, 1]
             }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setActiveTrack(track, tracks)} 
             onContextMenu={(e) => { 
               e.preventDefault();
               openTrackMenu(track, e.currentTarget.getBoundingClientRect());
             }}
-            className={`flex items-center gap-2 md:gap-4 p-2 rounded-md transition cursor-pointer group ${
+            className={`flex items-center gap-3 md:gap-4 p-2 md:p-2 rounded-md transition cursor-pointer group active:bg-white/10 md:active:bg-transparent ${
               isMenuOpenForThisTrack ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
             }`}
           >
@@ -71,11 +72,12 @@ export default function TrackList({
                {isMenuOpenForThisTrack ? <IPlay size={12} /> : <IPlay size={12} className="hidden group-hover:block" />}
             </div>
 
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center text-[#555]">
+            {/* Обложка: больше на мобилке */}
+            <div className="w-14 h-14 md:w-12 md:h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center text-[#555]">
               {track.coverUrl ? (
                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
               ) : (
-                <IMusic size={18} /> 
+                <IMusic size={20} /> 
               )}
             </div>
             
@@ -85,7 +87,7 @@ export default function TrackList({
                   href={`/track/${track.id}`} 
                   onClick={(e) => e.stopPropagation()}
                   onContextMenu={(e) => e.stopPropagation()}
-                  className="text-white font-medium truncate hover:underline w-fit text-sm md:text-base"
+                  className="text-white font-medium truncate hover:underline w-fit text-base md:text-base"
                 >
                   {track.title}
                 </Link>
@@ -96,10 +98,9 @@ export default function TrackList({
                   </div>
                 )}
               </div>
-              <span className="text-xs md:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
+              <span className="text-sm md:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
             </div>
 
-            {/* Кнопки на мобилке: только IMore (LikeButton ниже для десктопа) */}
             <div className={`transition-opacity flex items-center gap-1 md:gap-4 ${
               isMenuOpenForThisTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-100 md:group-hover:opacity-100"
             }`}>
@@ -117,7 +118,7 @@ export default function TrackList({
               </div>
             </div>
 
-            <span className="text-xs md:text-sm text-[var(--text-subdued)] w-10 md:w-12 text-right tabular-nums">
+            <span className="text-sm md:text-sm text-[var(--text-subdued)] w-10 md:w-12 text-right tabular-nums">
               {formatTime(track.duration)}
             </span>
           </motion.div>

@@ -24,6 +24,7 @@ model User {
   pinnedTracks     PinnedTrack[]
   visitLogs        VisitLog[]
   subscriptionLogs SubscriptionLog[]
+  feedback         Feedback[]
 }
 
 model Track {
@@ -117,4 +118,15 @@ model SubscriptionLog {
   endDate   DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type      String   @default("OTHER")
+  message   String
+  status    String   @default("NEW")
+  adminNote String?
+  createdAt DateTime @default(now())
 }

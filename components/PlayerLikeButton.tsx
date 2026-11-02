@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { usePlayerStore } from "@/store/playerStore";
 import { useRouter } from "next/navigation";
-import { Heart } from "lucide-react"; // <-- вернули lucide
+import { Heart } from "lucide-react";
+import { useToast } from "./Toast";
 
 export default function PlayerLikeButton({ trackId }: { trackId: string }) {
   const { likedTrackIds, toggleLikedTrack } = usePlayerStore();
   const isLiked = likedTrackIds.includes(trackId);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
+  const showToast = useToast((s) => s.show);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,12 +28,17 @@ export default function PlayerLikeButton({ trackId }: { trackId: string }) {
       });
       if (!res.ok) {
         toggleLikedTrack(trackId);
-        if (res.status === 401) router.push("/login");
+        if (res.status === 401) {
+          showToast("Войдите, чтобы лайкать треки", "error");
+        } else {
+          showToast("Ошибка при лайке", "error");
+        }
       } else {
         router.refresh();
       }
     } catch (error) {
       toggleLikedTrack(trackId);
+      showToast("Ошибка сети", "error");
     }
   };
 

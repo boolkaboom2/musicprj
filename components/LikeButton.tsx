@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Heart } from "lucide-react"; // <-- вернули lucide
+import { Heart } from "lucide-react";
+import { useToast } from "./Toast";
 
 interface LikeButtonProps {
   trackId: string;
@@ -13,6 +14,7 @@ export default function LikeButton({ trackId, initialIsLiked }: LikeButtonProps)
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
+  const showToast = useToast((s) => s.show);
 
   useEffect(() => {
     setIsLiked(initialIsLiked);
@@ -35,13 +37,16 @@ export default function LikeButton({ trackId, initialIsLiked }: LikeButtonProps)
       if (!res.ok) {
         setIsLiked(isLiked);
         if (res.status === 401) {
-          router.push("/login");
+          showToast("Войдите, чтобы лайкать треки", "error");
+        } else {
+          showToast("Ошибка при лайке", "error");
         }
       } else {
         router.refresh(); 
       }
     } catch (error) {
       setIsLiked(isLiked);
+      showToast("Ошибка сети", "error");
     }
   };
 
