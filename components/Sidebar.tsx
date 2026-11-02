@@ -8,6 +8,7 @@ import { Suspense, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import UserProfileClient from "./UserProfileClient";
 import FeedbackButton from "./FeedbackButton";
+import ImportPlaylistButton from "./ImportPlaylistButton";
 
 interface SidebarProps {
   user: any;
@@ -16,6 +17,7 @@ interface SidebarProps {
 
 function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: () => void }) {
   const pathname = usePathname();
+  const isGuest = !user;
 
   const linkClass = (href: string) => 
     `transition font-medium text-sm tracking-wide ${
@@ -34,10 +36,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
             Sadovod
           </Link>
           {onClose && (
-            <button 
-              onClick={onClose}
-              className="md:hidden text-white/50 hover:text-white p-1 transition"
-            >
+            <button onClick={onClose} className="md:hidden text-white/50 hover:text-white p-1 transition">
               <X size={20} />
             </button>
           )}
@@ -50,12 +49,17 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
           <Link href="/search" onClick={onClose} className={linkClass('/search')}>
             Поиск
           </Link>
-          <Link href="/library" onClick={onClose} className={linkClass('/library')}>
-            Моя медиатека
-          </Link>
-          <Link href="/playlists" onClick={onClose} className={linkClass('/playlists')}>
-            Публичные плейлисты
-          </Link>
+
+          {!isGuest && (
+            <>
+              <Link href="/library" onClick={onClose} className={linkClass('/library')}>
+                Моя медиатека
+              </Link>
+              <Link href="/playlists" onClick={onClose} className={linkClass('/playlists')}>
+                Публичные плейлисты
+              </Link>
+            </>
+          )}
           
           {isAdmin && (
             <Link 
@@ -67,7 +71,14 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
             </Link>
           )}
 
-          <FeedbackButton />
+          {!isGuest && (
+            <>
+              <div className={isAdmin ? "" : "mt-4 pt-4 border-t border-[#333]"}>
+                <ImportPlaylistButton />
+              </div>
+              <FeedbackButton />
+            </>
+          )}
         </nav>
       </div>
 
@@ -82,39 +93,30 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
 
   useEffect(() => {
-    if (isSidebarOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (isSidebarOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
   }, [isSidebarOpen]);
 
   return (
     <>
-      {/* Desktop */}
       <aside className="hidden md:flex w-[280px] bg-[#121212] rounded-lg flex-col p-6 shrink-0 h-full">
         <Suspense fallback={null}>
           <SidebarContent user={user} isAdmin={isAdmin} />
         </Suspense>
       </aside>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="md:hidden fixed inset-0 bg-black/70 z-[200]"
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
+              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
               className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[#121212] z-[201] p-6"
             >

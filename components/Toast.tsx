@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 
 interface ToastState {
   message: string | null;
@@ -34,21 +35,37 @@ export const useToast = create<ToastState>((set) => ({
 
 export default function Toast() {
   const { message, type, hide } = useToast();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const colorClasses = 
     type === "success" ? "border-green-500/50 text-green-400" :
     type === "error" ? "border-red-500/50 text-red-400" :
     "border-white/20 text-white";
 
+  // МОБИЛКА: сверху, полная ширина. ПК: снизу справа, max-w-sm
+  const positionClass = isMobile 
+    ? "top-3 left-3 right-3" 
+    : "bottom-28 right-6 max-w-sm";
+
+  const offsetY = isMobile ? -20 : 20;
+  const exitY = isMobile ? -20 : 20;
+
   return (
-    <div className="fixed top-3 left-3 right-3 md:left-auto md:top-6 md:right-6 md:max-w-sm z-[9999] pointer-events-none">
+    <div className={`fixed z-[9999] pointer-events-none ${positionClass}`}>
       <AnimatePresence>
         {message && (
           <motion.div
             key={message}
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: offsetY, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            exit={{ opacity: 0, y: exitY, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className={`flex items-center gap-3 px-4 py-3 bg-[#1c1c1c] rounded-xl shadow-2xl border ${colorClasses} pointer-events-auto`}
           >

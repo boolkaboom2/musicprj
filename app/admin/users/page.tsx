@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Crown, Ban, Trash2, Shield, User as UserIcon, Loader2, Search, Heart, ListMusic, PlayCircle, UserCheck } from "lucide-react";
+import { ArrowLeft, Crown, Ban, Trash2, Shield, ShieldOff, User as UserIcon, Loader2, Search, Heart, ListMusic, PlayCircle, UserCheck } from "lucide-react";
 import { useToast } from "@/components/Toast";
 
 type User = {
@@ -13,11 +13,7 @@ type User = {
   status: string;
   subscriptionEnd: string | null;
   createdAt: string;
-  _count: {
-    likes: number;
-    playlists: number;
-    listenHistory: number;
-  };
+  _count: { likes: number; playlists: number; listenHistory: number };
 };
 
 export default function UsersPage() {
@@ -54,16 +50,29 @@ export default function UsersPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        showToast(data.status === "BANNED" ? "Пользователь забанен" : "Пользователь разбанен", "success");
+        showToast(data.status === "BANNED" ? "Забанен" : "Разбанен", "success");
         fetchUsers();
-      } else {
-        showToast(data.error || "Ошибка", "error");
-      }
-    } catch {
-      showToast("Ошибка сети", "error");
-    } finally {
-      setActionLoading(null);
-    }
+      } else showToast(data.error || "Ошибка", "error");
+    } catch { showToast("Ошибка сети", "error"); }
+    finally { setActionLoading(null); }
+  };
+
+  const handleChangeRole = async (user: User) => {
+    setActionLoading(user.id);
+    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "change_role", role: newRole }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(newRole === 'ADMIN' ? "Выдан доступ к админке" : "Админка снята", "success");
+        fetchUsers();
+      } else showToast(data.error || "Ошибка", "error");
+    } catch { showToast("Ошибка сети", "error"); }
+    finally { setActionLoading(null); }
   };
 
   const handleGrantSubscription = async () => {
@@ -84,11 +93,8 @@ export default function UsersPage() {
         const data = await res.json();
         showToast(data.error || "Ошибка", "error");
       }
-    } catch {
-      showToast("Ошибка сети", "error");
-    } finally {
-      setActionLoading(null);
-    }
+    } catch { showToast("Ошибка сети", "error"); }
+    finally { setActionLoading(null); }
   };
 
   const handleRevokeSubscription = async (user: User) => {
@@ -99,15 +105,9 @@ export default function UsersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "revoke_subscription" }),
       });
-      if (res.ok) {
-        showToast("Подписка отозвана", "success");
-        fetchUsers();
-      }
-    } catch {
-      showToast("Ошибка сети", "error");
-    } finally {
-      setActionLoading(null);
-    }
+      if (res.ok) { showToast("Подписка отозвана", "success"); fetchUsers(); }
+    } catch { showToast("Ошибка сети", "error"); }
+    finally { setActionLoading(null); }
   };
 
   const handleDelete = async () => {
@@ -120,14 +120,9 @@ export default function UsersPage() {
         showToast("Пользователь удален", "success");
         setDeletingUser(null);
         fetchUsers();
-      } else {
-        showToast(data.error || "Ошибка", "error");
-      }
-    } catch {
-      showToast("Ошибка сети", "error");
-    } finally {
-      setActionLoading(null);
-    }
+      } else showToast(data.error || "Ошибка", "error");
+    } catch { showToast("Ошибка сети", "error"); }
+    finally { setActionLoading(null); }
   };
 
   const filteredUsers = users.filter(u => 
@@ -140,14 +135,14 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <Link href="/admin" className="text-[var(--text-subdued)] hover:text-white flex items-center gap-2 mb-6 transition">
         <ArrowLeft size={18} /> Назад в админку
       </Link>
 
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-black text-white">Пользователи ({users.length})</h1>
-        <div className="relative w-64">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-white">Пользователи ({users.length})</h1>
+        <div className="relative w-full md:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-subdued)]" size={16} />
           <input
             type="text"
@@ -162,8 +157,8 @@ export default function UsersPage() {
       {isLoading ? (
         <div className="text-white flex items-center gap-2"><Loader2 className="animate-spin" /> Загрузка...</div>
       ) : (
-        <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden">
-          <table className="w-full text-left">
+        <div className="bg-[#121212] border border-white/5 rounded-xl overflow-x-auto">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-white/5 text-[var(--text-subdued)] text-xs uppercase">
               <tr>
                 <th className="p-4">Пользователь</th>
@@ -219,56 +214,49 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className={`text-xs font-bold ${
-                      user.status === 'BANNED' ? 'text-red-500' : 'text-green-500'
-                    }`}>
+                    <span className={`text-xs font-bold ${user.status === 'BANNED' ? 'text-red-500' : 'text-green-500'}`}>
                       {user.status === 'BANNED' ? 'Забанен' : 'Активен'}
                     </span>
                   </td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2">
-                      {isSubActive(user) ? (
+                      {/* Роль: выдать/снять админку */}
+                      {user.role !== 'ADMIN' ? (
                         <button
-                          onClick={() => handleRevokeSubscription(user)}
+                          onClick={() => handleChangeRole(user)}
                           disabled={actionLoading === user.id}
-                          className="text-yellow-500 hover:text-yellow-400 p-2 bg-yellow-500/10 rounded-md transition disabled:opacity-50"
+                          className="text-blue-500 hover:text-blue-400 p-2 bg-blue-500/10 rounded-md transition disabled:opacity-50"
+                          title="Сделать админом"
                         >
-                          {actionLoading === user.id ? <Loader2 size={14} className="animate-spin" /> : <Crown size={14} />}
+                          <Shield size={14} />
                         </button>
                       ) : (
                         <button
-                          onClick={() => setGrantingUser(user)}
+                          onClick={() => handleChangeRole(user)}
                           disabled={actionLoading === user.id}
-                          className="text-yellow-500 hover:text-yellow-400 p-2 bg-yellow-500/10 rounded-md transition disabled:opacity-50"
+                          className="text-orange-500 hover:text-orange-400 p-2 bg-orange-500/10 rounded-md transition disabled:opacity-50"
+                          title="Снять админку"
                         >
+                          <ShieldOff size={14} />
+                        </button>
+                      )}
+
+                      {isSubActive(user) ? (
+                        <button onClick={() => handleRevokeSubscription(user)} disabled={actionLoading === user.id} className="text-yellow-500 hover:text-yellow-400 p-2 bg-yellow-500/10 rounded-md transition disabled:opacity-50" title="Отозвать подписку">
+                          {actionLoading === user.id ? <Loader2 size={14} className="animate-spin" /> : <Crown size={14} />}
+                        </button>
+                      ) : (
+                        <button onClick={() => setGrantingUser(user)} disabled={actionLoading === user.id} className="text-yellow-500 hover:text-yellow-400 p-2 bg-yellow-500/10 rounded-md transition disabled:opacity-50" title="Выдать подписку">
                           <Crown size={14} />
                         </button>
                       )}
                       
                       {user.role !== 'ADMIN' && (
                         <>
-                          <button
-                            onClick={() => handleBan(user)}
-                            disabled={actionLoading === user.id}
-                            className={`p-2 rounded-md transition disabled:opacity-50 ${
-                              user.status === 'BANNED' 
-                                ? 'text-green-500 hover:text-green-400 bg-green-500/10' 
-                                : 'text-orange-500 hover:text-orange-400 bg-orange-500/10'
-                            }`}
-                          >
-                            {actionLoading === user.id ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : user.status === 'BANNED' ? (
-                              <UserCheck size={14} />
-                            ) : (
-                              <Ban size={14} />
-                            )}
+                          <button onClick={() => handleBan(user)} disabled={actionLoading === user.id} className={`p-2 rounded-md transition disabled:opacity-50 ${user.status === 'BANNED' ? 'text-green-500 hover:text-green-400 bg-green-500/10' : 'text-orange-500 hover:text-orange-400 bg-orange-500/10'}`}>
+                            {actionLoading === user.id ? <Loader2 size={14} className="animate-spin" /> : user.status === 'BANNED' ? <UserCheck size={14} /> : <Ban size={14} />}
                           </button>
-                          <button
-                            onClick={() => setDeletingUser(user)}
-                            disabled={actionLoading === user.id}
-                            className="text-red-500 hover:text-red-400 p-2 bg-red-500/10 rounded-md transition disabled:opacity-50"
-                          >
+                          <button onClick={() => setDeletingUser(user)} disabled={actionLoading === user.id} className="text-red-500 hover:text-red-400 p-2 bg-red-500/10 rounded-md transition disabled:opacity-50" title="Удалить">
                             <Trash2 size={14} />
                           </button>
                         </>
@@ -282,28 +270,16 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* МОДАЛКА ВЫДАЧИ ПОДПИСКИ */}
       {grantingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="absolute inset-0" onClick={() => setGrantingUser(null)} />
           <div className="relative bg-[#1c1c1c] w-full max-w-sm rounded-2xl p-6 border border-white/5">
             <h2 className="text-xl font-bold text-white mb-2">Выдать подписку</h2>
-            <p className="text-[var(--text-subdued)] text-sm mb-4">Пользователь: {grantingUser.email}</p>
-            
+            <p className="text-[var(--text-subdued)] text-sm mb-4">{grantingUser.email}</p>
             <label className="text-white/70 text-sm mb-2 block">Срок (мес.)</label>
-            <input
-              type="number"
-              min="1"
-              max="24"
-              value={grantMonths}
-              onChange={(e) => setGrantMonths(e.target.value)}
-              className="w-full bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 mb-4"
-            />
-
+            <input type="number" min="1" max="24" value={grantMonths} onChange={(e) => setGrantMonths(e.target.value)} className="w-full bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 mb-4" />
             <div className="flex gap-3">
-              <button onClick={() => setGrantingUser(null)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">
-                Отмена
-              </button>
+              <button onClick={() => setGrantingUser(null)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">Отмена</button>
               <button onClick={handleGrantSubscription} disabled={actionLoading === grantingUser.id} className="flex-1 bg-yellow-500 text-black font-bold py-3 rounded-md hover:bg-yellow-400 transition flex justify-center items-center">
                 {actionLoading === grantingUser.id ? <Loader2 className="animate-spin" size={18} /> : "Выдать"}
               </button>
@@ -312,18 +288,15 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* МОДАЛКА УДАЛЕНИЯ */}
       {deletingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="absolute inset-0" onClick={() => setDeletingUser(null)} />
           <div className="relative bg-[#1c1c1c] w-full max-w-sm rounded-2xl p-6 border border-white/5 flex flex-col items-center text-center">
             <h2 className="text-xl font-bold text-white mb-2">Удалить пользователя?</h2>
             <p className="text-[var(--text-subdued)] text-sm mb-6">{deletingUser.email}</p>
-            <p className="text-red-500 text-xs mb-6">Все его лайки, плейлисты и история будут удалены.</p>
+            <p className="text-red-500 text-xs mb-6">Все его данные будут удалены.</p>
             <div className="flex gap-3 w-full">
-              <button onClick={() => setDeletingUser(null)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">
-                Отмена
-              </button>
+              <button onClick={() => setDeletingUser(null)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">Отмена</button>
               <button onClick={handleDelete} disabled={actionLoading === deletingUser.id} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-md hover:bg-red-600 transition flex justify-center items-center">
                 {actionLoading === deletingUser.id ? <Loader2 className="animate-spin" size={18} /> : "Удалить"}
               </button>

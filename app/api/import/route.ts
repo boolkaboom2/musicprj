@@ -1,120 +1,66 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { join } from 'path';
-import { mkdir, unlink, readFile, writeFile } from 'fs/promises';
-import { randomUUID } from 'crypto';
-import os from 'os';
+import { downloadAndSaveTrack } from '@/lib/downloader';
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/auth';
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+type ImportResult = 
+  | { success: true; title: string; skipped: boolean }
+  | { success: false; title: string; error: string };
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { textList, directUrl } = await request.json();
-    
-    // Режим 1: Прямая ссылка
-    if (directUrl) {
-      return await handleDirectUrl(directUrl);
-    }
-    
-    // Режим 2: Поиск через yt-dlp
-    if (!textList) return NextResponse.json({ error: 'Пустой список' }, { status: 400 });
-    const lines = textList.split('\n').map((l: string) => l.trim()).filter(Boolean);
-    if (lines.length > 10) return NextResponse.json({ error: 'Максимум 10 треков за раз' }, { status: 400 });
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    const payload = token ? await verifyToken(token) : null;
 
-    return NextResponse.json({ error: 'Используйте прямую ссылку' }, { status: 400 });
-
-  } catch (error) {
-    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
-  }
-}
-
-// --- ФУНКЦИЯ ДЛЯ ПРЯМОЙ ЗАГРУЗКИ ---
-async function handleDirectUrl(url: string) {
-  try {
-    console.log(`[Direct Import] Скачиваем: ${url}`);
-    
-    // 1. Скачиваем файл
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Не удалось скачать файл по ссылке');
-    
-    const buffer = await res.arrayBuffer();
-    const blob = new Blob([buffer], { type: 'audio/mpeg' });
-    
-    // 2. Пытаемся вытащить название из URL
-    let rawName = url.split('/').pop()?.split('?')[0] || 'Unknown Track';
-    rawName = decodeURIComponent(rawName).replace('.mp3', '').replace(/_/g, ' ');
-    
-    let title = rawName;
-    let artist = 'Unknown';
-    
-    if (rawName.includes(' - ')) {
-      const parts = rawName.split(' - ');
-      artist = parts[0].trim();
-      title = parts[1].trim();
+    if (!payload?.userId) {
+      return NextResponse.json({ error: 'Войдите, чтобы импортировать плейлисты' }, { status: 401 });
     }
 
-    // 3. Ищем метаданные в iTunes (с явными типами)
-    let coverUrl: string | null = null;
-    let genre: string | null = null;
-    let releaseYear: number | null = null; // <--- ИСПРАВЛЕНИЕ
-    let duration: number = 0;
+    const { tracks, createPlaylist, playlistTitle } = await req.json();
+    if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
+      return NextResponse.json({ error: 'Нет треков для импорта' }, { status: 400 });
+    }
 
-    try {
-      const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(`${artist} ${title}`)}&entity=song&limit=1`);
-      const itunesData = await itunesRes.json();
-      
-      if (itunesData.results && itunesData.results.length > 0) {
-        const match = itunesData.results[0];
-        if (match.trackName.toLowerCase().includes(title.toLowerCase()) || title.toLowerCase().includes(match.trackName.toLowerCase())) {
-          title = match.trackName;
-          artist = match.artistName;
-          coverUrl = match.artworkUrl100.replace('100x100', '600x600');
-          genre = match.primaryGenreName;
-          duration = Math.round(match.trackTimeMillis / 1000);
-          if (match.releaseDate) {
-             releaseYear = parseInt(match.releaseDate.split('-')[0]); // Теперь присваивание числа разрешено
+    let playlistId: string | null = null;
+
+    if (createPlaylist) {
+      const title = playlistTitle?.trim() || `Импорт ${new Date().toLocaleDateString('ru-RU')}`;
+      const playlist = await prisma.playlist.create({
+        data: { title, userId: payload.userId, isPublic: false },
+      });
+      playlistId = playlist.id;
+    }
+
+    const results: ImportResult[] = [];
+    let order = 0;
+
+    for (const t of tracks) {
+      try {
+        const query = `${t.artist} ${t.title}`;
+        const res = await downloadAndSaveTrack(query);
+
+        if (playlistId && res.track) {
+          const existingItem = await prisma.playlistItem.findFirst({
+            where: { playlistId, trackId: res.track.id },
+          });
+          if (!existingItem) {
+            await prisma.playlistItem.create({
+              data: { playlistId, trackId: res.track.id, order: order++ },
+            });
           }
         }
+        
+        results.push({ success: true, title: t.title, skipped: res.skipped });
+        await new Promise(r => setTimeout(r, 1000)); 
+      } catch (e: any) {
+        results.push({ success: false, title: t.title, error: e.message });
       }
-    } catch (e) {
-      console.log('Ошибка iTunes:', e);
     }
 
-    // 4. Загрузка в Telegram
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHANNEL_ID;
-    
-    const fileName = `${randomUUID()}.mp3`;
-    const tgFormData = new FormData();
-    tgFormData.append('chat_id', chatId!);
-    tgFormData.append('audio', blob, fileName);
-
-    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, {
-      method: 'POST',
-      body: tgFormData,
-    });
-
-    const tgData = await tgRes.json();
-    if (!tgData.ok) throw new Error('Ошибка загрузки в Telegram');
-    
-    const fileId = tgData.result.audio.file_id;
-
-    // 5. Сохраняем в базу
-    const track = await prisma.track.create({
-      data: {
-        title,
-        artist,
-        genre: genre || 'Other',
-        coverUrl,
-        duration,
-        releaseYear,
-        audioUrl: fileId
-      }
-    });
-
-    return NextResponse.json({ success: true, track });
+    return NextResponse.json({ success: true, results, playlistId });
   } catch (error: any) {
-    console.error('[Direct Import Error]', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

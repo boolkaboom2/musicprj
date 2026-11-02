@@ -91,7 +91,7 @@ export default function SearchClient() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-subdued)]" size={20} />
           <input
             type="text"
-            placeholder="Что хотите послушать? (трек или плейлист)"
+            placeholder="Что хотите послушать? Автор - название"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-[#1a1a1a] text-white pl-14 pr-4 py-3 rounded-full outline-none focus:ring-2 focus:ring-white/20 border border-transparent transition-all text-sm font-medium"

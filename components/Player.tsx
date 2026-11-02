@@ -200,7 +200,6 @@ export default function Player() {
     ? (activeTrack.audioUrl.startsWith('/') ? activeTrack.audioUrl : `/api/stream/${activeTrack.audioUrl}`) 
     : undefined;
 
-  // СКРЫВАЕМ ПЛЕЕР, ЕСЛИ НЕТ ТРЕКА ИЛИ МЫ НА /login /register
   if (!activeTrack || pathname === '/login' || pathname === '/register') {
     return null;
   }
@@ -220,9 +219,14 @@ export default function Player() {
               <IChevronDown size={28} className="md:w-8 md:h-8" />
             </button>
             <span className="text-[10px] md:text-xs text-white/60 uppercase tracking-widest font-bold">Сейчас играет</span>
-            <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full z-[200]">
-              <IMore size={24} className="md:w-7 md:h-7" />
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setIsSoundModalOpen(true)} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full" title="Эквалайзер и качество">
+                <ISettings size={22} className="md:w-7 md:h-7" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full z-[200]">
+                <IMore size={22} className="md:w-7 md:h-7" />
+              </button>
+            </div>
           </div>
 
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 md:gap-10 p-4 md:p-6">
@@ -279,19 +283,26 @@ export default function Player() {
       {/* MINI PLAYER */}
       <footer className="relative bg-[#121212]/95 backdrop-blur-2xl border-t border-white/10 w-full shrink-0 z-50">
         
-        {/* MOBILE: 2 строки */}
+        {/* MOBILE */}
         <div className="md:hidden flex flex-col">
           <div 
             onClick={() => activeTrack && setPlayerExpanded(true)} 
-            className="flex items-center gap-3 px-4 py-2.5 cursor-pointer active:bg-white/5 transition"
+            className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-white/5 transition"
           >
             <div className="w-12 h-12 bg-[#222] rounded-md overflow-hidden shrink-0 shadow-lg border border-white/5">
               {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><IMusic size={20} /></div>}
             </div>
             <div className="overflow-hidden flex flex-col justify-center min-w-0 flex-1">
-              <div className="text-sm font-bold text-white truncate">{activeTrack ? activeTrack.title : "Выберите трек"}</div>
-              <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack ? activeTrack.artist : "—"}</div>
+              <div className="text-sm font-bold text-white truncate">{activeTrack.title}</div>
+              <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack.artist}</div>
             </div>
+            
+            <button 
+              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+              className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0"
+            >
+              {isMuted || volume === 0 ? <IMute size={20} /> : <IVolume size={20} />}
+            </button>
             <button 
               onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} 
               className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0"
@@ -302,15 +313,11 @@ export default function Player() {
 
           <div className="flex flex-col gap-2 px-4 pb-3">
             <div className="flex items-center justify-center gap-6">
-              <button onClick={playPrevious} className="text-white/80 p-1.5">
-                <ISkipBack size={24} />
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} disabled={!activeTrack} className="bg-white text-black w-12 h-12 rounded-full flex items-center justify-center disabled:opacity-30">
+              <button onClick={playPrevious} className="text-white/80 p-1.5"><ISkipBack size={24} /></button>
+              <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} className="bg-white text-black w-12 h-12 rounded-full flex items-center justify-center">
                 {isPlaying ? <IPause size={22} /> : <IPlay size={22} />}
               </button>
-              <button onClick={playNext} className="text-white/80 p-1.5">
-                <ISkipForward size={24} />
-              </button>
+              <button onClick={playNext} className="text-white/80 p-1.5"><ISkipForward size={24} /></button>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-[var(--text-subdued)] tabular-nums w-8 text-right">{formatTime(currentTime)}</span>
@@ -329,8 +336,8 @@ export default function Player() {
               {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><IMusic size={24} /></div>}
             </div>
             <div className="overflow-hidden flex flex-col justify-center">
-              <div className="text-sm font-bold text-white truncate">{activeTrack ? activeTrack.title : "Выберите трек"}</div>
-              <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack ? activeTrack.artist : "—"}</div>
+              <div className="text-sm font-bold text-white truncate">{activeTrack.title}</div>
+              <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack.artist}</div>
             </div>
           </div>
 
@@ -343,7 +350,7 @@ export default function Player() {
                 {isShuffle && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />}
               </div>
               <button onClick={playPrevious} className="text-[var(--text-subdued)] hover:text-white transition"><ISkipBack size={22} /></button>
-              <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} disabled={!activeTrack} className="bg-white text-black hover:scale-105 w-10 h-10 rounded-full flex items-center justify-center transition-transform disabled:opacity-30 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+              <button onClick={() => setIsPlaying(!isPlaying)} className="bg-white text-black hover:scale-105 w-10 h-10 rounded-full flex items-center justify-center transition-transform shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                 {isPlaying ? <IPause size={22} /> : <IPlay size={22} />}
               </button>
               <button onClick={playNext} className="text-[var(--text-subdued)] hover:text-white transition"><ISkipForward size={22} /></button>

@@ -19,7 +19,7 @@ export default function ImportPlaylistModal({
 }: { 
   isOpen: boolean, 
   onClose: () => void,
-  onSuccess?: () => void 
+  onSuccess?: (playlistId: string | null) => void 
 }) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +77,10 @@ export default function ImportPlaylistModal({
       const res = await fetch("/api/import-playlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tracks: selectedTracks }),
+        body: JSON.stringify({ 
+          tracks: selectedTracks,
+          createPlaylist: true, // <-- Импортируем и в базу, и в плейлист
+        }),
       });
       
       const data = await res.json();
@@ -88,12 +91,12 @@ export default function ImportPlaylistModal({
         const failedCount = data.results.filter((r: any) => !r.success).length;
 
         let msg = `Импортировано: ${successCount}. `;
-        if (skippedCount > 0) msg += `Пропущено (уже в базе): ${skippedCount}. `;
+        if (skippedCount > 0) msg += `Уже было: ${skippedCount}. `;
         if (failedCount > 0) msg += `Ошибок: ${failedCount}.`;
 
         showToast(msg, failedCount > 0 ? 'error' : 'success');
         
-        if (onSuccess) onSuccess();
+        if (onSuccess) onSuccess(data.playlistId || null);
         onClose();
       } else {
         showToast(data.error || "Ошибка импорта", "error");
@@ -112,7 +115,7 @@ export default function ImportPlaylistModal({
         <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center shrink-0">
           <div className="min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold text-white">Импорт плейлиста</h2>
-            <p className="text-xs sm:text-sm text-[var(--text-subdued)] mt-1">Вставьте ссылку из Spotify, Яндекс.Музыки или VK</p>
+            <p className="text-xs sm:text-sm text-[var(--text-subdued)] mt-1">Импорт в базу + создание своего плейлиста</p>
           </div>
           <button onClick={onClose} disabled={isImporting} className="text-white/50 hover:text-white transition p-2 bg-white/5 rounded-full disabled:opacity-50 shrink-0 ml-2">
             <X size={20} />

@@ -259,10 +259,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleImportSuccess = () => {
-    fetchTracks();
-    router.refresh();
-  };
+ const handleImportSuccess = (playlistId: string | null) => {
+  fetchTracks();
+  router.refresh();
+};
 
   return (
     <div className="p-4 md:p-8 relative">

@@ -7,6 +7,14 @@ const VALID_TYPES = ['BUG', 'FEATURE', 'QUESTION', 'OTHER'];
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    const payload = token ? await verifyToken(token) : null;
+
+    if (!payload?.userId) {
+      return NextResponse.json({ error: 'Войдите, чтобы оставить обратную связь' }, { status: 401 });
+    }
+
     const { type, message } = await req.json();
 
     if (!message || message.trim().length < 10) {
@@ -16,16 +24,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Некорректный тип' }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    const payload = token ? await verifyToken(token) : null;
-
     const feedback = await prisma.feedback.create({
-      data: {
-        userId: payload?.userId || null,
-        type,
-        message: message.trim(),
-      },
+      data: { userId: payload.userId, type, message: message.trim() },
     });
 
     return NextResponse.json({ success: true, feedback });
