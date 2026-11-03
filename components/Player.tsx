@@ -32,10 +32,15 @@ export default function Player() {
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const filterRef = useRef<BiquadFilterNode | null>(null);
+  
+  // Фильтры эквалайзера
   const bassRef = useRef<BiquadFilterNode | null>(null);
   const midRef = useRef<BiquadFilterNode | null>(null);
   const trebleRef = useRef<BiquadFilterNode | null>(null);
+  
+  // Фильтры качества звука
+  const lowpassRef = useRef<BiquadFilterNode | null>(null);
+  const highpassRef = useRef<BiquadFilterNode | null>(null);
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -45,6 +50,100 @@ export default function Player() {
   const hasScrobbledRef = useRef(false);
   const isFetchingMoreRef = useRef(false);
   const isFadingOutRef = useRef(false);
+
+  // --- ИНИЦИАЛИЗАЦИЯ WEB AUDIO API ---
+  useEffect(() => {
+    if (activeTrack && audioRef.current && !audioCtxRef.current) {
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioContext();
+        audioCtxRef.current = ctx;
+
+        const source = ctx.createMediaElementSource(audioRef.current);
+
+        // Эквалайзер
+        const bass = ctx.createBiquadFilter();
+        bass.type = 'lowshelf';
+        bass.frequency.value = 250;
+
+        const mid = ctx.createBiquadFilter();
+        mid.type = 'peaking';
+        mid.frequency.value = 1000;
+        mid.Q.value = 1;
+
+        const treble = ctx.createBiquadFilter();
+        treble.type = 'highshelf';
+        treble.frequency.value = 4000;
+
+        // Фильтры качества (Lowpass / Highpass)
+        const lowpass = ctx.createBiquadFilter();
+        lowpass.type = 'lowpass';
+        lowpass.frequency.value = 22050;
+
+        const highpass = ctx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = 20;
+
+        // Цепочка: Source -> Bass -> Mid -> Treble -> Highpass -> Lowpass -> Out
+        source.connect(bass);
+        bass.connect(mid);
+        mid.connect(treble);
+        treble.connect(highpass);
+        highpass.connect(lowpass);
+        lowpass.connect(ctx.destination);
+
+        bassRef.current = bass;
+        midRef.current = mid;
+        trebleRef.current = treble;
+        lowpassRef.current = lowpass;
+        highpassRef.current = highpass;
+      } catch (e) {
+        console.error("Web Audio API init failed", e);
+      }
+    }
+
+    if (audioCtxRef.current?.state === 'suspended' && isPlaying) {
+      audioCtxRef.current.resume();
+    }
+
+    // Применяем настройки эквалайзера
+    if (bassRef.current) bassRef.current.gain.value = isEqualizerOn ? eqBass : 0;
+    if (midRef.current) midRef.current.gain.value = isEqualizerOn ? eqMid : 0;
+    if (trebleRef.current) trebleRef.current.gain.value = isEqualizerOn ? eqTreble : 0;
+
+    // Применяем настройки качества (РАДИКАЛЬНАЯ РАЗНИЦА)
+    if (lowpassRef.current && highpassRef.current) {
+      if (quality === 'excellent') {
+        lowpassRef.current.frequency.value = 22050; // Все частоты
+        highpassRef.current.frequency.value = 20;
+      } else if (quality === 'optimal') {
+        lowpassRef.current.frequency.value = 14000; // Легкий срез верхов
+        highpassRef.current.frequency.value = 40;
+      } else if (quality === 'economical') {
+        lowpassRef.current.frequency.value = 3500;  // Эффект "телефона"
+        highpassRef.current.frequency.value = 300;   // Срез басов
+      }
+    }
+  }, [activeTrack, isPlaying, isEqualizerOn, eqBass, eqMid, eqTreble, quality]);
+
+  // --- MEDIA SESSION API ---
+  useEffect(() => {
+    if ('mediaSession' in navigator && activeTrack) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: activeTrack.title,
+        artist: activeTrack.artist,
+        album: 'SADOVOD',
+        artwork: [
+          { src: activeTrack.coverUrl || '/icon.svg', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
+      navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
+      navigator.mediaSession.setActionHandler('previoustrack', playPrevious);
+      navigator.mediaSession.setActionHandler('nexttrack', playNext);
+    }
+  }, [activeTrack, setIsPlaying, playPrevious, playNext]);
 
   useEffect(() => {
     hasScrobbledRef.current = false;
@@ -71,23 +170,6 @@ export default function Player() {
       playNext();
     }
   }, [isWaitingForNext, currentIndex, queue.length, playNext]);
-
-  useEffect(() => {
-    if (filterRef.current) {
-      if (quality === 'economical') filterRef.current.frequency.value = 4000;
-      else if (quality === 'optimal') filterRef.current.frequency.value = 12000;
-      else filterRef.current.frequency.value = 22000;
-    }
-    if (isEqualizerOn) {
-      if (bassRef.current) bassRef.current.gain.value = eqBass;
-      if (midRef.current) midRef.current.gain.value = eqMid;
-      if (trebleRef.current) trebleRef.current.gain.value = eqTreble;
-    } else {
-      if (bassRef.current) bassRef.current.gain.value = 0;
-      if (midRef.current) midRef.current.gain.value = 0;
-      if (trebleRef.current) trebleRef.current.gain.value = 0;
-    }
-  }, [quality, isEqualizerOn, eqBass, eqMid, eqTreble]);
 
   useEffect(() => {
     if (audioRef.current && !isFadingOutRef.current) {
@@ -206,7 +288,14 @@ export default function Player() {
 
   return (
     <>
-      <audio ref={audioRef} src={audioSrc} onEnded={handleEnded} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleLoadedMetadata} />
+      <audio 
+        ref={audioRef} 
+        src={audioSrc} 
+        crossOrigin="anonymous"
+        onEnded={handleEnded} 
+        onTimeUpdate={handleTimeUpdate} 
+        onLoadedMetadata={handleLoadedMetadata} 
+      />
 
       {/* FULLSCREEN PLAYER */}
       {isPlayerExpanded && activeTrack && (
@@ -245,9 +334,11 @@ export default function Player() {
           <div className="relative z-10 p-4 md:p-8 flex flex-col gap-4 md:gap-6 max-w-2xl mx-auto w-full pb-6">
             <div className="flex items-center gap-3 md:gap-4">
               <span className="text-xs md:text-sm text-white/50 font-medium w-8 md:w-10 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 h-1 md:h-1.5 bg-white/20 rounded-full cursor-pointer group relative" onClick={handleSeek}>
-                <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 md:w-3.5 md:h-3.5 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
+                <div className="w-full h-1 md:h-1.5 bg-white/20 rounded-full relative group-hover:h-2 transition-all duration-200">
+                  <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 md:w-4 md:h-4 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" />
+                  </div>
                 </div>
               </div>
               <span className="text-xs md:text-sm text-white/50 font-medium w-8 md:w-10 text-left">{formatTime(duration)}</span>
@@ -282,13 +373,9 @@ export default function Player() {
 
       {/* MINI PLAYER */}
       <footer className="relative bg-[#121212]/95 backdrop-blur-2xl border-t border-white/10 w-full shrink-0 z-50">
-        
         {/* MOBILE */}
         <div className="md:hidden flex flex-col">
-          <div 
-            onClick={() => activeTrack && setPlayerExpanded(true)} 
-            className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-white/5 transition"
-          >
+          <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-white/5 transition">
             <div className="w-12 h-12 bg-[#222] rounded-md overflow-hidden shrink-0 shadow-lg border border-white/5">
               {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><IMusic size={20} /></div>}
             </div>
@@ -296,21 +383,16 @@ export default function Player() {
               <div className="text-sm font-bold text-white truncate">{activeTrack.title}</div>
               <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack.artist}</div>
             </div>
-            
-            <button 
-              onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-              className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0"
-            >
+            <button type="button" onClick={(e) => { e.stopPropagation(); setIsSoundModalOpen(true); }} className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0 z-50 relative">
+              <ISettings size={20} />
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0 z-50 relative">
               {isMuted || volume === 0 ? <IMute size={20} /> : <IVolume size={20} />}
             </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} 
-              className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0"
-            >
+            <button type="button" onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0 z-50 relative pointer-events-auto">
               <IMore size={20} />
             </button>
           </div>
-
           <div className="flex flex-col gap-2 px-4 pb-3">
             <div className="flex items-center justify-center gap-6">
               <button onClick={playPrevious} className="text-white/80 p-1.5"><ISkipBack size={24} /></button>
@@ -321,8 +403,10 @@ export default function Player() {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-[var(--text-subdued)] tabular-nums w-8 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 h-1 bg-white/10 rounded-full cursor-pointer relative" onClick={handleSeek}>
-                <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }} />
+              <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
+                <div className="w-full h-1 bg-white/10 rounded-full relative group-hover:h-1.5 transition-all">
+                  <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }} />
+                </div>
               </div>
               <span className="text-xs text-[var(--text-subdued)] tabular-nums w-8 text-left">{formatTime(duration)}</span>
             </div>
@@ -363,9 +447,11 @@ export default function Player() {
             </div>
             <div className="w-full flex items-center gap-3">
               <span className="text-sm text-[var(--text-subdued)] font-medium w-9 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 h-1 bg-white/10 rounded-full cursor-pointer group relative" onClick={handleSeek}>
-                <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+              <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
+                <div className="w-full h-1 bg-white/10 rounded-full relative group-hover:h-1.5 transition-all duration-200">
+                  <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                  </div>
                 </div>
               </div>
               <span className="text-sm text-[var(--text-subdued)] font-medium w-9 text-left">{formatTime(duration)}</span>

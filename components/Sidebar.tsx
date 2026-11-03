@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import UserProfileClient from "./UserProfileClient";
 import FeedbackButton from "./FeedbackButton";
 import ImportPlaylistButton from "./ImportPlaylistButton";
+import InstallPWA from "./InstallPWA";
 
 interface SidebarProps {
   user: any;
@@ -25,7 +26,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
     }`;
 
   return (
-    <div className="flex flex-col h-full justify-between">
+    <div className="flex flex-col h-full justify-between overflow-y-auto custom-scrollbar">
       <div>
         <div className="flex items-center justify-between mb-8">
           <Link 
@@ -58,6 +59,15 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
               <Link href="/playlists" onClick={onClose} className={linkClass('/playlists')}>
                 Публичные плейлисты
               </Link>
+              
+              <div className="mt-4 pt-4 border-t border-[#333]">
+                <ImportPlaylistButton />
+                <InstallPWA />
+              </div>
+              <FeedbackButton />
+              <Link href="/faq" onClick={onClose} className={linkClass('/faq')}>
+                FAQ
+              </Link>
             </>
           )}
           
@@ -70,26 +80,25 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
               Админ-панель
             </Link>
           )}
-
-          {!isGuest && (
-            <>
-              <div className={isAdmin ? "" : "mt-4 pt-4 border-t border-[#333]"}>
-                <ImportPlaylistButton />
-              </div>
-              <FeedbackButton />
-            </>
-          )}
         </nav>
       </div>
 
-      <div className="border-t border-[#333] pt-4">
+      <div className="border-t border-[#333] pt-4 flex flex-col gap-4">
         <UserProfileClient user={user} />
+        
+        <div className="text-[10px] text-white/30 leading-tight pb-2">
+          <Link href="/privacy" className="hover:text-white/60 underline transition mb-1 inline-block">
+            Политика конфиденциальности
+          </Link>
+          <p>Учебный проект. Все права на аудиозаписи принадлежат их правообладателям. Сайт не предназначен для коммерческого использования.</p>
+        </div>
       </div>
     </div>
   );
 }
 
 export default function Sidebar({ user, isAdmin }: SidebarProps) {
+  const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
 
   useEffect(() => {
@@ -97,6 +106,10 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
     else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
   }, [isSidebarOpen]);
+
+  if (pathname === '/login' || pathname === '/register') {
+    return null;
+  }
 
   return (
     <>

@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import TrackList from "@/components/TrackList";
 import { notFound } from "next/navigation";
 import PlaylistPrivacyToggle from "@/components/PlaylistPrivacyToggle";
 import PlaylistCoverUploader from "@/components/PlaylistCoverUploader";
+import PlaylistTrackList from "./PlaylistTrackList";
+import EditablePlaylistTitle from "./EditablePlaylistTitle";
 
 export default function PlaylistPage({ params }: { params: Promise<{ id: string }> }) {
   return (
@@ -56,10 +57,8 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Хедер: на мобилке столбиком, на десктопе в строку */}
       <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 p-4 md:p-8 bg-gradient-to-b from-[#2a2a2a] to-[#121212] pb-8 md:pb-12">
         
-        {/* Обложка — загрузчик только для владельца */}
         {isOwner ? (
           <div className="self-start md:self-end">
             <PlaylistCoverUploader playlistId={playlist.id} coverUrl={playlist.coverUrl} />
@@ -84,9 +83,13 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
           <span className="text-xs md:text-sm font-bold uppercase tracking-widest text-[var(--text-subdued)]">
             {playlist.isPublic ? "Публичный плейлист" : "Приватный плейлист"}
           </span>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter break-words">
-            {playlist.title}
-          </h1>
+          
+          <EditablePlaylistTitle 
+            playlistId={playlist.id} 
+            initialTitle={playlist.title} 
+            isOwner={isOwner} 
+          />
+
           <p className="text-[var(--text-subdued)] text-sm break-words">
             {ownerName} • {tracks.length} треков
           </p>
@@ -102,7 +105,12 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
         {tracks.length === 0 ? (
           <p className="p-4 md:p-8 text-[var(--text-subdued)]">В этом плейлисте пока нет треков.</p>
         ) : (
-          <TrackList initialTracks={tracks} userLikes={userLikes} />
+          <PlaylistTrackList 
+            initialTracks={tracks} 
+            userLikes={userLikes} 
+            playlistId={playlist.id}
+            isOwner={isOwner}
+          />
         )}
       </div>
     </div>

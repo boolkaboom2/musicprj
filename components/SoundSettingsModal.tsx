@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useSoundStore } from "@/store/soundStore";
 import { X, Check, RotateCcw } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { 
@@ -10,74 +11,93 @@ export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolea
     eqBass, eqMid, eqTreble, setEqBass, setEqMid, setEqTreble 
   } = useSoundStore();
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-      <div className="absolute inset-0" onClick={onClose} />
-      
-      <div className="relative w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white tracking-tight">Настройки звука</h2>
-          <button onClick={onClose} className="text-[var(--text-subdued)] hover:text-white bg-white/5 p-2 rounded-full"><X size={18} /></button>
-        </div>
-
-        <div className="flex flex-col gap-2 mb-6">
-          <button onClick={() => setQuality('excellent')} className="flex justify-between items-start p-3 hover:bg-white/5 rounded-xl transition text-left">
-            <div>
-              <p className="text-white font-bold text-sm">Превосходное</p>
-              <p className="text-[var(--text-subdued)] text-xs mt-1">Полный спектр частот</p>
-            </div>
-            {quality === 'excellent' && <Check size={20} className="text-white shrink-0" />}
-          </button>
-          <button onClick={() => setQuality('optimal')} className="flex justify-between items-start p-3 hover:bg-white/5 rounded-xl transition text-left">
-            <div>
-              <p className="text-white font-bold text-sm">Оптимальное</p>
-              <p className="text-[var(--text-subdued)] text-xs mt-1">Сбалансированный звук</p>
-            </div>
-            {quality === 'optimal' && <Check size={20} className="text-white shrink-0" />}
-          </button>
-          <button onClick={() => setQuality('economical')} className="flex justify-between items-start p-3 hover:bg-white/5 rounded-xl transition text-left">
-            <div>
-              <p className="text-white font-bold text-sm">Экономичное</p>
-              <p className="text-[var(--text-subdued)] text-xs mt-1">Имитация низкого битрейта</p>
-            </div>
-            {quality === 'economical' && <Check size={20} className="text-white shrink-0" />}
-          </button>
-        </div>
-
-        <div className="h-px bg-white/10 my-4" />
-
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-white font-bold text-sm">Эквалайзер</span>
-            {isEqualizerOn && (
-              <button 
-                onClick={() => { setEqBass(0); setEqMid(0); setEqTreble(0); }}
-                className="text-[var(--text-subdued)] hover:text-white transition p-1 bg-white/5 rounded-md"
-                title="Сбросить настройки"
-              >
-                <RotateCcw size={14} />
-              </button>
-            )}
-          </div>
-          <button 
-            onClick={toggleEqualizer}
-            className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${isEqualizerOn ? 'bg-green-500' : 'bg-white/20'}`}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={onClose}
+        >
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-2xl border border-white/5"
           >
-            <div className={`w-4 h-4 bg-white rounded-full absolute transition-transform ${isEqualizerOn ? 'translate-x-7' : 'translate-x-1'}`} />
-          </button>
-        </div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-white tracking-tight">Настройки звука</h2>
+              <button onClick={onClose} className="text-[var(--text-subdued)] hover:text-white bg-white/5 p-2 rounded-full transition"><X size={18} /></button>
+            </div>
 
-        {/* Большой и плавный эквалайзер */}
-        <div className={`flex justify-center gap-12 h-40 transition-opacity duration-300 ${isEqualizerOn ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-          <CustomEqSlider label="BASS" value={eqBass} onChange={setEqBass} />
-          <CustomEqSlider label="MID" value={eqMid} onChange={setEqMid} />
-          <CustomEqSlider label="TREBLE" value={eqTreble} onChange={setEqTreble} />
-        </div>
+            <div className="flex flex-col gap-2 mb-6">
+              <button onClick={() => setQuality('excellent')} className="flex justify-between items-start p-3 hover:bg-white/5 rounded-xl transition text-left">
+                <div>
+                  <p className="text-white font-bold text-sm">Превосходное</p>
+                  <p className="text-[var(--text-subdued)] text-xs mt-1">Полный спектр частот</p>
+                </div>
+                {quality === 'excellent' && <Check size={20} className="text-white shrink-0" />}
+              </button>
+              <button onClick={() => setQuality('optimal')} className="flex justify-between items-start p-3 hover:bg-white/5 rounded-xl transition text-left">
+                <div>
+                  <p className="text-white font-bold text-sm">Оптимальное</p>
+                  <p className="text-[var(--text-subdued)] text-xs mt-1">Сбалансированный звук</p>
+                </div>
+                {quality === 'optimal' && <Check size={20} className="text-white shrink-0" />}
+              </button>
+              <button onClick={() => setQuality('economical')} className="flex justify-between items-start p-3 hover:bg-white/5 rounded-xl transition text-left">
+                <div>
+                  <p className="text-white font-bold text-sm">Экономичное</p>
+                  <p className="text-[var(--text-subdued)] text-xs mt-1">Имитация низкого битрейта</p>
+                </div>
+                {quality === 'economical' && <Check size={20} className="text-white shrink-0" />}
+              </button>
+            </div>
 
-      </div>
-    </div>
+            <div className="h-px bg-white/10 my-4" />
+
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-bold text-sm">Эквалайзер</span>
+                {isEqualizerOn && (
+                  <button 
+                    onClick={() => { setEqBass(0); setEqMid(0); setEqTreble(0); }}
+                    className="text-[var(--text-subdued)] hover:text-white transition p-1 bg-white/5 rounded-md"
+                    title="Сбросить настройки"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                )}
+              </div>
+              
+              {/* ПЛАВНЫЙ ТУМБЛЕР */}
+              <button 
+                onClick={toggleEqualizer}
+                className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${isEqualizerOn ? 'bg-green-500' : 'bg-white/20'}`}
+              >
+                <motion.div 
+                  layout
+                  transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                  className="w-4 h-4 bg-white rounded-full absolute"
+                  style={{ left: isEqualizerOn ? 'calc(100% - 20px)' : '4px' }}
+                />
+              </button>
+            </div>
+
+            <div className={`flex justify-center gap-12 h-40 transition-opacity duration-300 ${isEqualizerOn ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+              <CustomEqSlider label="BASS" value={eqBass} onChange={setEqBass} />
+              <CustomEqSlider label="MID" value={eqMid} onChange={setEqMid} />
+              <CustomEqSlider label="TREBLE" value={eqTreble} onChange={setEqTreble} />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

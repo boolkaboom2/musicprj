@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
@@ -10,6 +10,7 @@ import DisableContextMenu from "@/components/DisableContextMenu";
 import Toast from "@/components/Toast";
 import VisitLogger from "@/components/VisitLogger";
 import AutoRefresher from "@/components/AutoRefresher";
+import PWARegister from "@/components/PWARegister";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -25,9 +26,20 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "SADOVOD",
   description: "Твой личный стриминговый сервис",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SADOVOD",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 async function LayoutData() {
+  // ... (код без изменений)
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   const payload = token ? await verifyToken(token) : null;
@@ -67,7 +79,9 @@ export default function RootLayout({
     <html lang="ru" className={manrope.variable}>
       <body className="antialiased bg-black text-white h-[100dvh] flex flex-col overflow-hidden font-sans">
         
-        <MobileHeader />
+        <Suspense fallback={null}>
+          <MobileHeader />
+        </Suspense>
 
         <div className="flex flex-1 overflow-hidden md:p-2 gap-2">
           <Suspense fallback={null}>
@@ -94,6 +108,7 @@ export default function RootLayout({
         </Suspense>
         
         <AutoRefresher />
+        <PWARegister />
         
       </body>
     </html>

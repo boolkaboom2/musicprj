@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { X, Bug, Lightbulb, HelpCircle, MessageSquare, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./Toast";
@@ -17,6 +18,7 @@ export default function FeedbackModal({ isOpen, onClose }: { isOpen: boolean; on
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const showToast = useToast((s) => s.show);
+  const router = useRouter();
 
   const handleSubmit = async () => {
     if (message.trim().length < 10) {
@@ -36,6 +38,7 @@ export default function FeedbackModal({ isOpen, onClose }: { isOpen: boolean; on
         showToast("Спасибо! Сообщение отправлено", "success");
         setMessage("");
         setType('BUG');
+        router.refresh();
         onClose();
       } else {
         const data = await res.json();

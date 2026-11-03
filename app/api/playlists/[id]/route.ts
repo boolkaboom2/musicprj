@@ -27,19 +27,17 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { isPublic } = body;
-
-    if (typeof isPublic !== 'boolean') {
-      return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
-    }
+    const { isPublic, title } = body;
 
     const updated = await prisma.playlist.update({
       where: { id },
-      data: { isPublic },
+      data: { 
+        isPublic: isPublic !== undefined ? isPublic : undefined,
+        title: title !== undefined ? title : undefined,
+      },
     });
 
     revalidatePath('/', 'layout');
-
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[Playlist PATCH Error]', error);
@@ -47,6 +45,7 @@ export async function PATCH(
   }
 }
 
+// DELETE остается без изменений...
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -74,7 +73,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Playlist DELETE Error]', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

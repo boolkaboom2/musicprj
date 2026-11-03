@@ -7,12 +7,13 @@ import Link from "next/link";
 import { ListMusic, Play } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import { TrackListSkeleton, PlaylistGridSkeleton } from "@/components/Skeletons";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
     <PageTransition>
       <div className="flex flex-col h-full w-full">
-        <div className="p-8 pb-0">
+        <div className="p-8 pb-0 flex justify-between items-end">
           <h1 className="text-3xl md:text-4xl font-black text-[var(--text-base)] tracking-tight">
             Рекомендации
           </h1>
@@ -25,6 +26,11 @@ export default function Home() {
         <Suspense fallback={<PlaylistGridSkeleton count={5} />}>
           <PublicPlaylistsSection />
         </Suspense>
+
+        {/* Футер */}
+        <div className="px-4">
+          <Footer />
+        </div>
       </div>
     </PageTransition>
   );

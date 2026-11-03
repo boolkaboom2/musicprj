@@ -3,9 +3,16 @@
 import { Menu, Music } from "lucide-react";
 import Link from "next/link";
 import { useUIStore } from "@/store/uiStore";
+import { usePathname } from "next/navigation";
 
 export default function MobileHeader() {
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
+  const pathname = usePathname();
+
+  // Скрываем шапку на страницах авторизации
+  if (pathname === '/login' || pathname === '/register') {
+    return null;
+  }
 
   return (
     <header className="md:hidden flex items-center justify-between p-4 bg-black border-b border-white/10 shrink-0 z-40">

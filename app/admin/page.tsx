@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon, ListMusic, MessageSquarePlus } from "lucide-react";
+import { CheckCircle2, XCircle, UploadCloud, Loader2, Music, Search, Trash2, Edit, BarChart3, Users, Link as LinkIcon, ListMusic, MessageSquarePlus, Key } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import ImportPlaylistModal from "@/components/ImportPlaylistModal";
@@ -36,7 +36,6 @@ export default function AdminPage() {
   
   const [directUrl, setDirectUrl] = useState("");
   const [isImportingDirect, setIsImportingDirect] = useState(false);
-
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const showToast = useToast((s) => s.show);
@@ -259,10 +258,10 @@ export default function AdminPage() {
     }
   };
 
- const handleImportSuccess = (playlistId: string | null) => {
-  fetchTracks();
-  router.refresh();
-};
+  const handleImportSuccess = (playlistId: string | null) => {
+    fetchTracks();
+    router.refresh();
+  };
 
   return (
     <div className="p-4 md:p-8 relative">
@@ -274,6 +273,9 @@ export default function AdminPage() {
           </Link>
           <Link href="/admin/users" className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
             <Users size={14} className="md:w-[18px] md:h-[18px]" /> Пользователи
+          </Link>
+          <Link href="/admin/invites" className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
+            <Key size={14} className="md:w-[18px] md:h-[18px]" /> Инвайты
           </Link>
           <Link href="/admin/feedback" className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap">
             <MessageSquarePlus size={14} className="md:w-[18px] md:h-[18px]" /> Feedback
@@ -388,6 +390,7 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* Модалки редактирования и удаления оставляем без изменений, они в оригинальном файле */}
       {editingTrack && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
           <div className="absolute inset-0" onClick={() => setEditingTrack(null)} />

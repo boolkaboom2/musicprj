@@ -13,6 +13,11 @@ model User {
   password        String
   name            String?
   avatarUrl       String?
+  bannerUrl       String?
+  bio             String?
+  telegram        String?
+  phone           String?
+  avatarEffect    String    @default("none")
   role            String    @default("USER")
   status          String    @default("ACTIVE")
   subscriptionEnd DateTime?
@@ -25,6 +30,9 @@ model User {
   visitLogs        VisitLog[]
   subscriptionLogs SubscriptionLog[]
   feedback         Feedback[]
+  
+  createdInvites   InviteCode[] @relation("CreatedInvites")
+  usedInvite       InviteCode?  @relation("UsedInvite")
 }
 
 model Track {
@@ -128,5 +136,17 @@ model Feedback {
   message   String
   status    String   @default("NEW")
   adminNote String?
+  createdAt DateTime @default(now())
+}
+
+model InviteCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  createdBy String?
+  creator   User?    @relation("CreatedInvites", fields: [createdBy], references: [id], onDelete: SetNull)
+  usedBy    String?  @unique
+  user      User?    @relation("UsedInvite", fields: [usedBy], references: [id], onDelete: SetNull)
+  usedAt    DateTime?
+  expiresAt DateTime?
   createdAt DateTime @default(now())
 }

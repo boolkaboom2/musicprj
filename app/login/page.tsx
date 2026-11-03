@@ -12,16 +12,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isTransitioned, setIsTransitioned] = useState(false);
+  
+  // НАЧИНАЕМ С FALSE (сразу показываем анимацию)
+  const [isTransitioned, setIsTransitioned] = useState(false); 
   const [isChecking, setIsChecking] = useState(true);
   const showToast = useToast((state) => state.show);
 
   useEffect(() => {
     const vinylShown = localStorage.getItem('sadovod_vinyl_shown') === 'true';
     const isDesktop = window.innerWidth >= 1024;
-    
+
+    // Если уже видел ИЛИ это мобилка — скрываем анимацию
     if (vinylShown || !isDesktop) {
-      setIsTransitioned(true);
+      setIsTransitioned(true); 
     }
     setIsChecking(false);
   }, []);
@@ -136,7 +139,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Кнопка "показать анимацию снова" — только десктоп */}
                 <div className="hidden lg:flex justify-center mt-6">
                   <button
                     onClick={handleShowAnimationAgain}

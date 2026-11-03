@@ -37,7 +37,11 @@ export async function POST(req: Request) {
     
     const response = NextResponse.json({ message: 'Успех', role: user.role });
     response.cookies.set('auth_token', token, {
-      httpOnly: true, secure: false, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7, path: '/',
+      httpOnly: true, 
+      secure: true, // <-- ИЗМЕНЕНО НА TRUE
+      sameSite: 'lax', 
+      maxAge: 60 * 60 * 24 * 7, 
+      path: '/',
     });
     
     return response;

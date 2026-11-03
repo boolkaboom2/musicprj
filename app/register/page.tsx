@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, RotateCcw } from "lucide-react";
+import { Loader2, RotateCcw, Check } from "lucide-react";
 import CustomInput from "@/components/CustomInput";
 import { useToast } from "@/components/Toast";
 import VinylScene from "@/components/VinylScene";
@@ -13,8 +13,11 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [agreed, setAgreed] = useState(false); // Стейт для галочки
+  
   const [isLoading, setIsLoading] = useState(false);
-  const [isTransitioned, setIsTransitioned] = useState(false);
+  const [isTransitioned, setIsTransitioned] = useState(true); // По умолчанию скрываем анимацию (показываем форму)
   const [isChecking, setIsChecking] = useState(true);
   const router = useRouter();
   const showToast = useToast((state) => state.show);
@@ -22,9 +25,10 @@ export default function RegisterPage() {
   useEffect(() => {
     const vinylShown = localStorage.getItem('sadovod_vinyl_shown') === 'true';
     const isDesktop = window.innerWidth >= 1024;
-    
-    if (vinylShown || !isDesktop) {
-      setIsTransitioned(true);
+
+    // Если анимация еще не показывалась и это десктоп — показываем её
+    if (!vinylShown && isDesktop) {
+      setIsTransitioned(false);
     }
     setIsChecking(false);
   }, []);
@@ -40,8 +44,12 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !inviteCode) {
       showToast("Заполните все поля", "error");
+      return;
+    }
+    if (!agreed) {
+      showToast("Согласитесь с политикой конфиденциальности", "error");
       return;
     }
 
@@ -51,7 +59,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, inviteCode }),
       });
 
       const data = await res.json();
@@ -112,12 +120,28 @@ export default function RegisterPage() {
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
                   <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Регистрация</h1>
-                  <p className="text-[var(--text-subdued)] text-sm mb-8">Создайте аккаунт SADOVOD.</p>
+                  <p className="text-[var(--text-subdued)] text-sm mb-6">Создайте аккаунт SADOVOD.</p>
                   
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3">
                     <CustomInput type="text" placeholder="Ваше имя" value={name} onChange={(e) => setName(e.target.value)} />
                     <CustomInput type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    <CustomInput isPassword placeholder="Пароль (минимум 6 символов)" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <CustomInput isPassword placeholder="Пароль (мин 6 символов)" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <CustomInput type="text" placeholder="Инвайт-код" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
+
+                    {/* Кастомный чекбокс */}
+                    <label className="flex items-start gap-3 mt-2 cursor-pointer group">
+                      <div 
+                        onClick={(e) => { e.preventDefault(); setAgreed(!agreed); }}
+                        className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                          agreed ? 'bg-white border-white' : 'border-white/20 group-hover:border-white/40'
+                        }`}
+                      >
+                        {agreed && <Check size={14} className="text-black" />}
+                      </div>
+                      <span className="text-xs text-[var(--text-subdued)] leading-relaxed select-none">
+                        Я согласен с <Link href="/privacy" target="_blank" className="text-white hover:underline">политикой конфиденциальности</Link> и обработкой персональных данных.
+                      </span>
+                    </label>
 
                     <button
                       type="button"

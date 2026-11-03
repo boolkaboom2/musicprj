@@ -3,7 +3,8 @@
 import { create } from "zustand";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { usePathname } from "next/navigation";
 
 interface ToastState {
   message: string | null;
@@ -33,8 +34,9 @@ export const useToast = create<ToastState>((set) => ({
   hide: () => set({ message: null }),
 }));
 
-export default function Toast() {
+function ToastContent() {
   const { message, type, hide } = useToast();
+  const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -49,13 +51,21 @@ export default function Toast() {
     type === "error" ? "border-red-500/50 text-red-400" :
     "border-white/20 text-white";
 
-  // МОБИЛКА: сверху, полная ширина. ПК: снизу справа, max-w-sm
-  const positionClass = isMobile 
-    ? "top-3 left-3 right-3" 
-    : "bottom-28 right-6 max-w-sm";
+  const isAuthPage = pathname === '/login' || pathname === '/register';
 
-  const offsetY = isMobile ? -20 : 20;
-  const exitY = isMobile ? -20 : 20;
+  // Логика позиционирования
+  let positionClass = "";
+  if (isAuthPage) {
+    // На страницах входа/регистрации — прямо над панелью формы
+    positionClass = "top-[15vh] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm";
+  } else if (isMobile) {
+    positionClass = "top-3 left-3 right-3";
+  } else {
+    positionClass = "bottom-28 right-6 max-w-sm";
+  }
+
+  const offsetY = isMobile || isAuthPage ? -20 : 20;
+  const exitY = isMobile || isAuthPage ? -20 : 20;
 
   return (
     <div className={`fixed z-[9999] pointer-events-none ${positionClass}`}>
@@ -80,5 +90,13 @@ export default function Toast() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function Toast() {
+  return (
+    <Suspense fallback={null}>
+      <ToastContent />
+    </Suspense>
   );
 }
