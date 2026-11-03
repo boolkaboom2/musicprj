@@ -6,7 +6,7 @@ import TrackList from "@/components/TrackList";
 import Link from "next/link";
 import { Heart, Music, Play, ListMusic } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
-import { PlaylistGridSkeleton } from "@/components/Skeletons";
+import Loader from "@/components/Loader";
 
 export default function LibraryPage() {
   return (
@@ -17,7 +17,7 @@ export default function LibraryPage() {
             Моя медиатека
           </h1>
         </div>
-        <Suspense fallback={<PlaylistGridSkeleton count={5} />}>
+        <Suspense fallback={<Loader />}>
           <LibraryData />
         </Suspense>
       </div>
