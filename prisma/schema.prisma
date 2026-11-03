@@ -50,6 +50,10 @@ model Track {
   likes         Like[]
   listenHistory ListenHistory[]
   pinnedTracks  PinnedTrack[]
+
+  @@index([title])
+  @@index([artist])
+  @@index([createdAt])
 }
 
 model Playlist {
@@ -70,6 +74,8 @@ model PlaylistItem {
   order      Int
   playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId, order])
 }
 
 model Like {
@@ -89,6 +95,8 @@ model ListenHistory {
   playedAt  DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([userId, playedAt])
 }
 
 model PinnedTrack {

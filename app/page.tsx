@@ -8,6 +8,7 @@ import { ListMusic, Play } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import { TrackListSkeleton, PlaylistGridSkeleton } from "@/components/Skeletons";
 import Footer from "@/components/Footer";
+import RecentlyPlayed from "@/components/RecentlyPlayed";
 
 export default function Home() {
   return (
@@ -19,6 +20,10 @@ export default function Home() {
           </h1>
         </div>
         
+        <Suspense fallback={<div className="h-20" />}>
+          <RecentlyPlayedSection />
+        </Suspense>
+
         <Suspense fallback={<TrackListSkeleton />}>
           <TrackListData />
         </Suspense>
@@ -27,8 +32,7 @@ export default function Home() {
           <PublicPlaylistsSection />
         </Suspense>
 
-        {/* Футер */}
-        <div className="px-4">
+        <div className="px-4 mt-auto">
           <Footer />
         </div>
       </div>
@@ -36,6 +40,38 @@ export default function Home() {
   );
 }
 
+// --- Недавно прослушанное ---
+async function RecentlyPlayedSection() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+  const payload = token ? await verifyToken(token) : null;
+
+  if (!payload?.userId) return null;
+
+  // Берем последние 30 записей, чтобы отфильтровать дубли
+  const history = await prisma.listenHistory.findMany({
+    where: { userId: payload.userId },
+    take: 30,
+    orderBy: { playedAt: 'desc' },
+    include: { track: true }
+  });
+
+  // Оставляем только уникальные треки (последние 10)
+  const uniqueTracks: any[] = [];
+  const seenIds = new Set();
+  
+  for (const item of history) {
+    if (!seenIds.has(item.trackId)) {
+      seenIds.add(item.trackId);
+      uniqueTracks.push(item.track);
+      if (uniqueTracks.length === 10) break;
+    }
+  }
+
+  return <RecentlyPlayed tracks={uniqueTracks} />;
+}
+
+// --- Рекомендации (Список треков) ---
 async function TrackListData() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
@@ -73,6 +109,7 @@ async function TrackListData() {
   return <TrackList initialTracks={sortedTracks} userLikes={userLikes} userPins={userPins} />;
 }
 
+// --- Публичные плейлисты ---
 async function PublicPlaylistsSection() {
   await cookies();
 
