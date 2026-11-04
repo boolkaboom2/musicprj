@@ -4,16 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import CustomInput from "@/components/CustomInput";
+import { useToast } from "@/components/Toast";
+import PageTransition from "@/components/PageTransition";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const showToast = useToast((s) => s.show);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); setMessage(""); setIsLoading(true);
+    if (!email) return;
+    setIsLoading(true);
 
     try {
       const res = await fetch("/api/auth/forgot-password", {
@@ -24,41 +26,50 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
       
       if (res.ok) {
-        setMessage("Ссылка для сброса пароля отправлена в консоль сервера (смотри терминал).");
+        showToast("Ссылка для сброса отправлена в консоль сервера (смотрите терминал)", "success");
       } else {
-        setError(data.error || "Ошибка");
+        showToast(data.error || "Ошибка", "error");
       }
     } catch (err) {
-      setError("Ошибка сети");
+      showToast("Ошибка сети", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh] w-full p-8">
-      <div className="bg-[#121212] p-8 md:p-10 rounded-xl border border-white/5 w-full max-w-md shadow-2xl">
-        <h1 className="text-2xl font-black text-white mb-6">Сброс пароля</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <CustomInput
-            type="email"
-            placeholder="Введите ваш Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          
-          {message && <div className="text-green-500 text-sm bg-green-500/10 p-3 rounded-md">{message}</div>}
-          {error && <div className="text-red-500 text-sm bg-red-500/10 p-3 rounded-md">{error}</div>}
+    <PageTransition>
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="bg-[#121212] p-8 md:p-10 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-          <button type="submit" disabled={isLoading} className="bg-white text-black font-bold py-3 rounded-md hover:bg-gray-200 transition-colors flex justify-center items-center">
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Сбросить"}
-          </button>
-        </form>
-        <div className="mt-4 text-center">
-          <Link href="/login" className="text-sm text-[var(--text-subdued)] hover:text-white">Вернуться ко входу</Link>
+            <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Сброс пароля</h1>
+            <p className="text-[var(--text-subdued)] text-sm mb-8">Введите ваш email, и мы сгенерируем ссылку для сброса.</p>
+            
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <CustomInput
+                type="email"
+                placeholder="Ваш Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-white text-black font-bold uppercase tracking-wider py-4 rounded-md hover:bg-gray-200 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+              >
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Сбросить"}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center text-sm text-[var(--text-subdued)]">
+              <Link href="/login" className="hover:text-white transition-all">Вернуться ко входу</Link>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

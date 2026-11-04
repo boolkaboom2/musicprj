@@ -4,20 +4,21 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import CustomInput from "@/components/CustomInput";
+import { useToast } from "@/components/Toast";
+import PageTransition from "@/components/PageTransition";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const router = useRouter();
+  const showToast = useToast((s) => s.show);
 
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   if (!token) {
     return (
-      <div className="text-center text-red-500 bg-red-500/10 p-4 rounded-md border border-red-500/20">
+      <div className="text-center text-red-500 bg-red-500/10 p-4 rounded-md border border-red-500/20 max-w-md">
         Неверная или отсутствующая ссылка для сброса.
       </div>
     );
@@ -25,7 +26,8 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); setMessage(""); setIsLoading(true);
+    if (!password) return;
+    setIsLoading(true);
 
     try {
       const res = await fetch("/api/auth/reset-password", {
@@ -36,23 +38,24 @@ function ResetPasswordForm() {
       const data = await res.json();
       
       if (res.ok) {
-        setMessage("Пароль успешно изменен! Сейчас перенаправим вас на вход.");
+        showToast("Пароль успешно изменен! Перенаправляем на вход...", "success");
         setTimeout(() => router.push("/login"), 2000);
       } else {
-        setError(data.error || "Ошибка");
+        showToast(data.error || "Ошибка", "error");
       }
     } catch (err) {
-      setError("Ошибка сети");
+      showToast("Ошибка сети", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-[#121212] p-8 md:p-10 rounded-xl border border-white/5 w-full max-w-md shadow-2xl relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-      <h1 className="text-2xl font-black text-white mb-2">Новый пароль</h1>
-      <p className="text-[var(--text-subdued)] text-sm mb-6">Введите новый пароль для вашего аккаунта.</p>
+    <div className="bg-[#121212] p-8 md:p-10 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden w-full max-w-md">
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+      <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Новый пароль</h1>
+      <p className="text-[var(--text-subdued)] text-sm mb-8">Введите новый пароль для вашего аккаунта.</p>
       
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <CustomInput
@@ -60,13 +63,13 @@ function ResetPasswordForm() {
           placeholder="Новый пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
         />
-        
-        {message && <div className="text-green-500 text-sm bg-green-500/10 p-3 rounded-md">{message}</div>}
-        {error && <div className="text-red-500 text-sm bg-red-500/10 p-3 rounded-md">{error}</div>}
 
-        <button type="submit" disabled={isLoading} className="bg-white text-black font-bold py-3 rounded-md hover:bg-gray-200 transition-colors flex justify-center items-center mt-2">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="bg-white text-black font-bold uppercase tracking-wider py-4 rounded-md hover:bg-gray-200 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+        >
           {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Сохранить пароль"}
         </button>
       </form>
@@ -76,11 +79,12 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex items-center justify-center min-h-[80vh] w-full p-8 animate-in fade-in zoom-in-95 duration-500 ease-out">
-      {/* useSearchParams требует обертки в Suspense в Next.js */}
-      <Suspense fallback={<div className="text-white"><Loader2 className="animate-spin" /></div>}>
-        <ResetPasswordForm />
-      </Suspense>
-    </div>
+    <PageTransition>
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <Suspense fallback={<div className="text-white"><Loader2 className="animate-spin" /></div>}>
+          <ResetPasswordForm />
+        </Suspense>
+      </div>
+    </PageTransition>
   );
 }

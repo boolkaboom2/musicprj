@@ -22,10 +22,14 @@ export default function UserProfileClient({ user }: { user: any }) {
     ? (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('/') ? user.avatarUrl : `/api/stream/${user.avatarUrl}`)
     : null;
 
+  // Замени функцию handleLogout:
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/"; 
+      localStorage.clear(); // Очищаем всё
+      sessionStorage.clear();
+      // Принудительный редирект
+      window.location.replace("/welcome"); 
     } catch (error) {
       console.error("Ошибка выхода", error);
     }
@@ -34,30 +38,24 @@ export default function UserProfileClient({ user }: { user: any }) {
   return (
     <>
       <div className="flex items-center justify-between animate-in fade-in">
-        <Link 
-          href={`/user/${user.id}`} 
-          className="flex items-center gap-3 overflow-hidden hover:bg-white/5 px-2 py-1.5 rounded-xl transition-colors text-left flex-1 min-w-0"
-        >
-          {/* МАЛЕНЬКАЯ АВАТАРКА С ЭФФЕКТОМ */}
-          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/5 relative">
-            <AvatarEffect effect={user.avatarEffect || "none"}>
-              <div className="w-full h-full rounded-full overflow-hidden">
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <UserIcon size={16} className="text-white m-auto mt-2" />
-                )}
-              </div>
-            </AvatarEffect>
+        <Link href={`/user/${user.id}`} className="flex items-center gap-3 overflow-hidden hover:bg-white/5 p-1 rounded-md transition text-left">
+          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
+            {avatarSrc ? (
+              <AvatarEffect effect={user.avatarEffect}>
+                <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
+              </AvatarEffect>
+            ) : (
+              <UserIcon size={16} className="text-white" />
+            )}
           </div>
           <span className="text-white text-sm font-medium truncate">{user.name || user.email}</span>
         </Link>
         
-        <div className="flex items-center gap-0.5 shrink-0">
-          <button onClick={() => setIsModalOpen(true)} className="text-[var(--text-subdued)] hover:text-white transition p-2 rounded-lg hover:bg-white/5" title="Настройки">
+        <div className="flex items-center gap-1">
+          <button onClick={() => setIsModalOpen(true)} className="text-[var(--text-subdued)] hover:text-white transition p-2" title="Настройки">
             <Settings size={18} />
           </button>
-          <button onClick={handleLogout} className="text-[var(--text-subdued)] hover:text-white transition p-2 rounded-lg hover:bg-white/5" title="Выйти">
+          <button onClick={handleLogout} className="text-[var(--text-subdued)] hover:text-white transition p-2" title="Выйти">
             <LogOut size={18} />
           </button>
         </div>

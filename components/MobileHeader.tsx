@@ -10,7 +10,7 @@ export default function MobileHeader() {
   const pathname = usePathname();
 
   // Скрываем шапку на страницах авторизации
-  if (pathname === '/login' || pathname === '/register') {
+    if (pathname === '/login' || pathname === '/register' || pathname === '/welcome' || pathname === '/forgot-password' || pathname === '/reset-password') {
     return null;
   }
 

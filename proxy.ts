@@ -6,31 +6,35 @@ export async function proxy(req: NextRequest) {
   const token = req.cookies.get('auth_token')?.value;
   const { pathname } = req.nextUrl;
 
-  // Публичные страницы и статические файлы
+  // Публичные страницы
   if (
     pathname === '/login' ||
     pathname === '/register' ||
+    pathname === '/welcome' ||
+    pathname === '/forgot-password' || // <-- ДОБАВИЛИ
+    pathname === '/reset-password' ||  // <-- ДОБАВИЛИ
     pathname === '/privacy' ||
+    pathname === '/faq' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname.includes('.') // картинки, шрифты и т.д.
+    pathname.includes('.')
   ) {
-    // Если авторизован и зашел на /login или /register — кидаем на главную
-    if ((pathname === '/login' || pathname === '/register') && token) {
+    // Если авторизован и зашел на auth/welcome — кидаем на главную
+    if ((pathname === '/login' || pathname === '/register' || pathname === '/welcome' || pathname === '/forgot-password' || pathname === '/reset-password') && token) {
       const payload = await verifyToken(token);
       if (payload) return NextResponse.redirect(new URL('/', req.url));
     }
     return NextResponse.next();
   }
 
-  // Всё остальное требует авторизации (Главная, Поиск, Медиатека, Админка и т.д.)
+  // Всё остальное требует авторизации
   if (!token) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/welcome', req.url));
   }
 
   const payload = await verifyToken(token);
   if (!payload) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/welcome', req.url));
   }
 
   // Защита роутов /admin
@@ -42,6 +46,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Применяем ко всем путям, кроме API и статики
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

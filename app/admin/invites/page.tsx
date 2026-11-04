@@ -52,7 +52,6 @@ export default function InvitesPage() {
   };
 
   const handleCopy = (code: string, id: string) => {
-    // Используем execCommand для обхода ограничений браузера без нативного тултипа
     const textArea = document.createElement("textarea");
     textArea.value = code;
     textArea.style.position = "fixed";

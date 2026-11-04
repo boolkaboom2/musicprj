@@ -10,7 +10,8 @@ import DisableContextMenu from "@/components/DisableContextMenu";
 import Toast from "@/components/Toast";
 import VisitLogger from "@/components/VisitLogger";
 import PWARegister from "@/components/PWARegister";
-import GlobalImportStatus from "@/components/GlobalImportStatus"; // <-- ДОБАВИЛИ
+import GlobalImportStatus from "@/components/GlobalImportStatus";
+import MobileSwipeHandler from "@/components/MobileSwipeHandler";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -87,9 +88,11 @@ export default function RootLayout({
             <LayoutData />
           </Suspense>
           
-          <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[#121212] md:rounded-lg custom-scrollbar relative">
-            {children}
-          </main>
+          <MobileSwipeHandler>
+            <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[#121212] md:rounded-lg custom-scrollbar relative">
+              {children}
+            </main>
+          </MobileSwipeHandler>
         </div>
 
         <Suspense fallback={null}>
@@ -102,7 +105,6 @@ export default function RootLayout({
         
         <Toast />
         
-        {/* ГЛОБАЛЬНЫЙ ВИДЖЕТ ПРОГРЕССА ИМПОРТА */}
         <GlobalImportStatus />
         
         <Suspense fallback={null}>

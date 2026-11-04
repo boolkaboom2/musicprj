@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Link as LinkIcon, Loader2, Check, DownloadCloud, Code2, XCircle } from "lucide-react";
 import { useToast } from "./Toast";
 import { motion, AnimatePresence } from "framer-motion";
+import InfoTooltip from "./InfoTooltip";
 
 interface Track {
   id: string;
@@ -166,7 +167,10 @@ export default function ImportPlaylistModal({
           <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center shrink-0">
             <div className="min-w-0">
               <h2 className="text-xl sm:text-2xl font-bold text-white">Импорт плейлиста</h2>
-              <p className="text-xs sm:text-sm text-[var(--text-subdued)] mt-1">Скачивание идет в фоне.</p>
+              <div className="flex items-center mt-1">
+                <p className="text-xs sm:text-sm text-[var(--text-subdued)]">Скачивание идет в фоне.</p>
+                <InfoTooltip text="Почему так долго? Мы качаем треки по одному, чтобы не попасть в бан от баз данных. Если закрыть вкладку, загрузка продолжится." />
+              </div>
             </div>
             <button onClick={onClose} className="text-white/50 hover:text-white transition p-2 bg-white/5 rounded-full shrink-0 ml-2">
               <X size={20} />
@@ -175,7 +179,7 @@ export default function ImportPlaylistModal({
 
           <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1">
             
-            {/* ЭКРАН ПРОГРЕССА (Скрывает всё остальное) */}
+            {/* ЭКРАН ПРОГРЕССА */}
             {batchId ? (
               <div className="flex flex-col items-center justify-center py-10 gap-6 animate-in fade-in zoom-in-95 duration-300">
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
@@ -208,7 +212,6 @@ export default function ImportPlaylistModal({
                   </div>
                 )}
 
-                {/* Кнопка отмены */}
                 <button
                   onClick={handleCancelImport}
                   disabled={isCancelling || progress?.isFinished}

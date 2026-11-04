@@ -107,7 +107,7 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
     return () => { document.body.style.overflow = ''; };
   }, [isSidebarOpen]);
 
-  if (pathname === '/login' || pathname === '/register') {
+    if (pathname === '/login' || pathname === '/register' || pathname === '/welcome' || pathname === '/forgot-password' || pathname === '/reset-password') {
     return null;
   }
 
