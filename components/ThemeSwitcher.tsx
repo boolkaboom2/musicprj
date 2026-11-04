@@ -8,72 +8,59 @@ export default function ThemeSwitcher() {
   const { theme, toggleTheme } = useThemeStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [isWalking, setIsWalking] = useState(false);
-  
-  // Используем контроллеры для управления анимацией тела
   const controls = useAnimation();
 
   const handleToggle = async () => {
     if (isAnimating) return;
     setIsAnimating(true);
 
-    // Начальная позиция зависит от текущей темы
-    // Темная: у ямы (x=85). Светлая: у солнца (x=15)
-    const startX = theme === 'dark' ? 85 : 15;
+    // Темная: у ямы (x=80). Светлая: у солнца (x=12)
+    const startX = theme === 'dark' ? 80 : 12;
+    const holeX = 80;
+    const sunX = 12;
+    const centerX = 45;
 
-    // Шаг 1: Идем вправо к яме (или влево, если мы в светлой теме)
+    // Шаг 1: Идем к яме
     setIsWalking(true);
     await controls.start({
-      x: theme === 'dark' ? 105 : 50, // если темная - идем чуть за яму, если светлая - в центр
+      x: holeX,
       y: 0,
-      transition: { duration: 1.2, ease: "linear" }
+      transition: { duration: 1.0, ease: "linear" }
     });
 
-    // Шаг 2: Падаем в яму
+    // Шаг 2: Падаем в яму (ровно по центру)
     setIsWalking(false);
     await controls.start({
-      y: 40,
+      y: 30,
       opacity: 0,
       rotate: 90,
       transition: { duration: 0.4, ease: "easeIn" }
     });
 
-    // Мгновенно меняем тему (пока он в яме)
-    if (theme === 'dark') {
-      toggleTheme();
-    }
+    // Мгновенно меняем тему
+    if (theme === 'dark') toggleTheme();
 
-    // Шаг 3: Выпрыгиваем из пустоты в центре
+    // Шаг 3: Выпрыгиваем в центре
     await controls.start({
-      x: 50, // Центр
+      x: centerX,
       y: 0,
       opacity: 1,
       rotate: 0,
       transition: { duration: 0.1 }
     });
 
-    // Шаг 4: Идем к яме (если включили светлую) или к солнцу (если вернули темную)
+    // Шаг 4: Идем к финальной точке (солнце или яма)
     setIsWalking(true);
-    if (theme === 'dark') {
-      // Мы только что включили светлую. Идем к солнцу.
-      await controls.start({
-        x: 15,
-        transition: { duration: 1.5, ease: "linear" }
-      });
-    } else {
-      // Мы только что вернули темную. Идем к яме.
-      await controls.start({
-        x: 85,
-        transition: { duration: 1.5, ease: "linear" }
-      });
-    }
+    await controls.start({
+      x: theme === 'dark' ? sunX : holeX,
+      transition: { duration: 1.2, ease: "linear" }
+    });
 
-    // Конец анимации
     setIsWalking(false);
     setIsAnimating(false);
   };
 
-  // Позиция по умолчанию для начального рендера
-  const initialX = theme === 'dark' ? 85 : 15;
+  const initialX = theme === 'dark' ? 80 : 12;
 
   return (
     <div 
@@ -88,7 +75,7 @@ export default function ThemeSwitcher() {
           rotate: theme === 'light' ? 360 : 0
         }}
         transition={{ duration: 0.8 }}
-        className="absolute left-3 text-yellow-500"
+        className="absolute left-2 text-yellow-500"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="12" cy="12" r="4" />
@@ -113,36 +100,38 @@ export default function ThemeSwitcher() {
           {/* Тело */}
           <line x1="10" y1="9" x2="10" y2="20" className="text-[var(--text-base)]" />
           
-          {/* Руки (качаются в такт ходьбе) */}
+          {/* Левая рука (точка вращения: плечо 10,12) */}
           <motion.line 
             x1="10" y1="12" x2="4" y2="15" 
             className="text-[var(--text-base)]"
             animate={isWalking ? { rotate: [20, -20, 20] } : { rotate: 0 }}
-            transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }}
-            style={{ originX: "10px", originY: "12px" }}
+            transition={{ repeat: Infinity, duration: 0.5, ease: "easeInOut" }}
+            style={{ transformOrigin: "10px 12px" }}
           />
+          {/* Правая рука */}
           <motion.line 
             x1="10" y1="12" x2="16" y2="15" 
             className="text-[var(--text-base)]"
             animate={isWalking ? { rotate: [-20, 20, -20] } : { rotate: 0 }}
-            transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }}
-            style={{ originX: "10px", originY: "12px" }}
+            transition={{ repeat: Infinity, duration: 0.5, ease: "easeInOut" }}
+            style={{ transformOrigin: "10px 12px" }}
           />
           
-          {/* Ноги (шагают) */}
+          {/* Левая нога (точка вращения: бедро 10,20) */}
           <motion.line 
             x1="10" y1="20" x2="6" y2="28" 
             className="text-[var(--text-base)]"
             animate={isWalking ? { rotate: [-15, 15, -15] } : { rotate: 0 }}
-            transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }}
-            style={{ originX: "10px", originY: "20px" }}
+            transition={{ repeat: Infinity, duration: 0.5, ease: "easeInOut" }}
+            style={{ transformOrigin: "10px 20px" }}
           />
+          {/* Правая нога */}
           <motion.line 
             x1="10" y1="20" x2="14" y2="28" 
             className="text-[var(--text-base)]"
             animate={isWalking ? { rotate: [15, -15, 15] } : { rotate: 0 }}
-            transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }}
-            style={{ originX: "10px", originY: "20px" }}
+            transition={{ repeat: Infinity, duration: 0.5, ease: "easeInOut" }}
+            style={{ transformOrigin: "10px 20px" }}
           />
         </svg>
       </motion.div>
