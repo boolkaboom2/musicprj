@@ -1,16 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/Toast";
 
 export default function ImportPage() {
   const [text, setText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const showToast = useToast((s) => s.show);
 
   const handleImport = async () => {
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      showToast("Вставьте список треков", "error");
+      return;
+    }
+    
     setIsLoading(true);
     setResults([]);
 
@@ -22,14 +28,25 @@ export default function ImportPage() {
       });
       
       const data = await res.json();
+      
       if (res.ok) {
         setResults(data.results);
-        setText(""); // Очищаем поле
+        setText("");
+        
+        const addedCount = data.results.filter((r: any) => r.success && !r.skipped).length;
+        const skippedCount = data.results.filter((r: any) => r.success && r.skipped).length;
+        const failCount = data.results.filter((r: any) => !r.success).length;
+        
+        let msg = `Добавлено: ${addedCount}. `;
+        if (skippedCount > 0) msg += `Уже было: ${skippedCount}. `;
+        if (failCount > 0) msg += `Ошибок: ${failCount}.`;
+        
+        showToast(msg, failCount > 0 ? "error" : "success");
       } else {
-        alert(data.error || "Ошибка импорта");
+        showToast(data.error || "Ошибка импорта", "error");
       }
     } catch (error) {
-      alert("Ошибка сети");
+      showToast("Ошибка сети при импорте", "error");
     } finally {
       setIsLoading(false);
     }
@@ -67,13 +84,34 @@ export default function ImportPage() {
 
       {results.length > 0 && (
         <div className="mt-8 flex flex-col gap-2">
-          <h2 className="text-white font-bold mb-2">Результаты:</h2>
-          {results.map((r, i) => (
-            <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${r.success ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-              {r.success ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
-              <span className="text-sm font-medium">{r.success ? `Добавлен: ${r.title}` : `Ошибка: ${r.line}`}</span>
-            </div>
-          ))}
+          <h2 className="text-white font-bold mb-2">Результаты ({results.length}):</h2>
+          {results.map((r, i) => {
+            // Трек уже был в базе
+            if (r.success && r.skipped) {
+              return (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-yellow-500/10 border-yellow-500/20 text-yellow-500">
+                  <AlertCircle size={18} className="shrink-0" />
+                  <span className="text-sm font-medium truncate">Уже в базе: {r.title}</span>
+                </div>
+              );
+            }
+            // Трек успешно добавлен
+            if (r.success && !r.skipped) {
+              return (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-green-500/10 border-green-500/20 text-green-500">
+                  <CheckCircle2 size={18} className="shrink-0" />
+                  <span className="text-sm font-medium truncate">Добавлен: {r.title}</span>
+                </div>
+              );
+            }
+            // Ошибка
+            return (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-red-500/10 border-red-500/20 text-red-500">
+                <XCircle size={18} className="shrink-0" />
+                <span className="text-sm font-medium truncate">Ошибка: {r.line || r.title}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

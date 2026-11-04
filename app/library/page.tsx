@@ -7,15 +7,17 @@ import Link from "next/link";
 import { Heart, Music, Play, ListMusic } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import Loader from "@/components/Loader";
+import CreatePlaylistButton from "@/components/CreatePlaylistButton";
 
 export default function LibraryPage() {
   return (
     <PageTransition>
       <div className="flex flex-col h-full w-full">
-        <div className="p-8 pb-0">
+        <div className="p-8 pb-0 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
           <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
             Моя медиатека
           </h1>
+          <CreatePlaylistButton />
         </div>
         <Suspense fallback={<Loader />}>
           <LibraryData />
@@ -26,6 +28,7 @@ export default function LibraryPage() {
 }
 
 async function LibraryData() {
+  // ... (весь остальной код функции LibraryData оставляем без изменений)
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   const payload = token ? await verifyToken(token) : null;
@@ -63,7 +66,7 @@ async function LibraryData() {
           <Music size={24} /> Мои плейлисты
         </h2>
         {playlists.length === 0 ? (
-          <p className="text-[var(--text-subdued)]">У вас пока нет плейлистов. Создайте их через меню трека.</p>
+          <p className="text-[var(--text-subdued)]">У вас пока нет плейлистов. Создайте их через меню трека или кнопку выше.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {playlists.map((pl, index) => {

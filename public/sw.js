@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sadovod-v1';
+const CACHE_NAME = 'sadovod-v3'; // Обновили версию кэша
 const ASSETS_TO_CACHE = [
   '/',
   '/icon.svg'
@@ -29,12 +29,21 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Пропускаем API запросы и стриминг аудио из Telegram
-  if (event.request.url.includes('/api/') || event.request.url.includes('telegram.org')) {
+  const url = event.request.url;
+
+  // Игнорируем всё, что может сломаться при кэшировании
+  if (
+    url.includes('/api/') || 
+    url.includes('telegram.org') || 
+    url.includes('/_next/') ||
+    url.includes('itunes.apple.com') ||
+    url.includes('deezer.com') ||
+    url.includes('/search') || // <--- ДОБАВИЛИ СТРАНИЦУ ПОИСКА
+    event.request.method !== 'GET'
+  ) {
     return;
   }
   
-  // Для остальных запросов: сначала кэш, потом сеть
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);

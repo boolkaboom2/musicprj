@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 import { searchHitmoz } from './hitmoz';
+import { createHash } from 'crypto';
 
 type MetaData = {
   title: string;
@@ -10,6 +11,12 @@ type MetaData = {
   releaseYear: number | null;
   duration: number;
 };
+
+// ХЕШ БЕЗ ОЧИСТКИ (Скобки и feat. учитываются)
+function generateHash(title: string, artist: string): string {
+  const normalized = `${title.toLowerCase().trim()}${artist.toLowerCase().trim()}`.replace(/[^a-z0-9а-я]/g, '');
+  return createHash('md5').update(normalized).digest('hex');
+}
 
 async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCover: string | null): Promise<MetaData> {
   let result: MetaData = {
@@ -21,10 +28,11 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
     duration: 0,
   };
 
-  const searchQuery = `${baseArtist} ${baseTitle}`;
+  const cleanTitleForSearch = baseTitle.replace(/\(.*?\)|\[.*?\]/g, '').trim();
+  const searchQuery = `${baseArtist} ${cleanTitleForSearch}`;
 
   try {
-    const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=1`);
+    const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=3`);
     const itunesData = await itunesRes.json();
     if (itunesData.results && itunesData.results.length > 0) {
       const match = itunesData.results[0];
@@ -51,7 +59,7 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
     const deezerData = await deezerRes.json();
     if (deezerData.data && deezerData.data.length > 0) {
       const match = deezerData.data[0];
-      if (match.title.toLowerCase().includes(baseTitle.toLowerCase()) || baseTitle.toLowerCase().includes(match.title.toLowerCase())) {
+      if (match.title.toLowerCase().includes(cleanTitleForSearch.toLowerCase()) || cleanTitleForSearch.toLowerCase().includes(match.title.toLowerCase())) {
         result.title = match.title;
         result.artist = match.artist.name;
         result.coverUrl = match.album.cover_xl || match.album.cover_big || fallbackCover;
@@ -61,32 +69,39 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
     }
   } catch (e) {}
 
+  const lastfmKey = process.env.LASTFM_API_KEY;
+  if (lastfmKey) {
+    try {
+      const lastfmRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key=${lastfmKey}&artist=${encodeURIComponent(baseArtist)}&track=${encodeURIComponent(cleanTitleForSearch)}&format=json`);
+      const lastfmData = await lastfmRes.json();
+      
+      if (lastfmData.track) {
+        result.title = lastfmData.track.name || baseTitle;
+        result.artist = lastfmData.track.artist.name || baseArtist;
+        if (lastfmData.track.album?.image) {
+          result.coverUrl = lastfmData.track.album.image[3]['#text'] || fallbackCover;
+        }
+        const tags = lastfmData.track.toptags?.tag;
+        if (tags && tags.length > 0) {
+          result.genre = tags[0].name;
+        }
+      }
+    } catch (e) {}
+  }
+
   try {
     const yandexRes = await fetch(`https://api.music.yandex.net/search?text=${encodeURIComponent(searchQuery)}&type=all&page=0`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-      }
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
     });
-    
     if (yandexRes.ok) {
       const yandexData = await yandexRes.json();
       const track = yandexData.result?.tracks?.results?.[0];
-      
       if (track) {
-        const matchTitle = (track.title || '').toLowerCase();
-        const baseTitleLower = baseTitle.toLowerCase();
-        
-        if (matchTitle.includes(baseTitleLower) || baseTitleLower.includes(matchTitle)) {
-          result.title = track.title;
-          result.artist = track.artists?.map((a: any) => a.name).join(', ') || baseArtist;
-          result.duration = Math.round(track.durationMs / 1000);
-          
-          if (track.coverUri) {
-            result.coverUrl = `https://${track.coverUri.replace('%%', '1000x1000')}`;
-          }
-          return result;
-        }
+        result.title = track.title || result.title;
+        result.artist = track.artists?.map((a: any) => a.name).join(', ') || result.artist;
+        result.duration = Math.round(track.durationMs / 1000) || result.duration;
+        if (track.coverUri) result.coverUrl = `https://${track.coverUri.replace('%%', '1000x1000')}`;
+        if (track.albums?.[0]?.year) result.releaseYear = track.albums[0].year;
       }
     }
   } catch (e) {}
@@ -98,22 +113,49 @@ export async function downloadAndSaveTrack(query: string) {
   const hitmozTrack = await searchHitmoz(query);
   if (!hitmozTrack) throw new Error('Трек не найден в сети');
 
+  // --- НОВАЯ ПРОВЕРКА РЕЛЕВАНТНОСТИ ---
+  const queryWords = query.toLowerCase().replace(/[^a-zа-я0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+  const foundText = `${hitmozTrack.title} ${hitmozTrack.artist}`.toLowerCase().replace(/[^a-zа-я0-9\s]/g, '');
+  
+  let matchCount = 0;
+  for (const word of queryWords) {
+    if (foundText.includes(word)) matchCount++;
+  }
+
+  // Если совпало меньше половины слов (например, искали speed up, а нашли morning)
+  if (queryWords.length > 0 && matchCount < queryWords.length * 0.5) {
+    throw new Error(`Hitmoz вернул неподходящий трек: "${hitmozTrack.title}". Попробуйте изменить запрос.`);
+  }
+  // -------------------------------------
+
   const meta = await enrichMetadata(hitmozTrack.title, hitmozTrack.artist, hitmozTrack.coverUrl);
+  
+  const trackHash = generateHash(meta.title, meta.artist);
 
   const existing = await prisma.track.findFirst({
     where: {
-      title: { equals: meta.title, mode: 'insensitive' },
-      artist: { equals: meta.artist, mode: 'insensitive' },
+      OR: [
+        { hash: trackHash },
+        {
+          title: { equals: meta.title, mode: 'insensitive' },
+          artist: { equals: meta.artist, mode: 'insensitive' },
+        }
+      ]
     },
   });
-  if (existing) return { success: true, track: existing, skipped: true };
+  
+  if (existing) {
+    if (!existing.hash) {
+      await prisma.track.update({ where: { id: existing.id }, data: { hash: trackHash } });
+    }
+    return { success: true, track: existing, skipped: true };
+  }
 
   const audioRes = await fetch(hitmozTrack.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   if (!audioRes.ok) throw new Error('Не удалось скачать файл');
 
   const buffer = await audioRes.arrayBuffer();
-  const sizeMB = buffer.byteLength / 1024 / 1024;
-  if (sizeMB > 20) throw new Error(`Файл слишком большой (${sizeMB.toFixed(1)} МБ)`);
+  if (buffer.byteLength / 1024 / 1024 > 20) throw new Error(`Файл слишком большой`);
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHANNEL_ID;
@@ -126,14 +168,9 @@ export async function downloadAndSaveTrack(query: string) {
   tgFormData.append('chat_id', chatId);
   tgFormData.append('audio', blob, fileName);
 
-  const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, {
-    method: 'POST',
-    body: tgFormData,
-  });
+  const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, { method: 'POST', body: tgFormData });
   const tgData = await tgRes.json();
   if (!tgData.ok) throw new Error('Ошибка загрузки в Telegram');
-
-  const fileId = tgData.result.audio.file_id;
 
   const newTrack = await prisma.track.create({
     data: {
@@ -143,7 +180,8 @@ export async function downloadAndSaveTrack(query: string) {
       coverUrl: meta.coverUrl,
       duration: meta.duration,
       releaseYear: meta.releaseYear,
-      audioUrl: fileId,
+      audioUrl: tgData.result.audio.file_id,
+      hash: trackHash,
     },
   });
 

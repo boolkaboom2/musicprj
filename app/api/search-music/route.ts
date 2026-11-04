@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { downloadAndSaveTrack } from '@/lib/downloader';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: Request) {
   try {
@@ -15,10 +16,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Трек уже есть в базе', track: result.track }, { status: 409 });
     }
 
+    revalidatePath('/', 'layout');
     return NextResponse.json({ success: true, track: result.track });
 
   } catch (error: any) {
-    console.error('[Search Music Fatal]', error);
+    console.error('[Search Music Fatal]', error.message);
+    
+    // Если это наша кастомная ошибка про неподходящий трек
+    if (error.message.includes('неподходящий трек')) {
+      return NextResponse.json({ error: error.message }, { status: 422 });
+    }
+
+    if (error.message === 'Трек не найден в сети') {
+      return NextResponse.json({ error: 'Трек не найден в открытых базах' }, { status: 404 });
+    }
+    
     return NextResponse.json({ error: error.message || 'Ошибка сервера' }, { status: 500 });
   }
 }

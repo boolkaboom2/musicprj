@@ -9,8 +9,8 @@ import TrackOptionsMenu from "@/components/TrackOptionsMenu";
 import DisableContextMenu from "@/components/DisableContextMenu";
 import Toast from "@/components/Toast";
 import VisitLogger from "@/components/VisitLogger";
-import AutoRefresher from "@/components/AutoRefresher";
 import PWARegister from "@/components/PWARegister";
+import GlobalImportStatus from "@/components/GlobalImportStatus"; // <-- ДОБАВИЛИ
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -39,7 +39,6 @@ export const viewport: Viewport = {
 };
 
 async function LayoutData() {
-  // ... (код без изменений)
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   const payload = token ? await verifyToken(token) : null;
@@ -51,7 +50,7 @@ async function LayoutData() {
   if (payload?.userId) {
     user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, name: true, avatarUrl: true, role: true }
+      select: { id: true, email: true, name: true, avatarUrl: true, avatarEffect: true, role: true }
     });
     isAdmin = user?.role === 'ADMIN';
 
@@ -103,11 +102,13 @@ export default function RootLayout({
         
         <Toast />
         
+        {/* ГЛОБАЛЬНЫЙ ВИДЖЕТ ПРОГРЕССА ИМПОРТА */}
+        <GlobalImportStatus />
+        
         <Suspense fallback={null}>
           <VisitLogger /> 
         </Suspense>
         
-        <AutoRefresher />
         <PWARegister />
         
       </body>

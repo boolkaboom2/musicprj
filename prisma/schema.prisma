@@ -13,23 +13,24 @@ model User {
   password        String
   name            String?
   avatarUrl       String?
+  avatarEffect    String    @default("none") // <-- ДОБАВИЛИ ЭФФЕКТ АВАТАРА
   bannerUrl       String?
   bio             String?
   telegram        String?
   phone           String?
-  avatarEffect    String    @default("none")
   role            String    @default("USER")
   status          String    @default("ACTIVE")
   subscriptionEnd DateTime?
   createdAt       DateTime  @default(now())
   
-  playlists        Playlist[]
+  playlists        Playlist[] // <-- ВОЗВРАЩАЕМ ПЛЕЙЛИСТЫ
   likes            Like[]
   listenHistory    ListenHistory[]
   pinnedTracks     PinnedTrack[]
   visitLogs        VisitLog[]
   subscriptionLogs SubscriptionLog[]
   feedback         Feedback[]
+  importTasks      ImportTask[]
   
   createdInvites   InviteCode[] @relation("CreatedInvites")
   usedInvite       InviteCode?  @relation("UsedInvite")
@@ -44,16 +45,13 @@ model Track {
   duration    Int
   genre       String?
   releaseYear Int?
+  hash        String?  @unique
   createdAt   DateTime @default(now())
 
   playlists     PlaylistItem[]
   likes         Like[]
   listenHistory ListenHistory[]
   pinnedTracks  PinnedTrack[]
-
-  @@index([title])
-  @@index([artist])
-  @@index([createdAt])
 }
 
 model Playlist {
@@ -74,8 +72,6 @@ model PlaylistItem {
   order      Int
   playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
-
-  @@index([playlistId, order])
 }
 
 model Like {
@@ -95,8 +91,6 @@ model ListenHistory {
   playedAt  DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
-
-  @@index([userId, playedAt])
 }
 
 model PinnedTrack {
@@ -157,4 +151,17 @@ model InviteCode {
   usedAt    DateTime?
   expiresAt DateTime?
   createdAt DateTime @default(now())
+}
+
+model ImportTask {
+  id           String   @id @default(cuid())
+  batchId      String
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  artist       String
+  status       String   @default("PENDING")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

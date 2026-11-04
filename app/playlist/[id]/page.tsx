@@ -7,11 +7,13 @@ import PlaylistPrivacyToggle from "@/components/PlaylistPrivacyToggle";
 import PlaylistCoverUploader from "@/components/PlaylistCoverUploader";
 import PlaylistTrackList from "./PlaylistTrackList";
 import EditablePlaylistTitle from "./EditablePlaylistTitle";
+import DeletePlaylistButton from "@/components/DeletePlaylistButton";
+import Loader from "@/components/Loader";
 
 export default function PlaylistPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="flex flex-col h-full w-full">
-      <Suspense fallback={<div className="p-8 text-[var(--text-subdued)]">Загрузка плейлиста...</div>}>
+      <Suspense fallback={<Loader />}>
         <PlaylistContent paramsPromise={params} />
       </Suspense>
     </div>
@@ -96,6 +98,7 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
           {isOwner && (
             <div className="flex flex-wrap gap-3 mt-2">
               <PlaylistPrivacyToggle playlistId={playlist.id} isPublic={playlist.isPublic} />
+              <DeletePlaylistButton playlistId={playlist.id} />
             </div>
           )}
         </div>

@@ -3,64 +3,50 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q');
+  const rawQuery = searchParams.get('q')?.trim();
 
-  if (!query || query.trim() === '') {
-    return NextResponse.json({ tracks: [], playlists: [] });
-  }
+  if (!rawQuery) return NextResponse.json({ tracks: [], playlists: [] });
+
+  // Отбрасываем скобки: "Tuesday (SPEED UP)" -> "tuesday"
+  const queryLower = rawQuery.replace(/\(.*?\)|\[.*?\]/g, '').trim().toLowerCase() || rawQuery.toLowerCase();
 
   try {
-    let tracks: any[] = [];
-
-    if (query.includes(' - ')) {
-      const [artistsStr, title] = query.split(' - ').map(s => s.trim());
-      const artists = artistsStr.split(',').map(a => a.trim());
-
-      tracks = await prisma.track.findMany({
-        where: {
-          AND: [
-            { OR: artists.map(a => ({ artist: { contains: a, mode: 'insensitive' as const } })) },
-            { title: { contains: title, mode: 'insensitive' as const } },
-          ]
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 30,
-      });
-
-      if (tracks.length === 0) {
-        tracks = await prisma.track.findMany({
-          where: { title: { contains: title, mode: 'insensitive' } },
-          orderBy: { createdAt: 'desc' },
-          take: 30,
-        });
-      }
-    } else {
-      tracks = await prisma.track.findMany({
-        where: {
-          OR: [
-            { title: { contains: query, mode: 'insensitive' } },
-            { artist: { contains: query, mode: 'insensitive' } },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 30,
-      });
-    }
-
-    // Публичные плейлисты по названию
-    const playlists = await prisma.playlist.findMany({
+    const rawTracks = await prisma.track.findMany({
       where: {
-        isPublic: true,
-        title: { contains: query, mode: 'insensitive' }
+        OR: [
+          { title: { contains: queryLower, mode: 'insensitive' } },
+          { artist: { contains: queryLower, mode: 'insensitive' } },
+        ],
       },
+      take: 100,
+    });
+
+    const scoredTracks = rawTracks.map(track => {
+      let score = 0;
+      const tTitle = track.title.toLowerCase();
+      const tArtist = track.artist.toLowerCase();
+
+      if (tTitle === queryLower) score += 100;
+      else if (tTitle.startsWith(queryLower)) score += 50;
+      else if (tTitle.includes(queryLower)) score += 20;
+
+      if (tArtist === queryLower) score += 80;
+      else if (tArtist.startsWith(queryLower)) score += 40;
+      else if (tArtist.includes(queryLower)) score += 10;
+
+      return { ...track, _score: score };
+    });
+
+    scoredTracks.sort((a, b) => b._score - a._score);
+    const tracks = scoredTracks.slice(0, 30).map(({ _score, ...track }) => track);
+
+    const playlists = await prisma.playlist.findMany({
+      where: { isPublic: true, title: { contains: queryLower, mode: 'insensitive' } },
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, email: true } },
-        items: {
-          take: 1,
-          include: { track: { select: { coverUrl: true } } }
-        },
+        items: { take: 1, include: { track: { select: { coverUrl: true } } } },
         _count: { select: { items: true } }
       }
     });

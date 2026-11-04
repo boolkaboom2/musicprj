@@ -4,16 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
+    "worker": "tsx worker.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
-    "dotenv": "^18.0.9",
     "framer-motion": "^14.9.0",
     "jose": "^6.2.13",
     "lru-cache": "^11.5.3",
@@ -34,7 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
-    "prisma": "^6.19.3",
+    "prisma": "^6.2.1",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",

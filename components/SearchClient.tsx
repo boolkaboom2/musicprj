@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, DownloadCloud, AlertCircle, ListMusic, X, History } from "lucide-react";
+import { Search, Loader2, DownloadCloud, AlertCircle, ListMusic } from "lucide-react";
 import Link from "next/link";
 import TrackList from "./TrackList";
 import { usePlayerStore } from "@/store/playerStore";
@@ -12,114 +12,152 @@ export default function SearchClient() {
   const router = useRouter();
   const showToast = useToast((s) => s.show);
   const [query, setQuery] = useState("");
-  const [tracks, setTracks] = useState<any[]>([]);
-  const [playlists, setPlaylists] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [history, setHistory] = useState<string[]>([]);
-  const [isFocused, setIsFocused] = useState(false);
   
+  const [localTracks, setLocalTracks] = useState<any[]>([]);
+  const [localPlaylists, setLocalPlaylists] = useState<any[]>([]);
+  const [externalTracks, setExternalTracks] = useState<any[]>([]);
+  
+  const [isSearchingLocal, setIsSearchingLocal] = useState(false);
+  const [isSearchingExternal, setIsSearchingExternal] = useState(false);
+  const [downloadingUrl, setDownloadingUrl] = useState<string | null>(null);
+  
+  const [showExternal, setShowExternal] = useState(false);
+  const [isDirectDownloading, setIsDirectDownloading] = useState(false);
+
   const userLikes = usePlayerStore((state) => state.likedTrackIds);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Загрузка истории при монтировании
   useEffect(() => {
-    const saved = localStorage.getItem("sadovod_search_history");
-    if (saved) {
-      try {
-        setHistory(JSON.parse(saved));
-      } catch (e) {}
+    if (!query.trim() || query.trim().length < 2) {
+      setLocalTracks([]);
+      setLocalPlaylists([]);
+      setExternalTracks([]);
+      setShowExternal(false);
+      return;
     }
-  }, []);
 
-  const saveToHistory = (q: string) => {
-    const trimmed = q.trim();
-    if (!trimmed || trimmed.length < 2) return;
-    
-    const newHistory = [trimmed, ...history.filter(h => h !== trimmed)].slice(0, 10);
-    setHistory(newHistory);
-    localStorage.setItem("sadovod_search_history", JSON.stringify(newHistory));
-  };
-
-  const clearHistory = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setHistory([]);
-    localStorage.removeItem("sadovod_search_history");
-    showToast("История очищена", "info");
-  };
-
-  useEffect(() => {
-    if (!query.trim()) { setTracks([]); setPlaylists([]); return; }
+    setShowExternal(false);
+    setExternalTracks([]);
 
     const timer = setTimeout(async () => {
-      setIsLoading(true);
-      setErrorMsg("");
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setTracks(data.tracks || []);
-          setPlaylists(data.playlists || []);
-          // Сохраняем в историю только если что-то нашли
-          if (data.tracks.length > 0 || data.playlists.length > 0) {
-            saveToHistory(query);
-          }
-        }
-      } catch (error) { console.error(error); }
-      finally { setIsLoading(false); }
+      setIsSearchingLocal(true);
+      fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        .then(async (res) => {
+          if (!res.ok) return { tracks: [], playlists: [] };
+          return res.json();
+        })
+        .then(data => {
+          setLocalTracks(data.tracks || []);
+          setLocalPlaylists(data.playlists || []);
+        })
+        .finally(() => setIsSearchingLocal(false));
     }, 500);
 
     return () => clearTimeout(timer);
   }, [query]);
 
-  const handleImport = async () => {
-    // ... (код импорта без изменений)
-    setIsImporting(true);
-    setErrorMsg("");
+  const handleSearchExternal = async () => {
+    setShowExternal(true);
+    setIsSearchingExternal(true);
+    try {
+      const res = await fetch(`/api/search-external?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setExternalTracks(data.results || []);
+    } catch {
+      showToast("Ошибка поиска в сети", "error");
+    } finally {
+      setIsSearchingExternal(false);
+    }
+  };
+
+  const refreshLocalTracks = async (searchQuery: string) => {
+    const searchRes = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+    if (searchRes.ok) {
+      const sd = await searchRes.json();
+      if (sd.tracks) {
+        setLocalTracks(sd.tracks);
+      }
+    }
+  };
+
+  const handleDownload = async (track: any) => {
+    // Отправляем полное название как есть, без отрезания скобок
+    const queryStr = `${track.artist} ${track.title}`;
+    
+    setDownloadingUrl(track.title);
+
+    try {
+      const res = await fetch("/api/search-music", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: queryStr }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(`Трек "${data.track.title}" добавлен`, "success");
+        await refreshLocalTracks(query);
+        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
+        router.refresh();
+      } else if (res.status === 409) {
+        showToast(`Найденный трек "${data.track.title}" уже есть в базе. Возможно, это не то, что вы искали.`, "info");
+        await refreshLocalTracks(query);
+        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
+      } else if (res.status === 422) {
+        showToast(data.error, "error");
+        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
+      } else if (res.status === 404) {
+        // Если Hitmoz не нашел, просто убираем его из списка
+        showToast("Hitmoz не содержит этот трек. Попробуйте найти его через импорт Яндекса.", "error");
+        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
+      } else {
+        showToast(data.error || "Ошибка скачивания", "error");
+      }
+    } catch {
+      showToast("Ошибка сети", "error");
+    } finally {
+      setDownloadingUrl(null);
+    }
+  };
+
+  const handleDirectDownload = async () => {
+    if (!query.trim()) return;
+    setIsDirectDownloading(true);
     try {
       const res = await fetch("/api/search-music", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 409 && data.track) {
-          const searchRes = await fetch(`/api/search?q=${encodeURIComponent(data.track.title)}`);
-          if (searchRes.ok) {
-            const sd = await searchRes.json();
-            setTracks(sd.tracks || []);
-          }
-          setErrorMsg("Трек уже есть в базе");
-          return;
-        }
-        setErrorMsg(data.error || "Трек не найден в сети");
-        return;
-      }
-
-      showToast(`Трек "${data.track.title}" добавлен`, "success");
-      saveToHistory(query);
-
-      const searchRes = await fetch(`/api/search?q=${encodeURIComponent(data.track.title)}`);
-      if (searchRes.ok) {
-        const sd = await searchRes.json();
-        setTracks(sd.tracks || []);
-        if (sd.tracks && sd.tracks.length > 0) setQuery(data.track.title);
-      }
       
-      router.refresh();
-    } catch (error) {
-      setErrorMsg("Ошибка сети при импорте");
+      if (res.ok) {
+        showToast(`Трек "${data.track.title}" добавлен`, "success");
+        await refreshLocalTracks(query);
+        router.refresh();
+      } else if (res.status === 409) {
+        showToast(`Найденный трек "${data.track.title}" уже есть в базе. Возможно, это не то, что вы искали.`, "info");
+        await refreshLocalTracks(query);
+      } else if (res.status === 422) {
+        showToast(data.error, "error");
+      } else {
+        showToast(data.error || "Не найдено в открытых базах", "error");
+      }
+    } catch {
+      showToast("Ошибка сети", "error");
     } finally {
-      setIsImporting(false);
+      setIsDirectDownloading(false);
     }
   };
 
-  const hasResults = tracks.length > 0 || playlists.length > 0;
-  const showHistory = isFocused && query.length === 0 && history.length > 0;
+  const formatTime = (seconds: number) => {
+    if (!seconds) return "0:00";
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+  };
+
+  const hasLocalResults = localTracks.length > 0 || localPlaylists.length > 0;
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -127,70 +165,38 @@ export default function SearchClient() {
         <div className="relative w-full max-w-xl">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-subdued)]" size={20} />
           <input
-            ref={inputRef}
             type="text"
-            placeholder="Что хотите послушать? Автор - название"
+            placeholder="Название трека"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setTimeout(() => setIsFocused(false), 200)} // Задержка, чтобы клик по истории сработал
             className="w-full bg-[#1a1a1a] text-white pl-14 pr-4 py-3 rounded-full outline-none focus:ring-2 focus:ring-white/20 border border-transparent transition-all text-sm font-medium"
           />
-          {isLoading && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 animate-spin" size={18} />}
+          {isSearchingLocal && (
+            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 animate-spin" size={18} />
+          )}
         </div>
-
-        {/* Выпадашка с историей */}
-        {showHistory && (
-          <div className="absolute z-20 w-full max-w-xl mt-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
-              <span className="text-xs text-white/50 font-bold uppercase tracking-wider flex items-center gap-1"><History size={12}/> История поиска</span>
-              <button onClick={clearHistory} className="text-white/40 hover:text-red-400 transition p-1">
-                <X size={14} />
-              </button>
-            </div>
-            {history.map((h, i) => (
-              <button
-                key={i}
-                onClick={() => setQuery(h)}
-                className="w-full text-left px-4 py-2.5 hover:bg-white/5 text-sm text-white transition flex items-center gap-3"
-              >
-                <Search size={14} className="text-white/30" /> {h}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {hasResults ? (
+        {(hasLocalResults || showExternal) ? (
           <div>
-            {playlists.length > 0 && (
+            {localPlaylists.length > 0 && (
               <div className="px-8 pt-4 pb-2">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                   <ListMusic size={20} /> Плейлисты
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {playlists.map((pl) => {
+                  {localPlaylists.map((pl) => {
                     const cover = pl.items[0]?.track?.coverUrl;
                     const ownerName = pl.user.name || pl.user.email.split('@')[0];
                     return (
-                      <Link
-                        key={pl.id}
-                        href={`/playlist/${pl.id}`}
-                        className="group flex flex-col gap-2 p-3 bg-[#121212] hover:bg-[#1a1a1a] rounded-xl transition-colors"
-                      >
+                      <Link key={pl.id} href={`/playlist/${pl.id}`} className="group flex flex-col gap-2 p-3 bg-[#121212] hover:bg-[#1a1a1a] rounded-xl transition-colors">
                         <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden">
-                          {cover ? (
-                            <img src={cover} alt={pl.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <ListMusic size={40} className="text-white/20" />
-                          )}
+                          {cover ? <img src={cover} alt={pl.title} className="w-full h-full object-cover" /> : <ListMusic size={40} className="text-white/20" />}
                         </div>
                         <div>
                           <h3 className="text-white font-bold text-sm truncate">{pl.title}</h3>
-                          <p className="text-[var(--text-subdued)] text-xs mt-0.5 truncate">
-                            {ownerName} • {pl._count.items}
-                          </p>
+                          <p className="text-[var(--text-subdued)] text-xs mt-0.5 truncate">{ownerName} • {pl._count.items}</p>
                         </div>
                       </Link>
                     );
@@ -199,35 +205,112 @@ export default function SearchClient() {
               </div>
             )}
 
-            {tracks.length > 0 && (
+            {localTracks.length > 0 && (
               <div>
-                {playlists.length > 0 && (
-                  <h2 className="px-8 pt-6 pb-2 text-xl font-bold text-white">Треки</h2>
+                {localPlaylists.length > 0 && (
+                  <h2 className="px-8 pt-6 pb-2 text-xl font-bold text-white">В библиотеке</h2>
                 )}
-                <TrackList initialTracks={tracks} userLikes={userLikes} />
+                <TrackList initialTracks={localTracks} userLikes={userLikes} />
+                
+                {!showExternal && (
+                  <div className="px-8 py-6">
+                    <button onClick={handleSearchExternal} className="bg-white/10 text-white font-bold py-3 px-6 rounded-full hover:bg-white/20 transition flex items-center gap-2 text-sm">
+                      <Search size={16} /> Нет того, что искали? Поискать в сети
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showExternal && (
+              <div className="px-4 md:px-8 pt-4 pb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <DownloadCloud size={20} /> Найдено в сети
+                  </h2>
+                  <button onClick={() => setShowExternal(false)} className="text-[var(--text-subdued)] hover:text-white text-sm transition">
+                    Скрыть
+                  </button>
+                </div>
+                
+                {isSearchingExternal ? (
+                  <div className="flex items-center gap-2 text-white/50 py-4">
+                    <Loader2 className="animate-spin" size={20} /> Ищем по всем базам...
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {externalTracks.length > 0 ? (
+                      externalTracks.map((track, idx) => {
+                        const isDownloading = downloadingUrl === track.title;
+                        
+                        return (
+                          <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 rounded-md transition hover:bg-[#2a2a2a] group">
+                            <div className="w-12 h-12 md:w-14 md:h-14 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center">
+                              {track.coverUrl ? (
+                                <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <ListMusic size={20} className="text-white/30" />
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+                              <span className="text-white font-medium truncate text-sm md:text-base">{track.title}</span>
+                              <span className="text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
+                            </div>
+
+                            <span className="text-sm text-[var(--text-subdued)] w-10 text-right tabular-nums shrink-0">
+                              {formatTime(track.duration)}
+                            </span>
+
+                            <button
+                              onClick={() => handleDownload(track)}
+                              disabled={isDownloading}
+                              className="bg-white text-black font-bold text-xs px-3 py-2 rounded-full hover:bg-gray-200 transition flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                            >
+                              {isDownloading ? (
+                                <><Loader2 size={14} className="animate-spin" /> Качаем</>
+                              ) : (
+                                <><DownloadCloud size={14} /> Скачать</>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-[var(--text-subdued)] text-sm py-4">В популярных базах (iTunes/Deezer) ничего не найдено.</p>
+                    )}
+
+                    <div className="mt-6 pt-6 border-t border-white/10">
+                      <p className="text-[var(--text-subdued)] text-xs mb-3">
+                        Не нашли нужный ремикс или спед-ап? Попробуйте найти напрямую в открытых базах.
+                      </p>
+                      <button
+                        onClick={handleDirectDownload}
+                        disabled={isDirectDownloading}
+                        className="text-sm font-bold text-white bg-white/10 hover:bg-white/20 py-2.5 px-5 rounded-full transition flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isDirectDownloading ? <Loader2 size={16} className="animate-spin" /> : <DownloadCloud size={16} />}
+                        {isDirectDownloading ? "Ищем..." : `Скачать "${query}" напрямую`}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        ) : query.length > 0 && !isLoading ? (
+        ) : query.length >= 2 && !isSearchingLocal ? (
           <div className="p-8 flex flex-col items-start gap-4">
-            {!isImporting && (
-              <p className="text-[var(--text-subdued)]">Ничего не найдено в базе. Хотите скачать трек из сети?</p>
-            )}
-
-            {errorMsg && (
-              <div className="flex items-center gap-3 text-red-400 bg-red-500/10 px-4 py-3 rounded-lg border border-red-500/20 text-sm font-medium animate-in slide-in-from-top-2 fade-in">
-                <AlertCircle size={18} className="shrink-0" />
-                {errorMsg}
-              </div>
-            )}
-
+            <div className="flex items-center gap-3 text-[var(--text-subdued)]">
+              <AlertCircle size={18} />
+              В твоей библиотеке ничего не найдено.
+            </div>
             <button
-              onClick={handleImport}
-              disabled={isImporting}
+              onClick={handleSearchExternal}
+              disabled={isSearchingExternal}
               className="bg-white text-black font-bold py-2.5 px-6 rounded-full hover:bg-gray-200 transition flex items-center gap-2 disabled:opacity-50"
             >
-              {isImporting ? <Loader2 className="animate-spin" size={18} /> : <DownloadCloud size={18} />}
-              {isImporting ? "Скачиваем трек..." : "Не нашлось? Скачаем!"}
+              {isSearchingExternal ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
+              {isSearchingExternal ? "Ищем..." : "Поискать в сети"}
             </button>
           </div>
         ) : null}
