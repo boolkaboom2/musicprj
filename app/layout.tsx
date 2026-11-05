@@ -16,7 +16,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import UserLikesInit from "@/components/UserLikesInit";
-import { Suspense } from "react";
+import { Suspense, ReactNode } from "react";
 
 const manrope = Manrope({ 
   variable: "--font-manrope", 
@@ -70,11 +70,12 @@ async function LayoutData() {
   );
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+// ЯВНО УКАЗЫВАЕМ ТИП ДЛЯ PROPS
+interface RootLayoutProps {
+  children: ReactNode;
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ru" className={manrope.variable}>
       <body className="antialiased bg-black text-white h-[100dvh] flex flex-col overflow-hidden font-sans">
@@ -89,7 +90,7 @@ export default function RootLayout({
           </Suspense>
           
           <MobileSwipeHandler>
-            <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[#121212] md:rounded-lg custom-scrollbar relative">
+            <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[var(--bg-card)] md:rounded-lg custom-scrollbar relative transition-colors duration-300">
               {children}
             </main>
           </MobileSwipeHandler>

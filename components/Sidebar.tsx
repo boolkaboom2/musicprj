@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import UserProfileClient from "./UserProfileClient";
 import FeedbackButton from "./FeedbackButton";
 import ImportPlaylistButton from "./ImportPlaylistButton";
-import ThemeSwitcher from "./ThemeSwitcher"; // <-- ДОБАВИЛИ
+import ThemeSwitcher from "./ThemeSwitcher";
 
 interface SidebarProps {
   user: any;
@@ -26,7 +26,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
     }`;
 
   return (
-    <div className="flex flex-col h-full justify-between overflow-y-auto custom-scrollbar">
+    <div className="flex flex-col h-full justify-between overflow-y-auto no-scrollbar">
       <div>
         <div className="flex items-center justify-between mb-8">
           <Link 
@@ -83,7 +83,6 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
       </div>
 
       <div className="border-t border-[var(--border-color)] pt-4 flex flex-col gap-4">
-        {/* ПЕРЕКЛЮЧАТЕЛЬ ТЕМ */}
         <div className="flex justify-center mb-2">
            <ThemeSwitcher />
         </div>
@@ -133,8 +132,19 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside 
-              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+              initial={{ x: '-100%' }} 
+              animate={{ x: 0 }} 
+              exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              drag="x"
+              dragConstraints={{ left: -280, right: 0 }}
+              dragElastic={0.1}
+              dragDirectionLock
+              onDragEnd={(e, info) => {
+                if (info.offset.x < -60) {
+                  setSidebarOpen(false);
+                }
+              }}
               className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-card)] z-[201] p-6 transition-colors duration-300"
             >
               <Suspense fallback={null}>

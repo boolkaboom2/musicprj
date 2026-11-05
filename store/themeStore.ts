@@ -1,3 +1,5 @@
+"use client";
+
 import { create } from 'zustand';
 
 type Theme = 'dark' | 'light';
@@ -6,6 +8,7 @@ interface ThemeState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  hydrate: () => void;
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
@@ -14,27 +17,28 @@ export const useThemeStore = create<ThemeState>((set) => ({
     set({ theme });
     if (typeof window !== 'undefined') {
       localStorage.setItem('sadovod_theme', theme);
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-      } else {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
-      }
+      const root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(theme);
     }
   },
   toggleTheme: () => set((state) => {
     const newTheme = state.theme === 'dark' ? 'light' : 'dark';
     if (typeof window !== 'undefined') {
       localStorage.setItem('sadovod_theme', newTheme);
-      if (newTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-      } else {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
-      }
+      const root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(newTheme);
     }
     return { theme: newTheme };
   }),
+  hydrate: () => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('sadovod_theme') as Theme | null;
+    if (saved === 'light' || saved === 'dark') {
+      set({ theme: saved });
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(saved);
+    }
+  },
 }));

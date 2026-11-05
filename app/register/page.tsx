@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import CustomInput from "@/components/CustomInput";
 import { useToast } from "@/components/Toast";
+import AuthThemeToggle from "@/components/AuthThemeToggle";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -22,7 +23,6 @@ export default function RegisterPage() {
     const savedCode = localStorage.getItem('sadovod_invite_code');
     if (savedCode) {
       setInviteCode(savedCode);
-      // СРАЗУ УДАЛЯЕМ, чтобы нельзя было перезайти без кода
       localStorage.removeItem('sadovod_invite_code'); 
     } else {
       router.push('/welcome');
@@ -57,11 +57,9 @@ export default function RegisterPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       } else {
         showToast(data.error || "Ошибка регистрации", "error");
-        // Если код не подошел, возвращаем на welcome
         if (res.status === 403) router.push('/welcome');
       }
     } catch (err) {
@@ -71,51 +69,54 @@ export default function RegisterPage() {
     }
   };
 
-  if (!inviteCode) return <div className="min-h-screen bg-black" />;
+  if (!inviteCode) return <div className="min-h-screen bg-[var(--bg-main)]" />;
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="bg-[#121212] p-8 md:p-10 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+    <>
+      <AuthThemeToggle />
+      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center p-6 transition-colors duration-300">
+        <div className="w-full max-w-md">
+          <div className="bg-[var(--bg-card)] p-8 md:p-10 rounded-xl border border-[var(--border-color)] shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--text-subdued)] to-transparent opacity-30" />
 
-          <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Регистрация</h1>
-          <p className="text-[var(--text-subdued)] text-sm mb-6">Создайте аккаунт SADOVOD.</p>
-          
-          <div className="flex flex-col gap-3">
-            <CustomInput type="text" placeholder="Ваше имя" value={name} onChange={(e) => setName(e.target.value)} />
-            <CustomInput type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <CustomInput isPassword placeholder="Пароль (мин 6 символов)" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <h1 className="text-3xl font-black text-[var(--text-base)] mb-2 tracking-tighter">Регистрация</h1>
+            <p className="text-[var(--text-subdued)] text-sm mb-6">Создайте аккаунт SADOVOD.</p>
+            
+            <div className="flex flex-col gap-3">
+              <CustomInput type="text" placeholder="Ваше имя" value={name} onChange={(e) => setName(e.target.value)} />
+              <CustomInput type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <CustomInput isPassword placeholder="Пароль (мин 6 символов)" value={password} onChange={(e) => setPassword(e.target.value)} />
 
-            <label className="flex items-start gap-3 mt-2 cursor-pointer group">
-              <div 
-                onClick={(e) => { e.preventDefault(); setAgreed(!agreed); }}
-                className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                  agreed ? 'bg-white border-white' : 'border-white/20 group-hover:border-white/40'
-                }`}
+              <label className="flex items-start gap-3 mt-2 cursor-pointer group">
+                <div 
+                  onClick={(e) => { e.preventDefault(); setAgreed(!agreed); }}
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    agreed ? 'bg-[var(--text-base)] border-[var(--text-base)]' : 'border-[var(--border-color)] group-hover:border-[var(--text-subdued)]'
+                  }`}
+                >
+                  {agreed && <span className="text-[var(--bg-main)] font-bold text-xs">✓</span>}
+                </div>
+                <span className="text-xs text-[var(--text-subdued)] leading-relaxed select-none">
+                  Я согласен с <Link href="/privacy" target="_blank" className="text-[var(--text-base)] hover:underline">политикой конфиденциальности</Link> и обработкой персональных данных.
+                </span>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold uppercase tracking-wider py-4 rounded-md hover:opacity-80 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {agreed && <span className="text-black font-bold text-xs">✓</span>}
-              </div>
-              <span className="text-xs text-[var(--text-subdued)] leading-relaxed select-none">
-                Я согласен с <Link href="/privacy" target="_blank" className="text-white hover:underline">политикой конфиденциальности</Link> и обработкой персональных данных.
-              </span>
-            </label>
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Создать аккаунт"}
+              </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="bg-white text-black font-bold uppercase tracking-wider py-4 rounded-md hover:bg-gray-200 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(255,255,255,0.1)]"
-            >
-              {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Создать аккаунт"}
-            </button>
-          </div>
-
-          <div className="mt-6 text-center text-sm text-[var(--text-subdued)]">
-            Уже есть аккаунт? <Link href="/login" className="text-white hover:underline transition-all">Войти</Link>
+            <div className="mt-6 text-center text-sm text-[var(--text-subdued)]">
+              Уже есть аккаунт? <Link href="/login" className="text-[var(--text-base)] hover:underline transition-all">Войти</Link>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

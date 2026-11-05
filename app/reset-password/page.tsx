@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import CustomInput from "@/components/CustomInput";
 import { useToast } from "@/components/Toast";
 import PageTransition from "@/components/PageTransition";
+import AuthThemeToggle from "@/components/AuthThemeToggle";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -51,10 +52,10 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="bg-[#121212] p-8 md:p-10 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden w-full max-w-md">
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+    <div className="bg-[var(--bg-card)] p-8 md:p-10 rounded-xl border border-[var(--border-color)] shadow-2xl relative overflow-hidden w-full max-w-md">
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--text-subdued)] to-transparent opacity-30" />
 
-      <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Новый пароль</h1>
+      <h1 className="text-3xl font-black text-[var(--text-base)] mb-2 tracking-tighter">Новый пароль</h1>
       <p className="text-[var(--text-subdued)] text-sm mb-8">Введите новый пароль для вашего аккаунта.</p>
       
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -68,7 +69,7 @@ function ResetPasswordForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="bg-white text-black font-bold uppercase tracking-wider py-4 rounded-md hover:bg-gray-200 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+          className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold uppercase tracking-wider py-4 rounded-md hover:opacity-80 transition-all duration-300 mt-2 flex justify-center items-center h-[56px] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Сохранить пароль"}
         </button>
@@ -80,8 +81,9 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <PageTransition>
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <Suspense fallback={<div className="text-white"><Loader2 className="animate-spin" /></div>}>
+      <AuthThemeToggle />
+      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center p-6 transition-colors duration-300">
+        <Suspense fallback={<div className="text-[var(--text-base)]"><Loader2 className="animate-spin" /></div>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

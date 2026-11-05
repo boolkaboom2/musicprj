@@ -1,15 +1,6 @@
-const CACHE_NAME = 'sadovod-v3'; // Обновили версию кэша
-const ASSETS_TO_CACHE = [
-  '/',
-  '/icon.svg'
-];
+const CACHE_NAME = 'sadovod-v5';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -29,24 +20,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = event.request.url;
-
-  // Игнорируем всё, что может сломаться при кэшировании
-  if (
-    url.includes('/api/') || 
-    url.includes('telegram.org') || 
-    url.includes('/_next/') ||
-    url.includes('itunes.apple.com') ||
-    url.includes('deezer.com') ||
-    url.includes('/search') || // <--- ДОБАВИЛИ СТРАНИЦУ ПОИСКА
-    event.request.method !== 'GET'
-  ) {
-    return;
+  // Кэшируем ТОЛЬКО картинки. Всё остальное (HTML, API, JS) идет напрямую в сеть.
+  if (event.request.destination === 'image') {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request).then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          return res;
+        });
+      })
+    );
   }
-  
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
 });

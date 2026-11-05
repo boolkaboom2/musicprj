@@ -47,16 +47,14 @@ function ToastContent() {
   }, []);
 
   const colorClasses = 
-    type === "success" ? "border-green-500/50 text-green-400" :
-    type === "error" ? "border-red-500/50 text-red-400" :
-    "border-white/20 text-white";
+    type === "success" ? "border-green-500/50 text-green-500" :
+    type === "error" ? "border-red-500/50 text-red-500" :
+    "border-[var(--border-color)] text-[var(--text-base)]";
 
-  const isAuthPage = pathname === '/login' || pathname === '/register';
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/welcome' || pathname === '/forgot-password' || pathname === '/reset-password';
 
-  // Логика позиционирования
   let positionClass = "";
   if (isAuthPage) {
-    // На страницах входа/регистрации — прямо над панелью формы
     positionClass = "top-[15vh] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm";
   } else if (isMobile) {
     positionClass = "top-3 left-3 right-3";
@@ -77,12 +75,12 @@ function ToastContent() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: exitY, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className={`flex items-center gap-3 px-4 py-3 bg-[#1c1c1c] rounded-xl shadow-2xl border ${colorClasses} pointer-events-auto`}
+            className={`flex items-center gap-3 px-4 py-3 bg-[var(--bg-card)] rounded-xl shadow-2xl border ${colorClasses} pointer-events-auto`}
           >
             <span className="font-medium text-sm flex-1 min-w-0 break-words">{message}</span>
             <button 
               onClick={hide} 
-              className="text-white/40 hover:text-white transition-colors shrink-0 p-1"
+              className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors shrink-0 p-1"
             >
               <X size={16} />
             </button>

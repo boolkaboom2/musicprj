@@ -18,13 +18,13 @@ export default function CustomInput({ isPassword, className, ...props }: CustomI
         {...props}
         type={inputType}
         required={false}
-        className={`w-full bg-[#1a1a1a] text-white p-4 pr-12 rounded-md outline-none focus:ring-1 focus:ring-white/30 border border-transparent focus:border-white/10 transition-all duration-300 ${className}`}
+        className={`w-full bg-[var(--bg-input)] text-[var(--text-base)] p-4 pr-12 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all duration-300 placeholder:text-[var(--text-subdued)] ${className}`}
       />
       {isPassword && (
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-subdued)] hover:text-white transition-colors duration-300"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors duration-300"
         >
           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>

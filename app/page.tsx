@@ -8,6 +8,7 @@ import { ListMusic, Play } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
+import RecentlyPlayed from "@/components/RecentlyPlayed";
 
 export default function Home() {
   return (
@@ -19,6 +20,10 @@ export default function Home() {
           </h1>
         </div>
         
+        <Suspense fallback={<Loader />}>
+          <RecentlyPlayedData />
+        </Suspense>
+
         <Suspense fallback={<Loader />}>
           <TrackListData />
         </Suspense>
@@ -33,6 +38,41 @@ export default function Home() {
       </div>
     </PageTransition>
   );
+}
+
+async function RecentlyPlayedData() {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    const payload = token ? await verifyToken(token) : null;
+
+    if (!payload?.userId) return null;
+
+    const history = await prisma.listenHistory.findMany({
+      where: { userId: payload.userId },
+      take: 20, 
+      orderBy: { playedAt: 'desc' },
+      include: { track: true }
+    });
+
+    // ЯВНО УКАЗЫВАЕМ ТИП any[]
+    const uniqueTracks: any[] = [];
+    const seenIds = new Set();
+    for (const h of history) {
+      if (!seenIds.has(h.track.id)) {
+        seenIds.add(h.track.id);
+        uniqueTracks.push(h.track);
+      }
+      if (uniqueTracks.length >= 6) break;
+    }
+
+    if (uniqueTracks.length === 0) return null;
+
+    return <RecentlyPlayed tracks={uniqueTracks} />;
+  } catch (error) {
+    console.error("RecentlyPlayedData error:", error);
+    return null;
+  }
 }
 
 async function TrackListData() {
@@ -90,10 +130,10 @@ async function PublicPlaylistsSection() {
   return (
     <div className="p-8 pt-4">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-black text-white flex items-center gap-3">
+        <h2 className="text-2xl font-black text-[var(--text-base)] flex items-center gap-3">
           <ListMusic size={26} /> Публичные плейлисты
         </h2>
-        <Link href="/playlists" className="text-sm text-[var(--text-subdued)] hover:text-white transition">
+        <Link href="/playlists" className="text-sm text-[var(--text-subdued)] hover:text-[var(--text-base)] transition">
           Все →
         </Link>
       </div>
@@ -113,20 +153,20 @@ async function PublicPlaylistsSection() {
             >
               <Link
                 href={`/playlist/${pl.id}`}
-                className="group flex flex-col gap-3 p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] rounded-xl transition-colors"
+                className="group flex flex-col gap-3 p-3 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-colors"
               >
-                <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden">
+                <div className="w-full aspect-square bg-[var(--border-color)] rounded-lg flex items-center justify-center relative overflow-hidden">
                   {cover ? (
                     <img src={cover} alt={pl.title} className="w-full h-full object-cover" />
                   ) : (
-                    <ListMusic size={40} className="text-white/20" />
+                    <ListMusic size={40} className="text-[var(--text-subdued)]" />
                   )}
                   <div className="absolute bottom-2 right-2 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
                     <Play size={18} fill="black" className="text-black translate-x-[1px]" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-sm truncate">{pl.title}</h3>
+                  <h3 className="text-[var(--text-base)] font-bold text-sm truncate">{pl.title}</h3>
                   <p className="text-[var(--text-subdued)] text-xs mt-0.5 truncate">
                     {ownerName} • {pl._count.items}
                   </p>
