@@ -32,15 +32,9 @@ export default function Player() {
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  
-  // Фильтры эквалайзера
   const bassRef = useRef<BiquadFilterNode | null>(null);
   const midRef = useRef<BiquadFilterNode | null>(null);
   const trebleRef = useRef<BiquadFilterNode | null>(null);
-  
-  // Фильтры качества звука
-  const lowpassRef = useRef<BiquadFilterNode | null>(null);
-  const highpassRef = useRef<BiquadFilterNode | null>(null);
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -51,7 +45,6 @@ export default function Player() {
   const isFetchingMoreRef = useRef(false);
   const isFadingOutRef = useRef(false);
 
-  // --- ИНИЦИАЛИЗАЦИЯ WEB AUDIO API ---
   useEffect(() => {
     if (activeTrack && audioRef.current && !audioCtxRef.current) {
       try {
@@ -60,8 +53,7 @@ export default function Player() {
         audioCtxRef.current = ctx;
 
         const source = ctx.createMediaElementSource(audioRef.current);
-
-        // Эквалайзер
+        
         const bass = ctx.createBiquadFilter();
         bass.type = 'lowshelf';
         bass.frequency.value = 250;
@@ -75,28 +67,14 @@ export default function Player() {
         treble.type = 'highshelf';
         treble.frequency.value = 4000;
 
-        // Фильтры качества (Lowpass / Highpass)
-        const lowpass = ctx.createBiquadFilter();
-        lowpass.type = 'lowpass';
-        lowpass.frequency.value = 22050;
-
-        const highpass = ctx.createBiquadFilter();
-        highpass.type = 'highpass';
-        highpass.frequency.value = 20;
-
-        // Цепочка: Source -> Bass -> Mid -> Treble -> Highpass -> Lowpass -> Out
         source.connect(bass);
         bass.connect(mid);
         mid.connect(treble);
-        treble.connect(highpass);
-        highpass.connect(lowpass);
-        lowpass.connect(ctx.destination);
+        treble.connect(ctx.destination);
 
         bassRef.current = bass;
         midRef.current = mid;
         trebleRef.current = treble;
-        lowpassRef.current = lowpass;
-        highpassRef.current = highpass;
       } catch (e) {
         console.error("Web Audio API init failed", e);
       }
@@ -106,27 +84,11 @@ export default function Player() {
       audioCtxRef.current.resume();
     }
 
-    // Применяем настройки эквалайзера
     if (bassRef.current) bassRef.current.gain.value = isEqualizerOn ? eqBass : 0;
     if (midRef.current) midRef.current.gain.value = isEqualizerOn ? eqMid : 0;
     if (trebleRef.current) trebleRef.current.gain.value = isEqualizerOn ? eqTreble : 0;
+  }, [activeTrack, isPlaying, isEqualizerOn, eqBass, eqMid, eqTreble]);
 
-    // Применяем настройки качества (РАДИКАЛЬНАЯ РАЗНИЦА)
-    if (lowpassRef.current && highpassRef.current) {
-      if (quality === 'excellent') {
-        lowpassRef.current.frequency.value = 22050; // Все частоты
-        highpassRef.current.frequency.value = 20;
-      } else if (quality === 'optimal') {
-        lowpassRef.current.frequency.value = 14000; // Легкий срез верхов
-        highpassRef.current.frequency.value = 40;
-      } else if (quality === 'economical') {
-        lowpassRef.current.frequency.value = 3500;  // Эффект "телефона"
-        highpassRef.current.frequency.value = 300;   // Срез басов
-      }
-    }
-  }, [activeTrack, isPlaying, isEqualizerOn, eqBass, eqMid, eqTreble, quality]);
-
-  // --- MEDIA SESSION API ---
   useEffect(() => {
     if ('mediaSession' in navigator && activeTrack) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -282,7 +244,7 @@ export default function Player() {
     ? (activeTrack.audioUrl.startsWith('/') ? activeTrack.audioUrl : `/api/stream/${activeTrack.audioUrl}`) 
     : undefined;
 
-  if (!activeTrack || pathname === '/login' || pathname === '/register') {
+  if (!activeTrack || pathname === '/login' || pathname === '/register' || pathname === '/welcome') {
     return null;
   }
 
@@ -297,35 +259,34 @@ export default function Player() {
         onLoadedMetadata={handleLoadedMetadata} 
       />
 
-      {/* FULLSCREEN PLAYER */}
       {isPlayerExpanded && activeTrack && (
-        <div className="fixed inset-0 z-[150] bg-[#0a0a0a] flex flex-col animate-in slide-in-from-bottom-full duration-500 ease-out">
+        <div className="fixed inset-0 z-[150] bg-[var(--bg-main)] flex flex-col animate-in slide-in-from-bottom-full duration-500 ease-out transition-colors">
           {activeTrack.coverUrl && <img src={activeTrack.coverUrl} alt="bg" className="absolute inset-0 w-full h-full object-cover blur-[100px] opacity-30 scale-125 pointer-events-none" />}
           <div className="absolute inset-0 bg-black/50 pointer-events-none" />
 
           <div className="relative z-10 flex justify-between items-center p-4 md:p-6">
-            <button onClick={() => setPlayerExpanded(false)} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full">
+            <button onClick={() => setPlayerExpanded(false)} className="text-[var(--text-base)] hover:scale-110 transition p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-full">
               <IChevronDown size={28} className="md:w-8 md:h-8" />
             </button>
-            <span className="text-[10px] md:text-xs text-white/60 uppercase tracking-widest font-bold">Сейчас играет</span>
+            <span className="text-[10px] md:text-xs text-[var(--text-subdued)] uppercase tracking-widest font-bold">Сейчас играет</span>
             <div className="flex gap-2">
-              <button onClick={() => setIsSoundModalOpen(true)} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full" title="Эквалайзер и качество">
+              <button onClick={() => setIsSoundModalOpen(true)} className="text-[var(--text-base)] hover:scale-110 transition p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-full">
                 <ISettings size={22} className="md:w-7 md:h-7" />
               </button>
-              <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-white hover:scale-110 transition p-2 bg-white/10 rounded-full z-[200]">
+              <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-base)] hover:scale-110 transition p-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-full z-[200]">
                 <IMore size={22} className="md:w-7 md:h-7" />
               </button>
             </div>
           </div>
 
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 md:gap-10 p-4 md:p-6">
-            <div className="w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px] bg-[#222] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-              {activeTrack.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white/20"><IMusic size={64} /></div>}
+            <div className="w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[400px] md:h-[400px] bg-[var(--bg-card)] rounded-2xl overflow-hidden shadow-2xl border border-[var(--border-color)]">
+              {activeTrack.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-subdued)]"><IMusic size={64} /></div>}
             </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-full px-6 py-3 md:px-8 md:py-4 flex items-center justify-between w-full max-w-md border border-white/10">
+            <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-full px-6 py-3 md:px-8 md:py-4 flex items-center justify-between w-full max-w-md border border-[var(--border-color)]">
               <div className="flex flex-col overflow-hidden">
-                <span className="text-white font-bold text-base md:text-lg truncate">{activeTrack.title}</span>
-                <span className="text-white/60 text-xs md:text-sm truncate">{activeTrack.artist}</span>
+                <span className="text-[var(--text-base)] font-bold text-base md:text-lg truncate">{activeTrack.title}</span>
+                <span className="text-[var(--text-subdued)] text-xs md:text-sm truncate">{activeTrack.artist}</span>
               </div>
               <PlayerLikeButton trackId={activeTrack.id} />
             </div>
@@ -333,79 +294,78 @@ export default function Player() {
 
           <div className="relative z-10 p-4 md:p-8 flex flex-col gap-4 md:gap-6 max-w-2xl mx-auto w-full pb-6">
             <div className="flex items-center gap-3 md:gap-4">
-              <span className="text-xs md:text-sm text-white/50 font-medium w-8 md:w-10 text-right">{formatTime(currentTime)}</span>
+              <span className="text-xs md:text-sm text-[var(--text-subdued)] font-medium w-8 md:w-10 text-right">{formatTime(currentTime)}</span>
               <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
-                <div className="w-full h-1 md:h-1.5 bg-white/20 rounded-full relative group-hover:h-2 transition-all duration-200">
-                  <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 md:w-4 md:h-4 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" />
+                <div className="w-full h-1 md:h-1.5 bg-[var(--border-color)] rounded-full relative group-hover:h-2 transition-all duration-200">
+                  <div className="h-full bg-[var(--text-base)] rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 md:w-4 md:h-4 bg-[var(--text-base)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" />
                   </div>
                 </div>
               </div>
-              <span className="text-xs md:text-sm text-white/50 font-medium w-8 md:w-10 text-left">{formatTime(duration)}</span>
+              <span className="text-xs md:text-sm text-[var(--text-subdued)] font-medium w-8 md:w-10 text-left">{formatTime(duration)}</span>
             </div>
 
             <div className="flex items-center justify-between px-2 md:px-4">
               <div className="relative">
-                <button onClick={toggleShuffle} className={`p-1.5 md:p-2 rounded-full transition ${isShuffle ? "text-white bg-white/10" : "text-white/40 hover:text-white"}`}>
+                <button onClick={toggleShuffle} className={`p-1.5 md:p-2 rounded-full transition ${isShuffle ? "text-[var(--text-base)] bg-[var(--bg-card)]" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}>
                   <IShuffle size={20} className="md:w-6 md:h-6" />
                 </button>
                 {isShuffle && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />}
               </div>
 
               <div className="flex items-center gap-4 md:gap-8">
-                <button onClick={playPrevious} className="text-white/60 hover:text-white transition"><ISkipBack size={28} className="md:w-9 md:h-9" /></button>
-                <button onClick={() => setIsPlaying(!isPlaying)} className="bg-white text-black w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                <button onClick={playPrevious} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition"><ISkipBack size={28} className="md:w-9 md:h-9" /></button>
+                <button onClick={() => setIsPlaying(!isPlaying)} className="bg-[var(--text-base)] text-[var(--bg-main)] w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center hover:scale-105 transition-transform">
                   {isPlaying ? <IPause size={32} className="md:w-10 md:h-10" /> : <IPlay size={32} className="md:w-10 md:h-10" />}
                 </button>
-                <button onClick={playNext} className="text-white/60 hover:text-white transition"><ISkipForward size={28} className="md:w-9 md:h-9" /></button>
+                <button onClick={playNext} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition"><ISkipForward size={28} className="md:w-9 md:h-9" /></button>
               </div>
 
               <div className="relative">
-                <button onClick={toggleRepeat} className={`p-1.5 md:p-2 rounded-full transition ${isRepeat ? "text-white bg-white/10" : "text-white/40 hover:text-white"}`}>
+                <button onClick={toggleRepeat} className={`p-1.5 md:p-2 rounded-full transition ${isRepeat ? "text-[var(--text-base)] bg-[var(--bg-card)]" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}>
                   <IRepeat size={20} className="md:w-6 md:h-6" />
                 </button>
-                {isRepeat && <span className="absolute -top-1 -right-1 bg-white text-black text-[7px] md:text-[8px] font-bold rounded-full w-3 h-3 md:w-3.5 md:h-3.5 flex items-center justify-center border border-black">1</span>}
+                {isRepeat && <span className="absolute -top-1 -right-1 bg-[var(--text-base)] text-[var(--bg-main)] text-[7px] md:text-[8px] font-bold rounded-full w-3 h-3 md:w-3.5 md:h-3.5 flex items-center justify-center border border-[var(--bg-main)]">1</span>}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MINI PLAYER */}
-      <footer className="relative bg-[#121212]/95 backdrop-blur-2xl border-t border-white/10 w-full shrink-0 z-50">
-        {/* MOBILE */}
+      <footer className="relative bg-[var(--bg-card)] border-t border-[var(--border-color)] w-full shrink-0 z-50 transition-colors duration-300">
         <div className="md:hidden flex flex-col">
-          <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-white/5 transition">
-            <div className="w-12 h-12 bg-[#222] rounded-md overflow-hidden shrink-0 shadow-lg border border-white/5">
-              {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><IMusic size={20} /></div>}
+          <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-[var(--bg-main)] transition">
+            <div className="w-12 h-12 bg-[var(--bg-main)] rounded-md overflow-hidden shrink-0 shadow-lg border border-[var(--border-color)]">
+              {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-subdued)]"><IMusic size={20} /></div>}
             </div>
             <div className="overflow-hidden flex flex-col justify-center min-w-0 flex-1">
-              <div className="text-sm font-bold text-white truncate">{activeTrack.title}</div>
+              <div className="text-sm font-bold text-[var(--text-base)] truncate">{activeTrack.title}</div>
               <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack.artist}</div>
             </div>
-            <button type="button" onClick={(e) => { e.stopPropagation(); setIsSoundModalOpen(true); }} className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0 z-50 relative">
-              <ISettings size={20} />
-            </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0 z-50 relative">
-              {isMuted || volume === 0 ? <IMute size={20} /> : <IVolume size={20} />}
-            </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-white transition p-2 shrink-0 z-50 relative pointer-events-auto">
-              <IMore size={20} />
-            </button>
+            
+            <div className="flex items-center gap-1">
+              <PlayerLikeButton trackId={activeTrack.id} />
+              <button type="button" onClick={(e) => { e.stopPropagation(); setIsSoundModalOpen(true); }} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2 shrink-0 z-50 relative">
+                <ISettings size={20} />
+              </button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2 shrink-0 z-50 relative pointer-events-auto">
+                <IMore size={20} />
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-2 px-4 pb-3">
             <div className="flex items-center justify-center gap-6">
-              <button onClick={playPrevious} className="text-white/80 p-1.5"><ISkipBack size={24} /></button>
-              <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} className="bg-white text-black w-12 h-12 rounded-full flex items-center justify-center">
+              <button onClick={playPrevious} className="text-[var(--text-base)] p-1.5"><ISkipBack size={24} /></button>
+              <button onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }} className="bg-[var(--text-base)] text-[var(--bg-main)] w-12 h-12 rounded-full flex items-center justify-center">
                 {isPlaying ? <IPause size={22} /> : <IPlay size={22} />}
               </button>
-              <button onClick={playNext} className="text-white/80 p-1.5"><ISkipForward size={24} /></button>
+              <button onClick={playNext} className="text-[var(--text-base)] p-1.5"><ISkipForward size={24} /></button>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-[var(--text-subdued)] tabular-nums w-8 text-right">{formatTime(currentTime)}</span>
               <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
-                <div className="w-full h-1 bg-white/10 rounded-full relative group-hover:h-1.5 transition-all">
-                  <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }} />
+                <div className="w-full h-1 bg-[var(--border-color)] rounded-full relative group-hover:h-1.5 transition-all">
+                  <div className="h-full bg-[var(--text-base)] rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }} />
                 </div>
               </div>
               <span className="text-xs text-[var(--text-subdued)] tabular-nums w-8 text-left">{formatTime(duration)}</span>
@@ -413,44 +373,46 @@ export default function Player() {
           </div>
         </div>
 
-        {/* DESKTOP */}
         <div className="hidden md:grid grid-cols-3 items-center h-[90px] px-6">
-          <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-4 overflow-hidden cursor-pointer hover:bg-white/5 p-2 rounded-md transition">
-            <div className="w-14 h-14 bg-[#222] rounded-md overflow-hidden shrink-0 shadow-lg border border-white/5">
-              {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#555]"><IMusic size={24} /></div>}
+          <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-4 overflow-hidden cursor-pointer hover:bg-[var(--bg-main)] p-2 rounded-md transition">
+            <div className="w-14 h-14 bg-[var(--bg-main)] rounded-md overflow-hidden shrink-0 shadow-lg border border-[var(--border-color)]">
+              {activeTrack?.coverUrl ? <img src={activeTrack.coverUrl} alt="cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[var(--text-subdued)]"><IMusic size={24} /></div>}
             </div>
-            <div className="overflow-hidden flex flex-col justify-center">
-              <div className="text-sm font-bold text-white truncate">{activeTrack.title}</div>
+            <div className="overflow-hidden flex flex-col justify-center flex-1">
+              <div className="text-sm font-bold text-[var(--text-base)] truncate">{activeTrack.title}</div>
               <div className="text-xs text-[var(--text-subdued)] truncate mt-0.5">{activeTrack.artist}</div>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PlayerLikeButton trackId={activeTrack.id} />
             </div>
           </div>
 
           <div className="flex flex-col items-center justify-center gap-2 w-full max-w-[500px] mx-auto">
             <div className="flex items-center gap-6">
               <div className="relative">
-                <button onClick={toggleShuffle} className={`p-1.5 rounded-full transition ${isShuffle ? "text-white bg-white/10" : "text-[var(--text-subdued)] hover:text-white"}`}>
+                <button onClick={toggleShuffle} className={`p-1.5 rounded-full transition ${isShuffle ? "text-[var(--text-base)] bg-[var(--bg-main)]" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}>
                   <IShuffle size={18} />
                 </button>
                 {isShuffle && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />}
               </div>
-              <button onClick={playPrevious} className="text-[var(--text-subdued)] hover:text-white transition"><ISkipBack size={22} /></button>
-              <button onClick={() => setIsPlaying(!isPlaying)} className="bg-white text-black hover:scale-105 w-10 h-10 rounded-full flex items-center justify-center transition-transform shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+              <button onClick={playPrevious} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition"><ISkipBack size={22} /></button>
+              <button onClick={() => setIsPlaying(!isPlaying)} className="bg-[var(--text-base)] text-[var(--bg-main)] hover:scale-105 w-10 h-10 rounded-full flex items-center justify-center transition-transform shadow-lg">
                 {isPlaying ? <IPause size={22} /> : <IPlay size={22} />}
               </button>
-              <button onClick={playNext} className="text-[var(--text-subdued)] hover:text-white transition"><ISkipForward size={22} /></button>
+              <button onClick={playNext} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition"><ISkipForward size={22} /></button>
               <div className="relative">
-                <button onClick={toggleRepeat} className={`p-1.5 rounded-full transition ${isRepeat ? "text-white bg-white/10" : "text-[var(--text-subdued)] hover:text-white"}`}>
+                <button onClick={toggleRepeat} className={`p-1.5 rounded-full transition ${isRepeat ? "text-[var(--text-base)] bg-[var(--bg-main)]" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}>
                   <IRepeat size={18} />
                 </button>
-                {isRepeat && <span className="absolute -top-1 -right-1 bg-white text-black text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center border border-black">1</span>}
+                {isRepeat && <span className="absolute -top-1 -right-1 bg-[var(--text-base)] text-[var(--bg-main)] text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center border border-[var(--bg-main)]">1</span>}
               </div>
             </div>
             <div className="w-full flex items-center gap-3">
               <span className="text-sm text-[var(--text-subdued)] font-medium w-9 text-right">{formatTime(currentTime)}</span>
               <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
-                <div className="w-full h-1 bg-white/10 rounded-full relative group-hover:h-1.5 transition-all duration-200">
-                  <div className="h-full bg-white rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                <div className="w-full h-1 bg-[var(--border-color)] rounded-full relative group-hover:h-1.5 transition-all duration-200">
+                  <div className="h-full bg-[var(--text-base)] rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-[var(--text-base)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" />
                   </div>
                 </div>
               </div>
@@ -459,14 +421,14 @@ export default function Player() {
           </div>
 
           <div className="w-full flex justify-end items-center gap-4">
-            <button onClick={() => setIsSoundModalOpen(true)} className="text-[var(--text-subdued)] hover:text-white transition p-2"><ISettings size={20} /></button>
+            <button onClick={() => setIsSoundModalOpen(true)} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2"><ISettings size={20} /></button>
             <div className="relative group flex items-center justify-center p-2">
-              <button onClick={toggleMute} className="text-[var(--text-subdued)] hover:text-white transition">
+              <button onClick={toggleMute} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition">
                 {isMuted || volume === 0 ? <IMute size={20} /> : <IVolume size={20} />}
               </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-[#1c1c1c] rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl border border-white/5 flex flex-col items-center"><VolumeSlider /></div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-[var(--bg-card)] rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-2xl border border-[var(--border-color)] flex flex-col items-center"><VolumeSlider /></div>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-white transition p-2"><IMore size={20} /></button>
+            <button onClick={(e) => { e.stopPropagation(); if (activeTrack) openTrackMenu(activeTrack, e.currentTarget.getBoundingClientRect()); }} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2"><IMore size={20} /></button>
           </div>
         </div>
       </footer>

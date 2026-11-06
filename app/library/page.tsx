@@ -14,7 +14,7 @@ export default function LibraryPage() {
     <PageTransition>
       <div className="flex flex-col h-full w-full">
         <div className="p-8 pb-0 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-black text-[var(--text-base)] tracking-tight flex items-center gap-3">
             Моя медиатека
           </h1>
           <CreatePlaylistButton />
@@ -28,7 +28,6 @@ export default function LibraryPage() {
 }
 
 async function LibraryData() {
-  // ... (весь остальной код функции LibraryData оставляем без изменений)
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   const payload = token ? await verifyToken(token) : null;
@@ -37,7 +36,7 @@ async function LibraryData() {
     return (
       <div className="p-8 flex flex-col gap-4 items-start">
         <p className="text-[var(--text-subdued)]">Войдите, чтобы увидеть свою медиатеку.</p>
-        <Link href="/login" className="bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition">
+        <Link href="/login" className="bg-[var(--text-base)] text-[var(--bg-main)] px-6 py-2 rounded-full font-bold hover:opacity-80 transition">
           Войти
         </Link>
       </div>
@@ -62,7 +61,7 @@ async function LibraryData() {
     <div className="p-4 md:p-8 flex flex-col gap-12">
       
       <div>
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-[var(--text-base)] mb-6 flex items-center gap-2">
           <Music size={24} /> Мои плейлисты
         </h2>
         {playlists.length === 0 ? (
@@ -83,20 +82,20 @@ async function LibraryData() {
                 >
                   <Link 
                     href={`/playlist/${pl.id}`}
-                    className="group flex flex-col gap-4 p-4 bg-[#121212] hover:bg-[#1a1a1a] rounded-xl transition-all duration-300"
+                    className="group flex flex-col gap-4 p-4 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-all duration-300 border border-[var(--border-color)]"
                   >
-                    <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all">
+                    <div className="w-full aspect-square bg-[var(--border-color)] rounded-lg flex items-center justify-center relative overflow-hidden">
                       {cover ? (
                         <img src={cover} alt={pl.title} className="w-full h-full object-cover" />
                       ) : (
-                        <ListMusic size={48} className="text-white/20" />
+                        <ListMusic size={48} className="text-[var(--text-subdued)]" />
                       )}
                       <div className="absolute bottom-3 right-3 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
                         <Play size={20} fill="black" className="text-black translate-x-[1px]" />
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-white font-bold text-lg truncate">{pl.title}</h3>
+                      <h3 className="text-[var(--text-base)] font-bold text-lg truncate">{pl.title}</h3>
                       <p className="text-[var(--text-subdued)] text-sm mt-1">
                         {pl.isPublic ? "Публичный" : "Приватный"} • {pl._count.items} треков
                       </p>
@@ -110,7 +109,7 @@ async function LibraryData() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-[var(--text-base)] mb-4 flex items-center gap-2">
           <Heart size={24} /> Мне нравится
         </h2>
         {likedTracks.length === 0 ? (

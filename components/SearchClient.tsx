@@ -73,15 +73,14 @@ export default function SearchClient() {
     const searchRes = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
     if (searchRes.ok) {
       const sd = await searchRes.json();
-      if (sd.tracks) {
-        setLocalTracks(sd.tracks);
-      }
+      if (sd.tracks) setLocalTracks(sd.tracks);
     }
   };
 
   const handleDownload = async (track: any) => {
-    // Отправляем полное название как есть, без отрезания скобок
-    const queryStr = `${track.artist} ${track.title}`;
+    const cleanTitle = track.title.replace(/\(.*?\)|\[.*?\]/g, '').trim();
+    const mainArtist = track.artist.split(',')[0].trim();
+    const queryStr = `${mainArtist} ${cleanTitle}`;
     
     setDownloadingUrl(track.title);
 
@@ -100,15 +99,14 @@ export default function SearchClient() {
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
         router.refresh();
       } else if (res.status === 409) {
-        showToast(`Найденный трек "${data.track.title}" уже есть в базе. Возможно, это не то, что вы искали.`, "info");
+        showToast(`Найденный трек "${data.track.title}" уже есть в базе.`, "info");
         await refreshLocalTracks(query);
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else if (res.status === 422) {
         showToast(data.error, "error");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else if (res.status === 404) {
-        // Если Hitmoz не нашел, просто убираем его из списка
-        showToast("Hitmoz не содержит этот трек. Попробуйте найти его через импорт Яндекса.", "error");
+        showToast("Не удалось скачать. Попробуйте кнопку 'Скачать напрямую'.", "error");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else {
         showToast(data.error || "Ошибка скачивания", "error");
@@ -136,7 +134,7 @@ export default function SearchClient() {
         await refreshLocalTracks(query);
         router.refresh();
       } else if (res.status === 409) {
-        showToast(`Найденный трек "${data.track.title}" уже есть в базе. Возможно, это не то, что вы искали.`, "info");
+        showToast(`Найденный трек "${data.track.title}" уже есть в базе.`, "info");
         await refreshLocalTracks(query);
       } else if (res.status === 422) {
         showToast(data.error, "error");
@@ -169,10 +167,10 @@ export default function SearchClient() {
             placeholder="Название трека"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-[#1a1a1a] text-white pl-14 pr-4 py-3 rounded-full outline-none focus:ring-2 focus:ring-white/20 border border-transparent transition-all text-sm font-medium"
+            className="w-full bg-[var(--bg-input)] text-[var(--text-base)] pl-14 pr-4 py-3 rounded-full outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm font-medium"
           />
           {isSearchingLocal && (
-            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 animate-spin" size={18} />
+            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-subdued)] animate-spin" size={18} />
           )}
         </div>
       </div>
@@ -182,7 +180,7 @@ export default function SearchClient() {
           <div>
             {localPlaylists.length > 0 && (
               <div className="px-8 pt-4 pb-2">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-[var(--text-base)] mb-4 flex items-center gap-2">
                   <ListMusic size={20} /> Плейлисты
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -190,12 +188,12 @@ export default function SearchClient() {
                     const cover = pl.items[0]?.track?.coverUrl;
                     const ownerName = pl.user.name || pl.user.email.split('@')[0];
                     return (
-                      <Link key={pl.id} href={`/playlist/${pl.id}`} className="group flex flex-col gap-2 p-3 bg-[#121212] hover:bg-[#1a1a1a] rounded-xl transition-colors">
-                        <div className="w-full aspect-square bg-[#282828] rounded-lg flex items-center justify-center relative overflow-hidden">
-                          {cover ? <img src={cover} alt={pl.title} className="w-full h-full object-cover" /> : <ListMusic size={40} className="text-white/20" />}
+                      <Link key={pl.id} href={`/playlist/${pl.id}`} className="group flex flex-col gap-2 p-3 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-colors border border-[var(--border-color)]">
+                        <div className="w-full aspect-square bg-[var(--border-color)] rounded-lg flex items-center justify-center relative overflow-hidden">
+                          {cover ? <img src={cover} alt={pl.title} className="w-full h-full object-cover" /> : <ListMusic size={40} className="text-[var(--text-subdued)]" />}
                         </div>
                         <div>
-                          <h3 className="text-white font-bold text-sm truncate">{pl.title}</h3>
+                          <h3 className="text-[var(--text-base)] font-bold text-sm truncate">{pl.title}</h3>
                           <p className="text-[var(--text-subdued)] text-xs mt-0.5 truncate">{ownerName} • {pl._count.items}</p>
                         </div>
                       </Link>
@@ -208,13 +206,13 @@ export default function SearchClient() {
             {localTracks.length > 0 && (
               <div>
                 {localPlaylists.length > 0 && (
-                  <h2 className="px-8 pt-6 pb-2 text-xl font-bold text-white">В библиотеке</h2>
+                  <h2 className="px-8 pt-6 pb-2 text-xl font-bold text-[var(--text-base)]">В библиотеке</h2>
                 )}
                 <TrackList initialTracks={localTracks} userLikes={userLikes} />
                 
                 {!showExternal && (
                   <div className="px-8 py-6">
-                    <button onClick={handleSearchExternal} className="bg-white/10 text-white font-bold py-3 px-6 rounded-full hover:bg-white/20 transition flex items-center gap-2 text-sm">
+                    <button onClick={handleSearchExternal} className="bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-base)] font-bold py-3 px-6 rounded-full hover:bg-[var(--bg-main)] transition flex items-center gap-2 text-sm">
                       <Search size={16} /> Нет того, что искали? Поискать в сети
                     </button>
                   </div>
@@ -225,16 +223,16 @@ export default function SearchClient() {
             {showExternal && (
               <div className="px-4 md:px-8 pt-4 pb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-[var(--text-base)] flex items-center gap-2">
                     <DownloadCloud size={20} /> Найдено в сети
                   </h2>
-                  <button onClick={() => setShowExternal(false)} className="text-[var(--text-subdued)] hover:text-white text-sm transition">
+                  <button onClick={() => setShowExternal(false)} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] text-sm transition">
                     Скрыть
                   </button>
                 </div>
                 
                 {isSearchingExternal ? (
-                  <div className="flex items-center gap-2 text-white/50 py-4">
+                  <div className="flex items-center gap-2 text-[var(--text-subdued)] py-4">
                     <Loader2 className="animate-spin" size={20} /> Ищем по всем базам...
                   </div>
                 ) : (
@@ -244,17 +242,17 @@ export default function SearchClient() {
                         const isDownloading = downloadingUrl === track.title;
                         
                         return (
-                          <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 rounded-md transition hover:bg-[#2a2a2a] group">
-                            <div className="w-12 h-12 md:w-14 md:h-14 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center">
+                          <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 rounded-md transition hover:bg-[var(--bg-card)] group">
+                            <div className="w-12 h-12 md:w-14 md:h-14 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center">
                               {track.coverUrl ? (
                                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
                               ) : (
-                                <ListMusic size={20} className="text-white/30" />
+                                <ListMusic size={20} className="text-[var(--text-subdued)]" />
                               )}
                             </div>
                             
                             <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-                              <span className="text-white font-medium truncate text-sm md:text-base">{track.title}</span>
+                              <span className="text-[var(--text-base)] font-medium truncate text-sm md:text-base">{track.title}</span>
                               <span className="text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
                             </div>
 
@@ -265,7 +263,7 @@ export default function SearchClient() {
                             <button
                               onClick={() => handleDownload(track)}
                               disabled={isDownloading}
-                              className="bg-white text-black font-bold text-xs px-3 py-2 rounded-full hover:bg-gray-200 transition flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                              className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold text-xs px-3 py-2 rounded-full hover:opacity-80 transition flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                             >
                               {isDownloading ? (
                                 <><Loader2 size={14} className="animate-spin" /> Качаем</>
@@ -280,14 +278,14 @@ export default function SearchClient() {
                       <p className="text-[var(--text-subdued)] text-sm py-4">В популярных базах (iTunes/Deezer) ничего не найдено.</p>
                     )}
 
-                    <div className="mt-6 pt-6 border-t border-white/10">
+                    <div className="mt-6 pt-6 border-t border-[var(--border-color)]">
                       <p className="text-[var(--text-subdued)] text-xs mb-3">
                         Не нашли нужный ремикс или спед-ап? Попробуйте найти напрямую в открытых базах.
                       </p>
                       <button
                         onClick={handleDirectDownload}
                         disabled={isDirectDownloading}
-                        className="text-sm font-bold text-white bg-white/10 hover:bg-white/20 py-2.5 px-5 rounded-full transition flex items-center gap-2 disabled:opacity-50"
+                        className="text-sm font-bold text-[var(--text-base)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] py-2.5 px-5 rounded-full transition flex items-center gap-2 disabled:opacity-50"
                       >
                         {isDirectDownloading ? <Loader2 size={16} className="animate-spin" /> : <DownloadCloud size={16} />}
                         {isDirectDownloading ? "Ищем..." : `Скачать "${query}" напрямую`}
@@ -307,7 +305,7 @@ export default function SearchClient() {
             <button
               onClick={handleSearchExternal}
               disabled={isSearchingExternal}
-              className="bg-white text-black font-bold py-2.5 px-6 rounded-full hover:bg-gray-200 transition flex items-center gap-2 disabled:opacity-50"
+              className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-2.5 px-6 rounded-full hover:opacity-80 transition flex items-center gap-2 disabled:opacity-50"
             >
               {isSearchingExternal ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
               {isSearchingExternal ? "Ищем..." : "Поискать в сети"}

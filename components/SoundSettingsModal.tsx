@@ -17,57 +17,57 @@ export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolea
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
       <div className="absolute inset-0" onClick={onClose} />
       
-      <div className="relative w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md bg-[var(--bg-card)] rounded-2xl p-6 shadow-2xl border border-[var(--border-color)] animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white tracking-tight">Настройки звука</h2>
-          <button onClick={onClose} className="text-[var(--text-subdued)] hover:text-white bg-white/5 p-2 rounded-full"><X size={18} /></button>
+          <h2 className="text-xl font-bold text-[var(--text-base)] tracking-tight">Настройки звука</h2>
+          <button onClick={onClose} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] bg-[var(--bg-main)] p-2 rounded-full transition"><X size={18} /></button>
         </div>
 
         <div className="flex flex-col gap-2 mb-6">
-          <button onClick={() => setQuality('excellent')} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition text-left">
+          <button onClick={() => setQuality('excellent')} className="flex justify-between items-center p-3 hover:bg-[var(--bg-main)] rounded-xl transition text-left">
             <div>
               <div className="flex items-center">
-                <p className="text-white font-bold text-sm">Превосходное</p>
-                <InfoTooltip text="Максимальное качество звука. Полный спектр частот без обрезки высоких и низких частот." />
+                <p className="text-[var(--text-base)] font-bold text-sm">Превосходное</p>
+                <InfoTooltip text="Максимальное качество звука. Полный спектр частот без обрезки." />
               </div>
               <p className="text-[var(--text-subdued)] text-xs mt-1">Полный спектр частот</p>
             </div>
-            {quality === 'excellent' && <Check size={20} className="text-white shrink-0" />}
+            {quality === 'excellent' && <Check size={20} className="text-[var(--text-base)] shrink-0" />}
           </button>
           
-          <button onClick={() => setQuality('optimal')} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition text-left">
+          <button onClick={() => setQuality('optimal')} className="flex justify-between items-center p-3 hover:bg-[var(--bg-main)] rounded-xl transition text-left">
             <div>
               <div className="flex items-center">
-                <p className="text-white font-bold text-sm">Оптимальное</p>
-                <InfoTooltip text="Сбалансированный звук. Оптимальное соотношение качества и потребления трафика." />
+                <p className="text-[var(--text-base)] font-bold text-sm">Оптимальное</p>
+                <InfoTooltip text="Сбалансированный звук. Оптимальное соотношение качества и трафика." />
               </div>
               <p className="text-[var(--text-subdued)] text-xs mt-1">Сбалансированный звук</p>
             </div>
-            {quality === 'optimal' && <Check size={20} className="text-white shrink-0" />}
+            {quality === 'optimal' && <Check size={20} className="text-[var(--text-base)] shrink-0" />}
           </button>
           
-          <button onClick={() => setQuality('economical')} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition text-left">
+          <button onClick={() => setQuality('economical')} className="flex justify-between items-center p-3 hover:bg-[var(--bg-main)] rounded-xl transition text-left">
             <div>
               <div className="flex items-center">
-                <p className="text-white font-bold text-sm">Экономичное</p>
-                <InfoTooltip text="Экономия трафика. Звук обрезается по высоким частотам, чтобы быстрее грузился при слабом интернете." />
+                <p className="text-[var(--text-base)] font-bold text-sm">Экономичное</p>
+                <InfoTooltip text="Экономия трафика. Звук обрезается по высоким частотам." />
               </div>
               <p className="text-[var(--text-subdued)] text-xs mt-1">Имитация низкого битрейта</p>
             </div>
-            {quality === 'economical' && <Check size={20} className="text-white shrink-0" />}
+            {quality === 'economical' && <Check size={20} className="text-[var(--text-base)] shrink-0" />}
           </button>
         </div>
 
-        <div className="h-px bg-white/10 my-4" />
+        <div className="h-px bg-[var(--border-color)] my-4" />
 
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <span className="text-white font-bold text-sm">Эквалайзер</span>
+            <span className="text-[var(--text-base)] font-bold text-sm">Эквалайзер</span>
             <InfoTooltip text="Усиление или ослабление частот. BASS — низкие, MID — средние, TREBLE — высокие." />
             {isEqualizerOn && (
               <button 
                 onClick={() => { setEqBass(0); setEqMid(0); setEqTreble(0); }}
-                className="text-[var(--text-subdued)] hover:text-white transition p-1 bg-white/5 rounded-md"
+                className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-1 bg-[var(--bg-main)] rounded-md"
                 title="Сбросить настройки"
               >
                 <RotateCcw size={14} />
@@ -76,7 +76,7 @@ export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolea
           </div>
           <button 
             onClick={toggleEqualizer}
-            className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${isEqualizerOn ? 'bg-green-500' : 'bg-white/20'}`}
+            className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${isEqualizerOn ? 'bg-green-500' : 'bg-[var(--border-color)]'}`}
           >
             <div className={`w-4 h-4 bg-white rounded-full absolute transition-transform ${isEqualizerOn ? 'translate-x-7' : 'translate-x-1'}`} />
           </button>
@@ -128,23 +128,23 @@ function CustomEqSlider({ label, value, onChange }: { label: string, value: numb
   return (
     <div className="flex flex-col items-center gap-4">
       <div 
-        className="relative w-2 h-full bg-white/10 rounded-full cursor-pointer flex flex-col justify-center"
+        className="relative w-2 h-full bg-[var(--border-color)] rounded-full cursor-pointer flex flex-col justify-center"
         ref={containerRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/30" />
+        <div className="absolute top-1/2 left-0 w-full h-[1px] bg-[var(--text-subdued)] opacity-50" />
         <div 
-          className="w-full bg-white rounded-full absolute"
+          className="w-full bg-[var(--text-base)] rounded-full absolute"
           style={{
             bottom: value >= 0 ? '50%' : `${percent}%`,
             height: `${Math.abs(value) / 20 * 100}%`
           }}
         />
         <div 
-          className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-transform ${isDragging ? "scale-125" : "hover:scale-110"}`}
+          className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-[var(--text-base)] rounded-full shadow-lg transition-transform ${isDragging ? "scale-125" : "hover:scale-110"}`}
           style={{ bottom: `calc(${percent}% - 8px)` }} 
         />
       </div>

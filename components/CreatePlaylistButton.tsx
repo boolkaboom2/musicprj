@@ -46,7 +46,7 @@ export default function CreatePlaylistButton() {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="bg-white text-black font-bold text-sm px-5 py-2.5 rounded-full hover:bg-gray-200 transition flex items-center gap-2 shrink-0"
+        className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold text-sm px-5 py-2.5 rounded-full hover:opacity-80 transition flex items-center gap-2 shrink-0"
       >
         <Plus size={18} /> Создать плейлист
       </button>
@@ -58,13 +58,13 @@ export default function CreatePlaylistButton() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-[#1c1c1c] w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-white/5"
+              className="relative bg-[var(--bg-card)] w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-[var(--border-color)]"
             >
-              <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 text-white/50 hover:text-white">
+              <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 text-[var(--text-subdued)] hover:text-[var(--text-base)]">
                 <X size={20} />
               </button>
               
-              <h2 className="text-xl font-bold text-white mb-4">Новый плейлист</h2>
+              <h2 className="text-xl font-bold text-[var(--text-base)] mb-4">Новый плейлист</h2>
               <input
                 type="text"
                 placeholder="Название плейлиста"
@@ -72,14 +72,14 @@ export default function CreatePlaylistButton() {
                 onChange={(e) => setTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                 autoFocus
-                className="w-full bg-[#2a2a2a] text-white p-3 rounded-lg outline-none focus:ring-1 focus:ring-white/30 mb-4"
+                className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-lg outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] mb-4"
               />
               
               <div className="flex gap-3">
-                <button onClick={() => setIsOpen(false)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">
+                <button onClick={() => setIsOpen(false)} className="flex-1 bg-[var(--bg-main)] text-[var(--text-base)] font-bold py-3 rounded-md hover:opacity-80 transition border border-[var(--border-color)]">
                   Отмена
                 </button>
-                <button onClick={handleCreate} disabled={isLoading} className="flex-1 bg-white text-black font-bold py-3 rounded-md hover:bg-gray-200 transition flex justify-center items-center">
+                <button onClick={handleCreate} disabled={isLoading} className="flex-1 bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-3 rounded-md hover:opacity-80 transition flex justify-center items-center">
                   {isLoading ? <Loader2 className="animate-spin" size={18} /> : "Создать"}
                 </button>
               </div>

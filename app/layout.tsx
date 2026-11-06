@@ -70,7 +70,6 @@ async function LayoutData() {
   );
 }
 
-// ЯВНО УКАЗЫВАЕМ ТИП ДЛЯ PROPS
 interface RootLayoutProps {
   children: ReactNode;
 }
@@ -78,7 +77,7 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ru" className={manrope.variable}>
-      <body className="antialiased bg-black text-white h-[100dvh] flex flex-col overflow-hidden font-sans">
+      <body className="antialiased bg-[var(--bg-main)] text-[var(--text-base)] h-[100dvh] flex flex-col overflow-hidden font-sans transition-colors duration-300">
         
         <Suspense fallback={null}>
           <MobileHeader />

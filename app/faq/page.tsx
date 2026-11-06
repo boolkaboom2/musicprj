@@ -54,12 +54,12 @@ export default function FAQPage() {
 
   return (
     <PageTransition>
-      <div className="p-4 md:p-8 max-w-3xl mx-auto text-white min-h-full">
-        <Link href="/" className="text-[var(--text-subdued)] hover:text-white flex items-center gap-2 mb-8 transition">
+      <div className="p-4 md:p-8 max-w-3xl mx-auto text-[var(--text-base)] min-h-full">
+        <Link href="/" className="text-[var(--text-subdued)] hover:text-[var(--text-base)] flex items-center gap-2 mb-8 transition">
           <ArrowLeft size={18} /> На главную
         </Link>
         
-        <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">Часто задаваемые вопросы</h1>
+        <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight text-[var(--text-base)]">Часто задаваемые вопросы</h1>
         <p className="text-[var(--text-subdued)] text-sm mb-8">Ответы на самые популярные вопросы о SADOVOD.</p>
 
         <div className="flex flex-col gap-3">
@@ -68,13 +68,13 @@ export default function FAQPage() {
             return (
               <div 
                 key={index} 
-                className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden transition-colors hover:border-white/10"
+                className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden transition-colors"
               >
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : index)}
                   className="w-full flex items-center justify-between p-4 md:p-6 text-left"
                 >
-                  <span className="font-bold text-sm md:text-base pr-4">{item.q}</span>
+                  <span className="font-bold text-sm md:text-base pr-4 text-[var(--text-base)]">{item.q}</span>
                   <motion.div
                     animate={{ rotate: isOpen ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
@@ -92,7 +92,7 @@ export default function FAQPage() {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <div className="px-4 md:px-6 pb-4 md:pb-6 text-sm text-[var(--text-subdued)] leading-relaxed border-t border-white/5 pt-4 mt-2">
+                      <div className="px-4 md:px-6 pb-4 md:pb-6 text-sm text-[var(--text-subdued)] leading-relaxed border-t border-[var(--border-color)] pt-4 mt-2">
                         {item.a}
                       </div>
                     </motion.div>

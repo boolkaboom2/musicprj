@@ -7,52 +7,52 @@ export default function PrivacyPage() {
   const router = useRouter();
 
   return (
-    <div className="p-8 max-w-3xl mx-auto text-white min-h-full">
+    <div className="p-8 max-w-3xl mx-auto text-[var(--text-base)] min-h-full">
       <button 
         onClick={() => router.back()} 
-        className="text-[var(--text-subdued)] hover:text-white flex items-center gap-2 mb-8 transition"
+        className="text-[var(--text-subdued)] hover:text-[var(--text-base)] flex items-center gap-2 mb-8 transition"
       >
         <ArrowLeft size={18} /> Назад
       </button>
       
-      <h1 className="text-3xl font-black mb-6">Политика конфиденциальности и Пользовательское соглашение</h1>
+      <h1 className="text-3xl font-black mb-6 text-[var(--text-base)]">Политика конфиденциальности и Пользовательское соглашение</h1>
       
       <div className="flex flex-col gap-6 text-[var(--text-subdued)] text-sm leading-relaxed">
         <p>
-          Настоящая Политика конфиденциальности описывает, как учебный проект <strong>SADOVOD</strong> собирает, использует и защищает информацию, которую вы предоставляете при использовании сайта.
+          Настоящая Политика конфиденциальности описывает, как учебный проект <strong className="text-[var(--text-base)]">SADOVOD</strong> собирает, использует и защищает информацию, которую вы предоставляете при использовании сайта.
         </p>
         
         <div>
-          <h2 className="text-white font-bold text-lg mb-2">1. Закрытый доступ и Инвайт-коды</h2>
+          <h2 className="text-[var(--text-base)] font-bold text-lg mb-2">1. Закрытый доступ и Инвайт-коды</h2>
           <p>Сайт является закрытым учебным проектом. Для регистрации требуется персональный инвайт-код, который выдается администратором. Это сделано для предотвращения несанкционированного доступа, соблюдения законодательства РФ и защиты от претензий правообладателей. Передача кода третьим лицам запрещена.</p>
         </div>
 
         <div>
-          <h2 className="text-white font-bold text-lg mb-2">2. Какую информацию мы собираем</h2>
+          <h2 className="text-[var(--text-base)] font-bold text-lg mb-2">2. Какую информацию мы собираем</h2>
           <p>При регистрации мы собираем ваш email, имя (опционально), аватар и пароль. Пароль хранится в базе данных в зашифрованном виде (bcrypt) и не может быть прочитан администрацией сайта. Также мы собираем технические данные о посещениях (IP-адрес, браузер) исключительно для внутренней аналитики и обеспечения безопасности.</p>
         </div>
         
         <div>
-          <h2 className="text-white font-bold text-lg mb-2">3. Как мы используем информацию</h2>
+          <h2 className="text-[var(--text-base)] font-bold text-lg mb-2">3. Как мы используем информацию</h2>
           <p>Информация используется исключительно для обеспечения работы сайта (авторизация, сохранение ваших плейлистов, история прослушиваний). Мы не передаем ваши персональные данные третьим лицам и не используем их для показа рекламы.</p>
         </div>
         
         <div>
-          <h2 className="text-white font-bold text-lg mb-2">4. Файлы cookie</h2>
+          <h2 className="text-[var(--text-base)] font-bold text-lg mb-2">4. Файлы cookie</h2>
           <p>Сайт использует защищенные (HttpOnly) куки для хранения токена авторизации. Это необходимо для того, чтобы вы оставались в системе при переходе между страницами.</p>
         </div>
         
         <div>
-          <h2 className="text-white font-bold text-lg mb-2">5. Аудиоконтент и авторские права</h2>
+          <h2 className="text-[var(--text-base)] font-bold text-lg mb-2">5. Аудиоконтент и авторские права</h2>
           <p>Все аудиозаписи, представленные на сайте, собраны из открытых источников в сети Интернет. Сайт не является коммерческим стриминговым сервисом и не извлекает прибыль из распространения музыки. Все права на аудиозаписи принадлежат их законным правообладателям. Прослушивание доступно исключительно в учебных и ознакомительных целях.</p>
         </div>
 
         <div>
-          <h2 className="text-white font-bold text-lg mb-2">6. Удаление аккаунта</h2>
+          <h2 className="text-[var(--text-base)] font-bold text-lg mb-2">6. Удаление аккаунта</h2>
           <p>Администрация сайта оставляет за собой право заблокировать или удалить любой аккаунт без предупреждения в случае нарушения правил использования или по требованию уполномоченных органов.</p>
         </div>
         
-        <p className="mt-8 text-xs text-white/40">Последнее обновление: Ноябрь 2026 г.</p>
+        <p className="mt-8 text-xs text-[var(--text-subdued)]">Последнее обновление: Ноябрь 2026 г.</p>
       </div>
     </div>
   );

@@ -29,7 +29,6 @@ export default function TrackList({
 }) {
   const [tracks] = useState(initialTracks);
   const setActiveTrack = usePlayerStore((state) => state.setActiveTrack);
-  const openAddToPlaylist = useModalStore((state) => state.openAddToPlaylist);
   const { openTrackMenu, isTrackMenuOpen, trackForMenu } = useTrackMenuStore();
 
   const formatTime = (seconds: number) => {
@@ -61,19 +60,18 @@ export default function TrackList({
               e.preventDefault();
               openTrackMenu(track, e.currentTarget.getBoundingClientRect());
             }}
-            className={`flex items-center gap-3 md:gap-4 p-2 md:p-2 rounded-md transition cursor-pointer group active:bg-white/10 md:active:bg-transparent ${
-              isMenuOpenForThisTrack ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
+            className={`flex items-center gap-3 md:gap-4 p-2 md:p-2 rounded-md transition cursor-pointer group active:bg-[var(--bg-card)] md:active:bg-transparent ${
+              isMenuOpenForThisTrack ? "bg-[var(--bg-card)]" : "hover:bg-[var(--bg-card)]"
             }`}
           >
             <div className={`hidden sm:flex w-6 justify-center items-center text-sm transition-colors ${
-              isMenuOpenForThisTrack ? "text-white" : "text-[#777] group-hover:text-white"
+              isMenuOpenForThisTrack ? "text-[var(--text-base)]" : "text-[var(--text-subdued)] group-hover:text-[var(--text-base)]"
             }`}>
                <span className={isMenuOpenForThisTrack ? "hidden" : "group-hover:hidden"}>{index + 1}</span>
                {isMenuOpenForThisTrack ? <IPlay size={12} /> : <IPlay size={12} className="hidden group-hover:block" />}
             </div>
 
-            {/* Обложка: больше на мобилке */}
-            <div className="w-14 h-14 md:w-12 md:h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center text-[#555]">
+            <div className="w-14 h-14 md:w-12 md:h-12 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-subdued)]">
               {track.coverUrl ? (
                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
               ) : (
@@ -87,14 +85,14 @@ export default function TrackList({
                   href={`/track/${track.id}`} 
                   onClick={(e) => e.stopPropagation()}
                   onContextMenu={(e) => e.stopPropagation()}
-                  className="text-white font-medium truncate hover:underline w-fit text-base md:text-base"
+                  className="text-[var(--text-base)] font-medium truncate hover:underline w-fit text-base md:text-base"
                 >
                   {track.title}
                 </Link>
                 
                 {isPinned && (
-                  <div className="hidden sm:flex items-center justify-center bg-white/10 p-1 rounded-full border border-white/5">
-                    <IPin size={12} className="text-white fill-white" />
+                  <div className="hidden sm:flex items-center justify-center bg-[var(--bg-main)] p-1 rounded-full border border-[var(--border-color)]">
+                    <IPin size={12} className="text-[var(--text-base)] fill-current" />
                   </div>
                 )}
               </div>
@@ -109,7 +107,7 @@ export default function TrackList({
                   e.stopPropagation();
                   openTrackMenu(track, e.currentTarget.getBoundingClientRect());
                 }}
-                className="text-[var(--text-subdued)] hover:text-white transition-colors p-1 md:p-0"
+                className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors p-1 md:p-0"
               >
                 <IMore size={20} />
               </button>

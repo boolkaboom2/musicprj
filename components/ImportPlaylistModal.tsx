@@ -14,15 +14,17 @@ interface Track {
   confidence: 'high' | 'low';
 }
 
+interface ImportPlaylistModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: (playlistId: string | null) => void;
+}
+
 export default function ImportPlaylistModal({ 
   isOpen, 
   onClose,
   onSuccess 
-}: { 
-  isOpen: boolean, 
-  onClose: () => void,
-  onSuccess?: (playlistId: string | null) => void 
-}) {
+}: ImportPlaylistModalProps) {
   const [inputMode, setInputMode] = useState<'url' | 'html'>('url');
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -161,42 +163,41 @@ export default function ImportPlaylistModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full h-full sm:h-auto sm:max-w-2xl bg-[#121212] sm:rounded-2xl shadow-2xl border border-white/10 flex flex-col sm:max-h-[90vh]"
+          className="relative w-full h-full sm:h-auto sm:max-w-2xl bg-[var(--bg-card)] sm:rounded-2xl shadow-2xl border border-[var(--border-color)] flex flex-col sm:max-h-[90vh] transition-colors"
         >
           
-          <div className="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center shrink-0">
+          <div className="p-4 sm:p-6 border-b border-[var(--border-color)] flex justify-between items-center shrink-0">
             <div className="min-w-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Импорт плейлиста</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-base)]">Импорт плейлиста</h2>
               <div className="flex items-center mt-1">
                 <p className="text-xs sm:text-sm text-[var(--text-subdued)]">Скачивание идет в фоне.</p>
-                <InfoTooltip text="Почему так долго? Мы качаем треки по одному, чтобы не попасть в бан от баз данных. Если закрыть вкладку, загрузка продолжится." />
+                <InfoTooltip text="Почему так долго? Мы качаем треки по одному, чтобы не попасть в бан. Если закрыть вкладку, загрузка продолжится." />
               </div>
             </div>
-            <button onClick={onClose} className="text-white/50 hover:text-white transition p-2 bg-white/5 rounded-full shrink-0 ml-2">
+            <button onClick={onClose} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2 bg-[var(--bg-main)] rounded-full shrink-0 ml-2">
               <X size={20} />
             </button>
           </div>
 
           <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1">
             
-            {/* ЭКРАН ПРОГРЕССА */}
             {batchId ? (
               <div className="flex flex-col items-center justify-center py-10 gap-6 animate-in fade-in zoom-in-95 duration-300">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
-                  <DownloadCloud size={40} className="text-white animate-pulse" />
+                <div className="w-20 h-20 bg-[var(--bg-main)] rounded-full flex items-center justify-center">
+                  <DownloadCloud size={40} className="text-[var(--text-base)] animate-pulse" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-xl font-bold text-white mb-2">Скачиваем треки...</h3>
+                  <h3 className="text-xl font-bold text-[var(--text-base)] mb-2">Скачиваем треки...</h3>
                   <p className="text-[var(--text-subdued)] text-sm max-w-xs mx-auto">Вы можете закрыть эту вкладку. Загрузка продолжится в фоне.</p>
                 </div>
                 
                 {progress && (
-                  <div className="w-full max-w-md bg-[#1a1a1a] p-5 rounded-xl border border-white/5">
+                  <div className="w-full max-w-md bg-[var(--bg-main)] p-5 rounded-xl border border-[var(--border-color)]">
                     <div className="flex justify-between text-sm mb-3 font-bold">
-                      <span className="text-white">Прогресс</span>
+                      <span className="text-[var(--text-base)]">Прогресс</span>
                       <span className="text-green-500">{progress.done} / {progress.total}</span>
                     </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-[var(--border-color)] rounded-full overflow-hidden">
                       <motion.div 
                         className="h-full bg-green-500" 
                         initial={{ width: 0 }}
@@ -223,23 +224,22 @@ export default function ImportPlaylistModal({
               </div>
             ) : tracks.length === 0 ? (
               
-              // ЭКРАН ВВОДА (Тумблер)
               <div className="flex flex-col gap-6 items-center py-6 sm:py-10">
-                <div className="flex bg-[#1a1a1a] p-1 rounded-full relative w-full max-w-[280px]">
+                <div className="flex bg-[var(--bg-main)] p-1 rounded-full relative w-full max-w-[280px] border border-[var(--border-color)]">
                   <motion.div 
-                    className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-full z-0"
+                    className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[var(--text-base)] rounded-full z-0"
                     animate={{ x: inputMode === 'url' ? '0%' : '100%' }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                   <button 
                     onClick={() => setInputMode('url')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold z-10 transition-colors ${inputMode === 'url' ? 'text-black' : 'text-white/60 hover:text-white'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold z-10 transition-colors ${inputMode === 'url' ? 'text-[var(--bg-main)]' : 'text-[var(--text-subdued)] hover:text-[var(--text-base)]'}`}
                   >
                     <LinkIcon size={16} /> Ссылка
                   </button>
                   <button 
                     onClick={() => setInputMode('html')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold z-10 transition-colors ${inputMode === 'html' ? 'text-black' : 'text-white/60 hover:text-white'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold z-10 transition-colors ${inputMode === 'html' ? 'text-[var(--bg-main)]' : 'text-[var(--text-subdued)] hover:text-[var(--text-base)]'}`}
                   >
                     <Code2 size={16} /> HTML-код
                   </button>
@@ -252,7 +252,7 @@ export default function ImportPlaylistModal({
                       placeholder="https://music.yandex.ru/playlists/..."
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
-                      className="w-full bg-[#1a1a1a] text-white p-4 rounded-xl outline-none focus:ring-2 focus:ring-white/20 border border-transparent transition-all text-sm"
+                      className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-4 rounded-xl outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm"
                     />
                   ) : (
                     <textarea
@@ -260,7 +260,7 @@ export default function ImportPlaylistModal({
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       rows={4}
-                      className="w-full bg-[#1a1a1a] text-white p-4 rounded-xl outline-none focus:ring-2 focus:ring-white/20 border border-transparent transition-all text-sm resize-none custom-scrollbar"
+                      className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-4 rounded-xl outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm resize-none custom-scrollbar"
                     />
                   )}
                 </div>
@@ -268,7 +268,7 @@ export default function ImportPlaylistModal({
                 <button
                   onClick={handleParse}
                   disabled={isLoading || !url.trim()}
-                  className="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition flex justify-center items-center gap-2 disabled:opacity-50"
+                  className="w-full bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-4 rounded-xl hover:opacity-80 transition flex justify-center items-center gap-2 disabled:opacity-30"
                 >
                   {isLoading ? <Loader2 className="animate-spin" size={20} /> : null}
                   {isLoading ? "Парсим..." : "Продолжить"}
@@ -276,13 +276,12 @@ export default function ImportPlaylistModal({
               </div>
             ) : (
               
-              // ЭКРАН ВЫБОРА ТРЕКОВ
               <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-white font-bold text-sm sm:text-base">Найдено треков: {tracks.length}</span>
+                  <span className="text-[var(--text-base)] font-bold text-sm sm:text-base">Найдено треков: {tracks.length}</span>
                   <button 
                     onClick={() => setSelectedIds(selectedIds.length === tracks.length ? [] : tracks.map(t => t.id))}
-                    className="text-xs sm:text-sm text-[var(--text-subdued)] hover:text-white transition"
+                    className="text-xs sm:text-sm text-[var(--text-subdued)] hover:text-[var(--text-base)] transition"
                   >
                     {selectedIds.length === tracks.length ? "Снять все" : "Выбрать все"}
                   </button>
@@ -294,16 +293,16 @@ export default function ImportPlaylistModal({
                       key={track.id} 
                       onClick={() => setSelectedIds(prev => prev.includes(track.id) ? prev.filter(i => i !== track.id) : [...prev, track.id])}
                       className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border transition cursor-pointer ${
-                        selectedIds.includes(track.id) ? 'bg-white/10 border-white/20' : 'bg-[#1a1a1a] border-transparent hover:border-white/10'
+                        selectedIds.includes(track.id) ? 'bg-[var(--bg-main)] border-[var(--border-color)]' : 'bg-[var(--bg-input)] border-transparent hover:border-[var(--border-color)]'
                       }`}
                     >
                       <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center shrink-0 transition ${
-                        selectedIds.includes(track.id) ? 'bg-white' : 'border border-white/30'
+                        selectedIds.includes(track.id) ? 'bg-[var(--text-base)]' : 'border border-[var(--border-color)]'
                       }`}>
-                        {selectedIds.includes(track.id) && <Check size={14} className="text-black" />}
+                        {selectedIds.includes(track.id) && <Check size={14} className="text-[var(--bg-main)]" />}
                       </div>
                       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                        <span className="text-white font-bold truncate text-sm sm:text-base">{track.title}</span>
+                        <span className="text-[var(--text-base)] font-bold truncate text-sm sm:text-base">{track.title}</span>
                         <span className="text-xs sm:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
                       </div>
                     </div>
@@ -314,14 +313,14 @@ export default function ImportPlaylistModal({
           </div>
 
           {tracks.length > 0 && !batchId && (
-            <div className="p-4 sm:p-6 border-t border-white/10 flex justify-between items-center gap-2 shrink-0">
-              <button onClick={() => setTracks([])} className="text-xs sm:text-sm text-[var(--text-subdued)] hover:text-white transition">
+            <div className="p-4 sm:p-6 border-t border-[var(--border-color)] flex justify-between items-center gap-2 shrink-0">
+              <button onClick={() => setTracks([])} className="text-xs sm:text-sm text-[var(--text-subdued)] hover:text-[var(--text-base)] transition">
                 Назад
               </button>
               <button
                 onClick={handleImport}
                 disabled={selectedIds.length === 0 || isLoading}
-                className="bg-white text-black font-bold py-2.5 sm:py-3 px-4 sm:px-8 rounded-full hover:bg-gray-200 transition disabled:opacity-50 flex items-center gap-2 text-sm"
+                className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-2.5 sm:py-3 px-4 sm:px-8 rounded-full hover:opacity-80 transition disabled:opacity-30 flex items-center gap-2 text-sm"
               >
                 {isLoading ? <Loader2 className="animate-spin" size={18} /> : null}
                 {isLoading ? "Добавляем..." : `В очередь (${selectedIds.length})`}

@@ -55,7 +55,6 @@ async function RecentlyPlayedData() {
       include: { track: true }
     });
 
-    // ЯВНО УКАЗЫВАЕМ ТИП any[]
     const uniqueTracks: any[] = [];
     const seenIds = new Set();
     for (const h of history) {
@@ -113,8 +112,6 @@ async function TrackListData() {
 }
 
 async function PublicPlaylistsSection() {
-  await cookies();
-
   const playlists = await prisma.playlist.findMany({
     where: { isPublic: true },
     take: 10,
@@ -153,7 +150,7 @@ async function PublicPlaylistsSection() {
             >
               <Link
                 href={`/playlist/${pl.id}`}
-                className="group flex flex-col gap-3 p-3 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-colors"
+                className="group flex flex-col gap-3 p-3 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-colors border border-[var(--border-color)]"
               >
                 <div className="w-full aspect-square bg-[var(--border-color)] rounded-lg flex items-center justify-center relative overflow-hidden">
                   {cover ? (
