@@ -52,18 +52,20 @@ async function processQueue() {
       await new Promise(r => setTimeout(r, 2000));
 
     } catch (error: any) {
-      // ЛОВИМ P1001 (база спит) И P1017 (соединение закрыто)
-      if (error.code === 'P1001' || error.code === 'P1017') {
-        console.log(`[Worker] База отключилась (${error.code}). Переподключаемся...`);
+      console.error('[Worker] Ошибка цикла:', error.message);
+      
+      if (error.code === 'P1017' || error.code === 'P1001' || error.message.includes('closed the connection')) {
+        console.log('[Worker] База отключилась (Neon). Переподключаемся...');
+        await prisma.$disconnect();
+        await new Promise(r => setTimeout(r, 5000));
         try {
-          await prisma.$disconnect();
           await prisma.$connect();
+          console.log('[Worker] Успешно переподключились к базе.');
         } catch (e) {
-          console.log('[Worker] Не удалось переподключиться');
+          console.log('[Worker] Не удалось переподключиться, ждем 30 сек...');
+          await new Promise(r => setTimeout(r, 30000));
         }
-        await new Promise(r => setTimeout(r, 30000));
       } else {
-        console.error('[Worker] Ошибка цикла:', error);
         await new Promise(r => setTimeout(r, 5000));
       }
     }

@@ -1,31 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 
 export async function POST(req: Request) {
   try {
     const apiSecret = req.headers.get('x-api-secret');
-    const isBot = apiSecret === process.env.SERVER_API_SECRET;
-
-    let userId: string | null = null;
-
-    if (!isBot) {
-      const cookieStore = await cookies();
-      const token = cookieStore.get('auth_token')?.value;
-      const payload = token ? await verifyToken(token) : null;
-
-      if (!payload?.userId) {
-        return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-      }
-      userId = payload.userId;
-    } else {
-      // Если это бот — назначаем задачи от имени администратора
-      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-      if (!admin) return NextResponse.json({ error: 'Админ не найден' }, { status: 500 });
-      userId = admin.id;
+    
+    // Проверка секретного ключа
+    if (apiSecret !== process.env.SERVER_API_SECRET) {
+       return NextResponse.json({ error: 'Доступ запрещён (неверный ключ)' }, { status: 401 });
     }
+
+    const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    if (!admin) return NextResponse.json({ error: 'Админ не найден в базе' }, { status: 500 });
 
     const { tracks } = await req.json();
     if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
@@ -37,7 +24,7 @@ export async function POST(req: Request) {
     await prisma.importTask.createMany({
       data: tracks.map((t: any) => ({
         batchId,
-        userId: userId!,
+        userId: admin.id,
         title: t.title,
         artist: t.artist,
       }))
