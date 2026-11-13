@@ -7,29 +7,44 @@ export type HitmozTrack = {
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
 };
 
 export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
-  // Новый домен, который ты нашел
   const originalUrl = `https://eu.hitmoz.com/search?q=${encodeURIComponent(query)}`;
   
-  // Список прокси для обхода блокировок
-  const proxies = [
+  // 1. Прямой запрос (вдруг прокатит)
+  // 2. Старый прокси
+  // 3. Новый прокси codetabs (самый надежный сейчас)
+  const urls = [
+    originalUrl, 
     `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(originalUrl)}`
   ];
 
-  for (const proxyUrl of proxies) {
+  for (const targetUrl of urls) {
     try {
-      console.log(`[Hitmoz] Пробуем через прокси: ${proxyUrl.split('?')[0]}`);
+      console.log(`[Hitmoz] Пробуем: ${targetUrl.split('?')[0]}`);
       
-      const res = await fetch(proxyUrl, { headers: HEADERS, signal: AbortSignal.timeout(10000) });
+      const res = await fetch(targetUrl, { 
+        headers: HEADERS, 
+        signal: AbortSignal.timeout(15000) 
+      });
+      
       if (!res.ok) {
-        console.log(`[Hitmoz] Прокси вернул ошибку: ${res.status}`);
-        continue; // Пробуем следующий прокси
+        console.log(`[Hitmoz] Ошибка: ${res.status}`);
+        continue; 
       }
 
       const html = await res.text();
+      
+      // Если прокси вернул заглушку вместо HTML
+      if (html.includes('<!DOCTYPE html>') && !html.includes('data-musmeta')) {
+           console.log('[Hitmoz] Получен HTML без метаданных');
+           continue;
+      }
+
       const metaRegex = /data-musmeta='([^']+)'/;
       const match = html.match(metaRegex);
 
@@ -67,11 +82,10 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       };
 
     } catch (e: any) {
-      console.log(`[Hitmoz] Ошибка прокси: ${e.message}`);
-      // Идем к следующему прокси в цикле
+      console.log(`[Hitmoz] Ошибка запроса: ${e.message}`);
     }
   }
 
-  console.log('[Hitmoz] Все прокси провалились');
+  console.log('[Hitmoz] Все попытки провалились');
   return null;
 }
