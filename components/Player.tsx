@@ -431,7 +431,7 @@ export default function Player() {
         )}
       </AnimatePresence>
 
-      {/* ПРЯЧЕМ ПЛЕЕР, ЕСЛИ ОТКРЫТ САЙДБАР НА МОБИЛКЕ */}
+      {/* ИЗМЕНЕНИЕ ТУТ: Добавлен ${isSidebarOpen ? 'hidden md:block' : 'block'} */}
       <footer className={`relative bg-[var(--bg-card)] border-t border-[var(--border-color)] w-full shrink-0 z-50 transition-colors duration-300 ${isSidebarOpen ? 'hidden md:block' : 'block'}`}>
         <div className="md:hidden flex flex-col">
           <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-[var(--bg-main)] transition">

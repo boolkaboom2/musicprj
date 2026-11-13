@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation"; // <--- ДОБАВИЛИ
+import { usePathname } from "next/navigation"; 
 import { Download, X, Share } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,11 +11,14 @@ export default function InstallPWA() {
   const [isIOS, setIsIOS] = useState(false);
   const pathname = usePathname();
 
-  // СКРЫВАЕМ НА СТРАНИЦАХ АВТОРИЗАЦИИ
-  const isAuthPage = ['/welcome', '/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+  // СКРЫВАЕМ НА ВСЕХ СТРАНИЦАХ АВТОРИЗАЦИИ
+  const isAuthPage = pathname.startsWith('/welcome') || pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password');
 
   useEffect(() => {
-    if (isAuthPage) return; // Если мы на странице логина, не показываем баннер
+    if (isAuthPage) {
+      setIsVisible(false);
+      return; 
+    }
 
     const lastDismissed = localStorage.getItem('sadovod_pwa_dismissed');
     if (lastDismissed) {
@@ -63,7 +66,7 @@ export default function InstallPWA() {
     localStorage.setItem('sadovod_pwa_dismissed', Date.now().toString());
   };
 
-  if (isAuthPage) return null; // Двойная страховка
+  if (isAuthPage) return null; 
 
   return (
     <AnimatePresence>

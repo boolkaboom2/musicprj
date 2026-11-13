@@ -72,7 +72,6 @@ async function LayoutData() {
       </>
     );
   } catch (e) {
-    // Молча игнорируем ошибку при сборке, чтобы не ломать билд
     return null;
   }
 }
@@ -120,7 +119,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
         </Suspense>
         
         <PWARegister />
-        <InstallPWA />
+        
+        {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Оборачиваем InstallPWA в Suspense */}
+        <Suspense fallback={null}>
+          <InstallPWA />
+        </Suspense>
+
       </body>
     </html>
   );

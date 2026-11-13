@@ -20,7 +20,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
   const isGuest = !user;
 
   const linkClass = (href: string) => 
-    `transition-all duration-300 block py-2.5 font-medium text-sm 3xl:text-lg 4xl:text-xl tracking-wide hover:translate-x-1 ${
+    `transition-all duration-300 block py-2.5 lg:py-3 font-medium text-sm md:text-base lg:text-lg tracking-wide hover:translate-x-1 ${
       pathname === href ? "text-[var(--text-base)] font-bold" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"
     }`;
 
@@ -42,10 +42,10 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
       className="flex flex-col h-full justify-between overflow-y-auto no-scrollbar"
     >
       <div>
-        <div className="flex items-center justify-between mb-8 3xl:mb-12">
+        <div className="flex items-center justify-between mb-8 lg:mb-12">
           <Link 
             href="/" 
-            className="text-2xl 3xl:text-4xl 4xl:text-5xl font-black uppercase tracking-tighter text-[var(--text-base)]"
+            className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-[var(--text-base)]"
             onClick={onClose}
           >
             Sadovod
@@ -66,7 +66,6 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
               <motion.div variants={itemVariants}><Link href="/library" onClick={onClose} className={linkClass('/library')}>Моя медиатека</Link></motion.div>
               <motion.div variants={itemVariants}><Link href="/playlists" onClick={onClose} className={linkClass('/playlists')}>Публичные плейлисты</Link></motion.div>
               
-              {/* ПРАВИЛЬНАЯ ЛИНИЯ */}
               <motion.div variants={itemVariants} className="w-full h-px bg-[var(--border-color)] my-4" />
               
               <motion.div variants={itemVariants}><ImportPlaylistButton /></motion.div>
@@ -90,7 +89,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
         <div className="w-full h-px bg-[var(--border-color)]" />
         <UserProfileClient user={user} />
         
-        <div className="text-[10px] 3xl:text-xs 4xl:text-sm text-[var(--text-subdued)] leading-tight pb-2">
+        <div className="text-[10px] lg:text-xs text-[var(--text-subdued)] leading-tight pb-2">
           <Link href="/privacy" className="hover:text-[var(--text-base)] underline transition mb-1 inline-block">
             Политика конфиденциальности
           </Link>
@@ -117,7 +116,7 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
 
   return (
     <>
-      <aside className="hidden md:flex w-[280px] 3xl:w-[360px] 4xl:w-[420px] bg-transparent flex-col p-6 3xl:p-8 4xl:p-10 shrink-0 h-full transition-all duration-300">
+      <aside className="hidden md:flex w-[280px] lg:w-[320px] bg-transparent flex-col p-6 lg:p-8 shrink-0 h-full transition-all duration-300">
         <Suspense fallback={null}>
           <SidebarContent user={user} isAdmin={isAdmin} />
         </Suspense>
@@ -128,7 +127,7 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               className="md:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[200]"
               onClick={() => setSidebarOpen(false)}
             />
@@ -136,14 +135,7 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
               initial={{ x: '-100%' }} 
               animate={{ x: 0 }} 
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              drag="x"
-              dragConstraints={{ left: -280, right: 0 }}
-              dragElastic={0.1}
-              dragDirectionLock
-              onDragEnd={(e, info) => {
-                if (info.offset.x < -60) setSidebarOpen(false);
-              }}
+              transition={{ type: 'tween', duration: 0.2, ease: "easeOut" }}
               className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-card)] z-[201] p-6 transition-colors duration-300 shadow-2xl"
             >
               <Suspense fallback={null}>

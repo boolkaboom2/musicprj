@@ -48,7 +48,6 @@ export default function PlaylistTrackList({
   const handleReorder = async (newOrder: Track[]) => {
     if (!isOwner) return;
     setTracks(newOrder);
-
     try {
       await fetch(`/api/playlists/${playlistId}/reorder`, {
         method: 'POST',
@@ -65,9 +64,7 @@ export default function PlaylistTrackList({
     if (!confirm("Удалить этот трек из плейлиста?")) return;
 
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/tracks/${trackId}`, {
-        method: 'DELETE'
-      });
+      const res = await fetch(`/api/playlists/${playlistId}/tracks/${trackId}`, { method: 'DELETE' });
       if (res.ok) {
         setTracks(tracks.filter(t => t.id !== trackId));
         showToast("Трек удален из плейлиста", "success");
@@ -81,8 +78,8 @@ export default function PlaylistTrackList({
   };
 
   return (
-    <div className="flex flex-col gap-1 md:gap-1 p-2 md:p-8">
-      <Reorder.Group axis="y" values={tracks} onReorder={handleReorder} className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 md:gap-2 p-2 md:p-8 w-full max-w-[1400px] mx-auto">
+      <Reorder.Group axis="y" values={tracks} onReorder={handleReorder} className="flex flex-col gap-1 w-full">
         {tracks.map((track, index) => {
           const isLiked = userLikes.includes(track.id);
           const isPinned = userPins.includes(track.id);
@@ -95,39 +92,31 @@ export default function PlaylistTrackList({
               layout
               dragListener={isOwner}
               onClick={() => setActiveTrack(track, tracks)} 
-              onContextMenu={(e) => { 
-                e.preventDefault();
-                openTrackMenu(track, e.currentTarget.getBoundingClientRect());
-              }}
-              className={`flex items-center gap-3 md:gap-4 p-2 md:p-2 rounded-md cursor-pointer group relative ${
+              onContextMenu={(e) => { e.preventDefault(); openTrackMenu(track, e.currentTarget.getBoundingClientRect()); }}
+              className={`flex items-center gap-3 md:gap-4 lg:gap-6 p-2 md:p-3 lg:p-4 rounded-md cursor-pointer group relative transition-colors ${
                 isMenuOpenForThisTrack ? "bg-[var(--bg-main)]" : "hover:bg-[var(--bg-main)]"
               } ${isOwner ? 'cursor-grab active:cursor-grabbing' : ''}`}
-              whileDrag={{ 
-                scale: 1.02, 
-                zIndex: 50, 
-                backgroundColor: "var(--bg-main)",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.5)" 
-              }}
+              whileDrag={{ scale: 1.02, zIndex: 50, backgroundColor: "var(--bg-main)", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}
             >
-              {/* Drag Handle */}
               {isOwner && (
                 <div className="text-[var(--text-subdued)] group-hover:text-[var(--text-base)] transition-colors cursor-grab active:cursor-grabbing p-1">
-                  <GripVertical size={20} />
+                  <GripVertical size={20} className="lg:w-6 lg:h-6" />
                 </div>
               )}
 
-              <div className={`hidden sm:flex w-6 justify-center items-center text-sm transition-colors ${
+              <div className={`hidden sm:flex w-6 lg:w-8 justify-center items-center text-sm lg:text-base transition-colors ${
                 isMenuOpenForThisTrack ? "text-[var(--text-base)]" : "text-[var(--text-subdued)] group-hover:text-[var(--text-base)]"
               }`}>
                  <span className={isMenuOpenForThisTrack ? "hidden" : "group-hover:hidden"}>{index + 1}</span>
-                 {isMenuOpenForThisTrack ? <IPlay size={12} /> : <IPlay size={12} className="hidden group-hover:block" />}
+                 {isMenuOpenForThisTrack ? <IPlay size={12} className="lg:w-4 lg:h-4" /> : <IPlay size={12} className="hidden group-hover:block lg:w-4 lg:h-4" />}
               </div>
 
-              <div className="w-14 h-14 md:w-12 md:h-12 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-subdued)] pointer-events-none">
+              {/* УВЕЛИЧИЛИ ОБЛОЖКУ ДЛЯ ПК */}
+              <div className="w-14 h-14 md:w-12 md:h-12 lg:w-16 lg:h-16 xl:w-20 xl:h-20 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-subdued)] pointer-events-none">
                 {track.coverUrl ? (
                   <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
                 ) : (
-                  <IMusic size={20} /> 
+                  <IMusic size={20} className="lg:w-8 lg:h-8" /> 
                 )}
               </div>
               
@@ -137,7 +126,7 @@ export default function PlaylistTrackList({
                     href={`/track/${track.id}`} 
                     onClick={(e) => e.stopPropagation()}
                     onContextMenu={(e) => e.stopPropagation()}
-                    className="text-[var(--text-base)] font-medium truncate hover:underline w-fit text-base md:text-base pointer-events-auto"
+                    className="text-[var(--text-base)] font-medium truncate hover:underline w-fit text-base md:text-base lg:text-lg xl:text-xl pointer-events-auto"
                   >
                     {track.title}
                   </Link>
@@ -148,10 +137,10 @@ export default function PlaylistTrackList({
                     </div>
                   )}
                 </div>
-                <span className="text-sm md:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
+                <span className="text-sm md:text-sm lg:text-base xl:text-lg text-[var(--text-subdued)] truncate">{track.artist}</span>
               </div>
 
-              <div className={`transition-opacity flex items-center gap-1 md:gap-4 ${
+              <div className={`transition-opacity flex items-center gap-1 md:gap-4 lg:gap-6 ${
                 isMenuOpenForThisTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-100 md:group-hover:opacity-100"
               }`}>
                 {isOwner && (
@@ -160,24 +149,21 @@ export default function PlaylistTrackList({
                     className="text-red-500 hover:text-red-400 transition-colors p-1 md:p-0"
                     title="Удалить из плейлиста"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={18} className="lg:w-5 lg:h-5" />
                   </button>
                 )}
                 <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openTrackMenu(track, e.currentTarget.getBoundingClientRect());
-                  }}
+                  onClick={(e) => { e.stopPropagation(); openTrackMenu(track, e.currentTarget.getBoundingClientRect()); }}
                   className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors p-1 md:p-0"
                 >
-                  <IMore size={20} />
+                  <IMore size={20} className="lg:w-6 lg:h-6" />
                 </button>
-                <div className="hidden md:block">
+                <div className="hidden md:block scale-100 lg:scale-125">
                   <LikeButton trackId={track.id} initialIsLiked={isLiked} />
                 </div>
               </div>
 
-              <span className="text-sm md:text-sm text-[var(--text-subdued)] w-10 md:w-12 text-right tabular-nums pointer-events-none">
+              <span className="text-sm md:text-sm lg:text-base xl:text-lg text-[var(--text-subdued)] w-10 md:w-12 lg:w-16 text-right tabular-nums pointer-events-none">
                 {formatTime(track.duration)}
               </span>
             </Reorder.Item>

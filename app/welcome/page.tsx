@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import VinylScene from "@/components/VinylScene";
 import InviteModal from "@/components/InviteModal";
@@ -15,7 +15,7 @@ const DURATIONS = [
 ];
 
 export default function WelcomePage() {
-  const [step, setStep] = useState<"vinyl" | "welcome" | "pricing">("welcome"); // Сразу на welcome, чтобы не было пустого экрана на мобилке
+  const [step, setStep] = useState<"welcome" | "pricing">("welcome");
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [durationIdx, setDurationIdx] = useState(2);
@@ -35,19 +35,6 @@ export default function WelcomePage() {
       )}
 
       <AnimatePresence mode="wait">
-        
-        {/* ВИНИЛ ТОЛЬКО НА ДЕСКТОПЕ */}
-        {step === "vinyl" && (
-          <motion.div
-            key="vinyl"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05, filter: "blur(8px)" }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 z-20 hidden lg:block" // <--- СКРЫВАЕМ НА МОБИЛКАХ
-          >
-            <VinylScene onSpin={() => setStep("welcome")} />
-          </motion.div>
-        )}
-
         {step === "welcome" && (
           <motion.div
             key="welcome"
@@ -89,7 +76,6 @@ export default function WelcomePage() {
             </div>
 
             <div className="w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[32px] p-8 md:p-10 relative overflow-hidden shadow-[0_0_100px_rgba(255,255,255,0.05)]">
-              
               <div className="flex bg-[#121212] p-1.5 rounded-2xl relative mb-8 border border-white/5">
                 {DURATIONS.map((d, idx) => (
                   <button key={d.months} onClick={() => setDurationIdx(idx)} className={`flex-1 relative py-3 text-sm font-bold transition-colors ${durationIdx === idx ? 'text-black' : 'text-white/50 hover:text-white'}`}>

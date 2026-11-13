@@ -52,9 +52,15 @@ async function processQueue() {
       await new Promise(r => setTimeout(r, 2000));
 
     } catch (error: any) {
-      // Если база ушла в спящий режим (P1001), ждем дольше
-      if (error.code === 'P1001') {
-        console.log('[Worker] База спит. Ждем 30 секунд...');
+      // ЛОВИМ P1001 (база спит) И P1017 (соединение закрыто)
+      if (error.code === 'P1001' || error.code === 'P1017') {
+        console.log(`[Worker] База отключилась (${error.code}). Переподключаемся...`);
+        try {
+          await prisma.$disconnect();
+          await prisma.$connect();
+        } catch (e) {
+          console.log('[Worker] Не удалось переподключиться');
+        }
         await new Promise(r => setTimeout(r, 30000));
       } else {
         console.error('[Worker] Ошибка цикла:', error);

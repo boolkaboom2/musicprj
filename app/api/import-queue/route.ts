@@ -6,12 +6,25 @@ import { randomUUID } from 'crypto';
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    const payload = token ? await verifyToken(token) : null;
+    const apiSecret = req.headers.get('x-api-secret');
+    const isBot = apiSecret === process.env.SERVER_API_SECRET;
 
-    if (!payload?.userId) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+    let userId: string | null = null;
+
+    if (!isBot) {
+      const cookieStore = await cookies();
+      const token = cookieStore.get('auth_token')?.value;
+      const payload = token ? await verifyToken(token) : null;
+
+      if (!payload?.userId) {
+        return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+      }
+      userId = payload.userId;
+    } else {
+      // Если это бот — назначаем задачи от имени администратора
+      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+      if (!admin) return NextResponse.json({ error: 'Админ не найден' }, { status: 500 });
+      userId = admin.id;
     }
 
     const { tracks } = await req.json();
@@ -21,11 +34,10 @@ export async function POST(req: Request) {
 
     const batchId = randomUUID();
 
-    // Создаем задачи в БД
     await prisma.importTask.createMany({
       data: tracks.map((t: any) => ({
         batchId,
-        userId: payload.userId,
+        userId: userId!,
         title: t.title,
         artist: t.artist,
       }))
