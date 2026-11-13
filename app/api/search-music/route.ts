@@ -22,15 +22,10 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('[Search Music Fatal]', error.message);
     
-    // Если это наша кастомная ошибка про неподходящий трек
     if (error.message.includes('неподходящий трек')) {
       return NextResponse.json({ error: error.message }, { status: 422 });
     }
-
-    if (error.message === 'Трек не найден в сети') {
-      return NextResponse.json({ error: 'Трек не найден в открытых базах' }, { status: 404 });
-    }
     
-    return NextResponse.json({ error: error.message || 'Ошибка сервера' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Ошибка сервера' }, { status: 404 });
   }
 }

@@ -78,7 +78,7 @@ export default function SearchClient() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query]);
 
   const handleSearchExternal = async () => {
     setShowExternal(true);
@@ -124,14 +124,14 @@ export default function SearchClient() {
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
         router.refresh();
       } else if (res.status === 409) {
-        showToast(`Найденный трек "${data.track.title}" уже есть в базе.`, "info");
+        showToast(`Трек уже есть в базе.`, "info");
         await refreshLocalTracks(query);
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else if (res.status === 422) {
         showToast(data.error, "error");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else if (res.status === 404) {
-        showToast("Трек не найден. Попробуйте 'Скачать напрямую'.", "error");
+        showToast("Трек не найден в открытых базах.", "error");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else {
         showToast(data.error || "Ошибка скачивания", "error");
@@ -159,7 +159,7 @@ export default function SearchClient() {
         await refreshLocalTracks(query);
         router.refresh();
       } else if (res.status === 409) {
-        showToast(`Найденный трек "${data.track.title}" уже есть в базе.`, "info");
+        showToast(`Трек уже есть в базе.`, "info");
         await refreshLocalTracks(query);
       } else if (res.status === 422) {
         showToast(data.error, "error");
@@ -183,7 +183,6 @@ export default function SearchClient() {
   const hasLocalResults = localTracks.length > 0 || localPlaylists.length > 0;
 
   return (
-    // УБРАЛИ max-w-[1400px] mx-auto, теперь контейнер на всю ширину
     <div className="flex flex-col w-full h-full">
       <div className="px-8 mb-4">
         <div className="relative w-full max-w-xl">
@@ -270,11 +269,10 @@ export default function SearchClient() {
             )}
 
             {showExternal && (
-              // Убрали max-w-4xl, чтобы список растягивался на весь экран
               <div className="px-4 md:px-8 pt-4 pb-8 w-full">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-[var(--text-base)] flex items-center gap-2">
-                    <DownloadCloud size={20} /> Поиск {/* ЗАМЕНИЛИ "НАЙДЕНО" НА "ПОИСК" */}
+                    <DownloadCloud size={20} /> Поиск
                   </h2>
                   <button onClick={() => setShowExternal(false)} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] text-sm transition">
                     Скрыть
@@ -286,13 +284,14 @@ export default function SearchClient() {
                     <Loader2 className="animate-spin" size={20} /> Ищем по всем базам...
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2 w-full">
+                  <div className="flex flex-col gap-2 w-full max-w-5xl mx-auto">
                     {externalTracks.length > 0 ? (
                       externalTracks.map((track, idx) => {
                         const isDownloading = downloadingUrl === track.title;
                         
                         return (
-                          <div key={idx} className="flex items-center gap-4 p-3 rounded-lg transition hover:bg-[var(--bg-card)] group w-full border border-transparent hover:border-[var(--border-color)]">
+                          // ПРОСТОЙ FLEX ДЛЯ ТРЕКОВ
+                          <div key={idx} className="flex flex-row items-center gap-4 p-3 rounded-lg transition hover:bg-[var(--bg-card)] group w-full border border-transparent hover:border-[var(--border-color)]">
                             <div className="w-14 h-14 md:w-16 md:h-16 bg-[var(--border-color)] rounded-md overflow-hidden shrink-0 flex items-center justify-center">
                               {track.coverUrl ? (
                                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
@@ -303,10 +302,10 @@ export default function SearchClient() {
                             
                             <div className="flex flex-col flex-1 min-w-0">
                               <span className="text-[var(--text-base)] font-bold truncate text-base md:text-lg">{track.title}</span>
-                              <span className="text-sm md:text-base text-[var(--text-subdued)] truncate mt-0.5">{track.artist}</span>
+                              <span className="text-sm text-[var(--text-subdued)] truncate mt-0.5">{track.artist}</span>
                             </div>
 
-                            <span className="text-sm md:text-base text-[var(--text-subdued)] tabular-nums shrink-0">
+                            <span className="text-sm text-[var(--text-subdued)] tabular-nums shrink-0 hidden sm:block">
                               {formatTime(track.duration)}
                             </span>
 

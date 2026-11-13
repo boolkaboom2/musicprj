@@ -7,8 +7,6 @@ export type ZaycevTrack = {
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
 };
 
 export async function searchZaycev(query: string): Promise<ZaycevTrack | null> {
@@ -17,43 +15,52 @@ export async function searchZaycev(query: string): Promise<ZaycevTrack | null> {
     console.log(`[Zaycev] Поиск: ${url}`);
 
     const res = await fetch(url, { headers: HEADERS });
-    if (!res.ok) {
-      console.log(`[Zaycev] Ошибка поиска: ${res.status}`);
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    
+    let mp3Url: string | null = null; // <--- ИСПРАВЛЕНИЕ ТУТ
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+
+    if (nextDataMatch) {
+      const str = nextDataMatch[1];
+      const match = str.match(/(https?:\/\/[^"'\s]+\.mp3)/) || str.match(/\\\/\/([^"'\s]+\.mp3)/);
+      if (match) {
+        mp3Url = match[1].startsWith('http') ? match[1] : 'https://' + match[1];
+      }
+    }
+
+    if (!mp3Url) {
+      const match = html.match(/(https?:\/\/[^"'\s]+\.mp3)/);
+      if (match) {
+        mp3Url = match[1];
+      }
+    }
+
+    if (!mp3Url) {
+      console.log('[Zaycev] Ссылка не найдена');
       return null;
     }
 
-    const html = await res.text();
-
-    // Ищем ссылку на скачивание (обычно она в формате data-url или в теге <a>)
-    // Zaycev часто использует JSON-LD или data-атрибуты
-    const match = html.match(/"name":"([^"]+)","url":"([^"]+\.mp3)"/) 
-      || html.match(/data-url="([^"]+\.mp3)"/)
-      || html.match(/href="(https:\/\/cdn\d+\.zaycev\.net\/[^"]+\.mp3)"/);
-
-    // Если нашли прямой MP3
-    if (match) {
-      const mp3Url = match[2] || match[1];
-      const cleanUrl = mp3Url.replace(/\\/g, ''); // Очищаем экранирование
-
-      // Достаем название и артиста из title страницы
-      const titleMatch = html.match(/<title>(.*?)<\/title>/);
-      const pageTitle = titleMatch ? titleMatch[1].replace(' - скачать бесплатно', '').split(' - ') : [query, 'Unknown'];
-      
-      let artist = pageTitle[0]?.trim() || 'Unknown';
-      let title = pageTitle[1]?.trim() || query;
-
-      console.log(`[Zaycev] Найден: ${artist} - ${title}`);
-
-      return {
-        title,
-        artist,
-        url: cleanUrl,
-        coverUrl: null, 
-      };
+    const titleMatch = html.match(/<title>(.*?)<\/title>/);
+    let pageTitle = titleMatch ? titleMatch[1] : query;
+    pageTitle = pageTitle.replace(' - скачать бесплатно', '').trim();
+    
+    let artist = 'Unknown Artist';
+    let title = pageTitle;
+    if (pageTitle.includes(' - ')) {
+      const parts = pageTitle.split(' - ');
+      artist = parts[0].trim();
+      title = parts[1].trim();
     }
 
-    console.log('[Zaycev] Трек не найден в HTML');
-    return null;
+    console.log(`[Zaycev] Найден: ${artist} - ${title}`);
+    return { 
+      title, 
+      artist, 
+      url: mp3Url, 
+      coverUrl: null 
+    };
   } catch (e: any) {
     console.error('[Zaycev Error]', e.message);
     return null;

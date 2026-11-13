@@ -4,17 +4,20 @@ import { downloadAndSaveTrack } from './lib/downloader';
 const prisma = new PrismaClient();
 
 process.on('uncaughtException', (err) => {
-  console.error('[Worker] Критическая ошибка (uncaughtException):', err);
+  console.error('[Worker] Критическая ошибка:', err);
 });
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Worker] Необработанный reject (unhandledRejection):', reason);
+process.on('unhandledRejection', (reason) => {
+  console.error('[Worker] Необработанный reject:', reason);
 });
 
 async function processQueue() {
-  console.log('[Worker] Запущен. Ожидание задач...');
+  console.log('[Worker] Запущен. Проверка связи с базой...');
   
   while (true) {
     try {
+      // Пытаемся проверить связь
+      await prisma.$queryRaw`SELECT 1`;
+      
       const task = await prisma.importTask.findFirst({
         where: { status: 'PENDING' },
         orderBy: { createdAt: 'asc' }
@@ -33,6 +36,8 @@ async function processQueue() {
       });
 
       try {
+        // На сервере это не сработает из-за блокировки, 
+        // но мы оставим код для истории.
         const query = `${task.artist} ${task.title}`;
         await downloadAndSaveTrack(query);
         
@@ -42,7 +47,7 @@ async function processQueue() {
         });
         console.log(`[Worker] Успешно: ${task.title}`);
       } catch (e: any) {
-        console.error(`[Worker] Ошибка: ${task.title} - ${e.message}`);
+        console.error(`[Worker] Ошибка скачивания: ${task.title} - ${e.message}`);
         await prisma.importTask.update({
           where: { id: task.id },
           data: { status: 'FAILED', errorMessage: e.message }
@@ -52,8 +57,9 @@ async function processQueue() {
       await new Promise(r => setTimeout(r, 2000));
 
     } catch (error) {
-      console.error('[Worker] Ошибка базы данных/цикла:', error);
-      await new Promise(r => setTimeout(r, 5000));
+      // Если база отвалилась, просто ждем и пробуем снова
+      console.log('[Worker] База недоступна. Ждем 10 секунд...');
+      await new Promise(r => setTimeout(r, 10000));
     }
   }
 }

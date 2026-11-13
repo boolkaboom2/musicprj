@@ -9,18 +9,24 @@ export async function POST(req: Request) {
     const ipAddress = req.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = req.headers.get('user-agent') || 'unknown';
     
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    const payload = token ? await verifyToken(token) : null;
-
-    await prisma.visitLog.create({
-      data: { 
-        path, 
-        ipAddress, 
-        userAgent,
-        userId: payload?.userId || null
+    // ЯВНО УКАЗЫВАЕМ ТИП, ЧТОБЫ TS НЕ РУГАЛСЯ
+    let userId: string | null = null; 
+    
+    try {
+      const cookieStore = await cookies();
+      const token = cookieStore.get('auth_token')?.value;
+      if (token) {
+        const payload = await verifyToken(token);
+        userId = payload?.userId || null;
       }
-    });
+    } catch (e) {
+      // Игнорируем ошибку куки
+    }
+
+    // Не ждем завершения записи в БД, чтобы не тормозить клиент
+    prisma.visitLog.create({
+      data: { path, ipAddress, userAgent, userId }
+    }).catch(console.error);
 
     return NextResponse.json({ success: true });
   } catch (error) {
