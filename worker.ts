@@ -15,9 +15,6 @@ async function processQueue() {
   
   while (true) {
     try {
-      // Пытаемся проверить связь
-      await prisma.$queryRaw`SELECT 1`;
-      
       const task = await prisma.importTask.findFirst({
         where: { status: 'PENDING' },
         orderBy: { createdAt: 'asc' }
@@ -36,8 +33,6 @@ async function processQueue() {
       });
 
       try {
-        // На сервере это не сработает из-за блокировки, 
-        // но мы оставим код для истории.
         const query = `${task.artist} ${task.title}`;
         await downloadAndSaveTrack(query);
         
@@ -56,10 +51,15 @@ async function processQueue() {
 
       await new Promise(r => setTimeout(r, 2000));
 
-    } catch (error) {
-      // Если база отвалилась, просто ждем и пробуем снова
-      console.log('[Worker] База недоступна. Ждем 10 секунд...');
-      await new Promise(r => setTimeout(r, 10000));
+    } catch (error: any) {
+      // Если база ушла в спящий режим (P1001), ждем дольше
+      if (error.code === 'P1001') {
+        console.log('[Worker] База спит. Ждем 30 секунд...');
+        await new Promise(r => setTimeout(r, 30000));
+      } else {
+        console.error('[Worker] Ошибка цикла:', error);
+        await new Promise(r => setTimeout(r, 5000));
+      }
     }
   }
 }

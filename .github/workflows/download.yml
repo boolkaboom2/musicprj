@@ -30,11 +30,8 @@ jobs:
 
       - name: Save to Database
         run: |
-          QUERY="${{ github.event.inputs.query }}"
-          ARTIST=$(echo "$QUERY" | cut -d'-' -f1 | xargs)
-          TITLE=$(echo "$QUERY" | cut -d'-' -f2 | xargs)
-          
-          curl -X POST "${{ secrets.SERVER_URL }}/api/admin/save-track" \
+          # ФЛАГ -f ЗАСТАВИТ CURL УПАСТЬ, ЕСЛИ СЕРВЕР ВЕРНЕТ 4XX ИЛИ 5XX
+          curl -f -X POST "${{ secrets.SERVER_URL }}/api/admin/save-track" \
             -H "Content-Type: application/json" \
             -H "x-api-secret: ${{ secrets.SERVER_API_SECRET }}" \
-            -d "{\"title\": \"$TITLE\", \"artist\": \"$ARTIST\", \"fileId\": \"${{ steps.tg_upload.outputs.FILE_ID }}\"}"
+            -d "{\"query\": \"${{ github.event.inputs.query }}\", \"fileId\": \"${{ steps.tg_upload.outputs.FILE_ID }}\"}"

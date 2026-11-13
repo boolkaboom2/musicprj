@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Loader2, DownloadCloud, AlertCircle, ListMusic, Clock } from "lucide-react";
 import Link from "next/link";
 import TrackList from "./TrackList";
@@ -10,10 +10,13 @@ import { useToast } from "./Toast";
 
 const HISTORY_KEY = 'sadovod_search_history';
 
-export default function SearchClient() {
+function SearchContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  
   const showToast = useToast((s) => s.show);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [isFocused, setIsFocused] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   
@@ -29,6 +32,11 @@ export default function SearchClient() {
   const [isDirectDownloading, setIsDirectDownloading] = useState(false);
 
   const userLikes = usePlayerStore((state) => state.likedTrackIds);
+
+  useEffect(() => {
+    // Если в URL поменялся query (например, при переходе с главной), обновляем стейт
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   useEffect(() => {
     const saved = localStorage.getItem(HISTORY_KEY);
@@ -78,7 +86,7 @@ export default function SearchClient() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearchExternal = async () => {
     setShowExternal(true);
@@ -94,18 +102,10 @@ export default function SearchClient() {
     }
   };
 
-  const refreshLocalTracks = async (searchQuery: string) => {
-    const searchRes = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-    if (searchRes.ok) {
-      const sd = await searchRes.json();
-      if (sd.tracks) setLocalTracks(sd.tracks);
-    }
-  };
-
   const handleDownload = async (track: any) => {
     const cleanTitle = track.title.replace(/\(.*?\)|\[.*?\]/g, '').trim();
     const mainArtist = track.artist.split(',')[0].trim();
-    const queryStr = `${mainArtist} ${cleanTitle}`;
+    const queryStr = `${mainArtist} - ${cleanTitle}`;
     
     setDownloadingUrl(track.title);
 
@@ -119,22 +119,10 @@ export default function SearchClient() {
       const data = await res.json();
 
       if (res.ok) {
-        showToast(`Трек "${data.track.title}" добавлен`, "success");
-        await refreshLocalTracks(query);
-        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
-        router.refresh();
-      } else if (res.status === 409) {
-        showToast(`Трек уже есть в базе.`, "info");
-        await refreshLocalTracks(query);
-        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
-      } else if (res.status === 422) {
-        showToast(data.error, "error");
-        setExternalTracks(prev => prev.filter(t => t.title !== track.title));
-      } else if (res.status === 404) {
-        showToast("Трек не найден в открытых базах.", "error");
+        showToast(data.message || "Запрос на скачивание отправлен. Подождите 30-60 секунд.", "success");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else {
-        showToast(data.error || "Ошибка скачивания", "error");
+        showToast(data.error || "Ошибка отправки запроса", "error");
       }
     } catch {
       showToast("Ошибка сети", "error");
@@ -155,16 +143,9 @@ export default function SearchClient() {
       const data = await res.json();
       
       if (res.ok) {
-        showToast(`Трек "${data.track.title}" добавлен`, "success");
-        await refreshLocalTracks(query);
-        router.refresh();
-      } else if (res.status === 409) {
-        showToast(`Трек уже есть в базе.`, "info");
-        await refreshLocalTracks(query);
-      } else if (res.status === 422) {
-        showToast(data.error, "error");
+        showToast(data.message || "Запрос на скачивание отправлен. Подождите 30-60 секунд.", "success");
       } else {
-        showToast(data.error || "Не найдено в открытых базах", "error");
+        showToast(data.error || "Ошибка отправки запроса", "error");
       }
     } catch {
       showToast("Ошибка сети", "error");
@@ -284,14 +265,13 @@ export default function SearchClient() {
                     <Loader2 className="animate-spin" size={20} /> Ищем по всем базам...
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2 w-full max-w-5xl mx-auto">
+                  <div className="flex flex-col gap-2 w-full">
                     {externalTracks.length > 0 ? (
                       externalTracks.map((track, idx) => {
                         const isDownloading = downloadingUrl === track.title;
                         
                         return (
-                          // ПРОСТОЙ FLEX ДЛЯ ТРЕКОВ
-                          <div key={idx} className="flex flex-row items-center gap-4 p-3 rounded-lg transition hover:bg-[var(--bg-card)] group w-full border border-transparent hover:border-[var(--border-color)]">
+                          <div key={idx} className="flex items-center gap-4 p-3 rounded-lg transition hover:bg-[var(--bg-card)] group w-full border border-transparent hover:border-[var(--border-color)]">
                             <div className="w-14 h-14 md:w-16 md:h-16 bg-[var(--border-color)] rounded-md overflow-hidden shrink-0 flex items-center justify-center">
                               {track.coverUrl ? (
                                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
@@ -305,7 +285,7 @@ export default function SearchClient() {
                               <span className="text-sm text-[var(--text-subdued)] truncate mt-0.5">{track.artist}</span>
                             </div>
 
-                            <span className="text-sm text-[var(--text-subdued)] tabular-nums shrink-0 hidden sm:block">
+                            <span className="text-sm text-[var(--text-subdued)] tabular-nums shrink-0">
                               {formatTime(track.duration)}
                             </span>
 
@@ -315,7 +295,7 @@ export default function SearchClient() {
                               className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold text-sm px-4 py-2.5 rounded-full hover:opacity-80 transition flex items-center gap-2 shrink-0 disabled:opacity-50"
                             >
                               {isDownloading ? (
-                                <><Loader2 size={16} className="animate-spin" /> Качаем</>
+                                <><Loader2 size={16} className="animate-spin" /> Отправка</>
                               ) : (
                                 <><DownloadCloud size={16} /> Скачать</>
                               )}
@@ -329,7 +309,7 @@ export default function SearchClient() {
 
                     <div className="mt-6 pt-6 border-t border-[var(--border-color)]">
                       <p className="text-[var(--text-subdued)] text-sm mb-3">
-                        Не нашли нужный ремикс или спед-ап? Попробуйте найти напрямую в открытых базах.
+                        Не нашли нужный трек? Отправьте задачу на GitHub напрямую.
                       </p>
                       <button
                         onClick={handleDirectDownload}
@@ -337,7 +317,7 @@ export default function SearchClient() {
                         className="text-sm font-bold text-[var(--text-base)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] py-3 px-6 rounded-full transition flex items-center gap-2 disabled:opacity-50"
                       >
                         {isDirectDownloading ? <Loader2 size={18} className="animate-spin" /> : <DownloadCloud size={18} />}
-                        {isDirectDownloading ? "Ищем..." : `Скачать "${query}" напрямую`}
+                        {isDirectDownloading ? "Отправка..." : `Скачать "${query}" через GitHub`}
                       </button>
                     </div>
                   </div>
@@ -363,5 +343,13 @@ export default function SearchClient() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function SearchClient() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-[var(--text-subdued)]" size={32} /></div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

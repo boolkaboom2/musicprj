@@ -14,8 +14,8 @@ import PlayerLikeButton from "./PlayerLikeButton";
 import SoundSettingsModal from "./SoundSettingsModal";
 import VolumeSlider from "./VolumeSlider";
 import LyricsViewer from "./LyricsViewer";
-import QueueModal from "./QueueModal"; // <--- ИМПОРТ ОЧЕРЕДИ
-import { Mic2, ListMusic } from "lucide-react"; // <--- ДОБАВЛЕНА ИКОНКА ОЧЕРЕДИ
+import QueueModal from "./QueueModal";
+import { Mic2, ListMusic } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const getRealVolume = (v: number): number => {
@@ -53,13 +53,15 @@ export default function Player() {
   const [isSoundModalOpen, setIsSoundModalOpen] = useState(false);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isCrossfading, setIsCrossfading] = useState(false);
+  
+  // Состояние для перетаскивания ползунка
+  const [isDragging, setIsDragging] = useState(false);
 
   const hasScrobbledRef = useRef(false);
   const isFetchingMoreRef = useRef(false);
   const isFadingOutRef = useRef(false);
   const crossfadeTimeRef = useRef<number | null>(null);
 
-  // ХОТКЕИ
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -75,7 +77,6 @@ export default function Player() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPlaying, duration, setIsPlaying, toggleMute]);
 
-  // ИНИЦИАЛИЗАЦИЯ WEB AUDIO API (ЭКВАЛАЙЗЕР + КРОССФЕЙД)
   useEffect(() => {
     if (activeTrack && audioRef.current && !audioCtxRef.current) {
       try {
@@ -100,7 +101,6 @@ export default function Player() {
         
         bassRef.current = bass; midRef.current = mid; trebleRef.current = treble;
 
-        // Цепочка для кроссфейда
         if (nextAudioRef.current && !nextSourceRef.current) {
           const nextSource = ctx.createMediaElementSource(nextAudioRef.current);
           nextSourceRef.current = nextSource;
@@ -149,7 +149,6 @@ export default function Player() {
       gainRef.current.gain.value = 1;
     }
 
-    // Синхронизация времени после кроссфейда
     if (crossfadeTimeRef.current === null) {
         setCurrentTime(0);
         if (audioRef.current) audioRef.current.currentTime = 0;
@@ -193,14 +192,33 @@ export default function Player() {
     return `${min}:${sec < 10 ? "0" : ""}${sec}`;
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  // --- ОБРАБОТЧИКИ ПЕРЕТАСКИВАНИЯ ПОЛЗУНКА ---
+  const updateSeek = (clientX: number, element: HTMLElement) => {
     if (audioRef.current && duration) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const percent = (e.clientX - rect.left) / rect.width;
-      const newTime = Math.max(0, Math.min(percent * duration, duration));
-      audioRef.current.currentTime = newTime; setCurrentTime(newTime);
-      if (!isPlaying) setIsPlaying(true);
+      const rect = element.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const newTime = percent * duration;
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
     }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateSeek(e.clientX, e.currentTarget);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      updateSeek(e.clientX, e.currentTarget);
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    if (!isPlaying) setIsPlaying(true);
   };
 
   const handleTimeUpdate = () => {
@@ -212,7 +230,6 @@ export default function Player() {
       fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId: activeTrack.id }) }).catch(console.error);
     }
 
-    // DJ MODE (КРОССФЕЙД)
     if (isCrossfadeEnabled && !isCrossfading && duration > 10 && queue.length > currentIndex + 1) {
       const timeLeft = duration - time;
       
@@ -366,7 +383,13 @@ export default function Player() {
 
                     <div className="flex items-center gap-3 w-full mt-4 md:mt-6">
                       <span className="text-[10px] sm:text-xs 3xl:text-base text-[var(--text-subdued)] font-medium w-8 3xl:w-12 text-right">{formatTime(currentTime)}</span>
-                      <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
+                      <div 
+                        className="flex-1 py-2 cursor-pointer group touch-none" 
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                      >
                         <div className="w-full h-1 3xl:h-1.5 bg-[var(--border-color)] rounded-full relative group-hover:h-1.5 3xl:group-hover:h-2 transition-all duration-200">
                           <div className="h-full bg-[var(--text-base)] rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 3xl:w-4 3xl:h-4 bg-[var(--text-base)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" />
@@ -440,7 +463,13 @@ export default function Player() {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-[var(--text-subdued)] tabular-nums w-8 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
+              <div 
+                className="flex-1 py-2 cursor-pointer group touch-none" 
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              >
                 <div className="w-full h-1 bg-[var(--border-color)] rounded-full relative group-hover:h-1.5 transition-all">
                   <div className="h-full bg-[var(--text-base)] rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }} />
                 </div>
@@ -486,7 +515,13 @@ export default function Player() {
             </div>
             <div className="w-full flex items-center gap-3">
               <span className="text-sm 3xl:text-base text-[var(--text-subdued)] font-medium w-9 3xl:w-12 text-right">{formatTime(currentTime)}</span>
-              <div className="flex-1 py-2 cursor-pointer group" onClick={handleSeek}>
+              <div 
+                className="flex-1 py-2 cursor-pointer group touch-none" 
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              >
                 <div className="w-full h-1 3xl:h-1.5 bg-[var(--border-color)] rounded-full relative group-hover:h-1.5 3xl:group-hover:h-2 transition-all duration-200">
                   <div className="h-full bg-[var(--text-base)] rounded-full absolute left-0 top-0 pointer-events-none" style={{ width: `${progress}%` }}>
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 3xl:w-4 3xl:h-4 bg-[var(--text-base)] rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" />
@@ -500,7 +535,6 @@ export default function Player() {
           <div className="w-full flex justify-end items-center gap-4 3xl:gap-6">
             <button onClick={() => { setPlayerExpanded(true); setLyricsOpen(true); }} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2"><Mic2 size={20} className="3xl:w-6 3xl:h-6" /></button>
             
-            {/* КНОПКА ОЧЕРЕДИ */}
             <button onClick={() => setQueueOpen(true)} className={`transition p-2 ${isQueueOpen ? 'text-[var(--text-base)]' : 'text-[var(--text-subdued)] hover:text-[var(--text-base)]'}`}>
               <ListMusic size={20} className="3xl:w-6 3xl:h-6" />
             </button>

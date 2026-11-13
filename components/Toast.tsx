@@ -29,7 +29,7 @@ export const useToast = create<ToastState>((set) => ({
         }
         return state;
       });
-    }, 2500);
+    }, 3500); // Увеличили время до 3.5 секунд
   },
   hide: () => set({ message: null }),
 }));
@@ -55,11 +55,11 @@ function ToastContent() {
 
   let positionClass = "";
   if (isAuthPage) {
-    positionClass = "top-[15vh] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm";
+    positionClass = "top-[15vh] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm 3xl:max-w-md";
   } else if (isMobile) {
     positionClass = "top-3 left-3 right-3";
   } else {
-    positionClass = "bottom-28 right-6 max-w-sm";
+    positionClass = "bottom-28 right-6 max-w-sm 3xl:max-w-md 4xl:max-w-lg";
   }
 
   const offsetY = isMobile || isAuthPage ? -20 : 20;
@@ -75,14 +75,14 @@ function ToastContent() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: exitY, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className={`flex items-center gap-3 px-4 py-3 bg-[var(--bg-card)] rounded-xl shadow-2xl border ${colorClasses} pointer-events-auto`}
+            className={`flex items-center gap-3 px-4 py-3 3xl:px-6 3xl:py-4 bg-[var(--bg-card)] rounded-xl 3xl:rounded-2xl shadow-2xl border ${colorClasses} pointer-events-auto`}
           >
-            <span className="font-medium text-sm flex-1 min-w-0 break-words">{message}</span>
+            <span className="font-medium text-sm 3xl:text-lg 4xl:text-xl flex-1 min-w-0 break-words">{message}</span>
             <button 
               onClick={hide} 
               className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors shrink-0 p-1"
             >
-              <X size={16} />
+              <X size={16} className="3xl:w-6 3xl:h-6" />
             </button>
           </motion.div>
         )}

@@ -3,9 +3,93 @@ import { randomUUID } from 'crypto';
 import { searchHitmoz } from './hitmoz';
 import { createHash } from 'crypto';
 
+type MetaData = {
+  title: string;
+  artist: string;
+  coverUrl: string | null;
+  genre: string | null;
+  releaseYear: number | null;
+  duration: number;
+};
+
 function generateHash(title: string, artist: string): string {
   const normalized = `${title.toLowerCase().trim()}${artist.toLowerCase().trim()}`.replace(/[^a-z0-9а-я]/g, '');
   return createHash('md5').update(normalized).digest('hex');
+}
+
+// ДОБАВЛЕН EXPORT
+export async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCover: string | null): Promise<MetaData> {
+  let result: MetaData = {
+    title: baseTitle,
+    artist: baseArtist,
+    coverUrl: fallbackCover,
+    genre: null,
+    releaseYear: null,
+    duration: 0,
+  };
+
+  const cleanTitleForSearch = baseTitle.replace(/\(.*?\)|\[.*?\]/g, '').trim();
+  const searchQuery = `${baseArtist} ${cleanTitleForSearch}`;
+
+  try {
+    const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=song&limit=3`);
+    const itunesData = await itunesRes.json();
+    if (itunesData.results && itunesData.results.length > 0) {
+      const match = itunesData.results[0];
+      const matchTitle = (match.trackName || '').toLowerCase();
+      const matchArtist = (match.artistName || '').toLowerCase();
+      const baseTitleLower = baseTitle.toLowerCase();
+      const baseArtistLower = baseArtist.toLowerCase();
+      
+      if ((matchTitle.includes(baseTitleLower) || baseTitleLower.includes(matchTitle)) && 
+          (matchArtist.includes(baseArtistLower) || baseArtistLower.includes(matchArtist))) {
+        result.title = match.trackName;
+        result.artist = match.artistName;
+        result.coverUrl = match.artworkUrl100.replace('100x100', '1000x1000');
+        result.genre = match.primaryGenreName;
+        result.duration = Math.round(match.trackTimeMillis / 1000);
+        if (match.releaseDate) result.releaseYear = parseInt(match.releaseDate.split('-')[0]);
+        return result;
+      }
+    }
+  } catch (e) {}
+
+  try {
+    const deezerRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(searchQuery)}`);
+    const deezerData = await deezerRes.json();
+    if (deezerData.data && deezerData.data.length > 0) {
+      const match = deezerData.data[0];
+      if (match.title.toLowerCase().includes(cleanTitleForSearch.toLowerCase()) || cleanTitleForSearch.toLowerCase().includes(match.title.toLowerCase())) {
+        result.title = match.title;
+        result.artist = match.artist.name;
+        result.coverUrl = match.album.cover_xl || match.album.cover_big || fallbackCover;
+        result.duration = match.duration;
+        return result;
+      }
+    }
+  } catch (e) {}
+
+  const lastfmKey = process.env.LASTFM_API_KEY;
+  if (lastfmKey) {
+    try {
+      const lastfmRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key=${lastfmKey}&artist=${encodeURIComponent(baseArtist)}&track=${encodeURIComponent(cleanTitleForSearch)}&format=json`);
+      const lastfmData = await lastfmRes.json();
+      
+      if (lastfmData.track) {
+        result.title = lastfmData.track.name || baseTitle;
+        result.artist = lastfmData.track.artist.name || baseArtist;
+        if (lastfmData.track.album?.image) {
+          result.coverUrl = lastfmData.track.album.image[3]['#text'] || fallbackCover;
+        }
+        const tags = lastfmData.track.toptags?.tag;
+        if (tags && tags.length > 0) {
+          result.genre = tags[0].name;
+        }
+      }
+    } catch (e) {}
+  }
+
+  return result;
 }
 
 export async function downloadAndSaveTrack(query: string) {

@@ -1,21 +1,19 @@
 import { NextResponse } from 'next/server';
 
-// Функция для скачивания с повторными попытками
-async function fetchWithRetry(url: string, retries = 3, timeout = 15000): Promise<Response> {
+async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3, timeout = 15000): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeout);
       
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetch(url, { ...options, signal: controller.signal });
       clearTimeout(timer);
       
-      if (res.ok) return res;
+      if (res.ok || res.status === 206) return res;
     } catch (e: any) {
       console.log(`[Stream] Попытка ${i + 1} не удалась: ${e.message}`);
       if (i === retries - 1) throw e;
-      // Ждем 1 секунду перед следующей попыткой
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1500 * (i + 1))); // Пауза перед повтором
     }
   }
   throw new Error('Все попытки скачивания провалились');
@@ -33,8 +31,8 @@ export async function GET(
 
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const rangeHeader = request.headers.get('range');
 
-    // 1. Получаем путь к файлу
     const getFileRes = await fetchWithRetry(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
     const getFileData = await getFileRes.json();
 
@@ -43,18 +41,28 @@ export async function GET(
     }
 
     const filePath = getFileData.result.file_path;
-
-    // 2. Скачиваем файл с повторами (если соединение оборвется)
     const fileUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
-    const fileRes = await fetchWithRetry(fileUrl, 3, 20000);
 
-    // 3. Передаем поток байтов клиенту
+    const fetchOptions: RequestInit = {};
+    if (rangeHeader) {
+      fetchOptions.headers = { 'Range': rangeHeader };
+    }
+
+    const fileRes = await fetchWithRetry(fileUrl, fetchOptions, 3, 20000);
+
+    const headers = new Headers();
+    headers.set('Content-Type', fileRes.headers.get('Content-Type') || 'audio/mpeg');
+    headers.set('Accept-Ranges', 'bytes');
+    
+    const contentLength = fileRes.headers.get('Content-Length');
+    if (contentLength) headers.set('Content-Length', contentLength);
+    
+    const contentRange = fileRes.headers.get('Content-Range');
+    if (contentRange) headers.set('Content-Range', contentRange);
+
     return new NextResponse(fileRes.body, {
-      headers: {
-        'Content-Type': fileRes.headers.get('Content-Type') || 'audio/mpeg',
-        'Content-Length': fileRes.headers.get('Content-Length') || '',
-        'Accept-Ranges': 'bytes',
-      },
+      status: fileRes.status,
+      headers,
     });
   } catch (error: any) {
     console.error('[Stream Fatal]', error.message);

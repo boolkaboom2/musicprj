@@ -20,12 +20,27 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
   const isGuest = !user;
 
   const linkClass = (href: string) => 
-    `transition font-medium text-sm 3xl:text-lg 4xl:text-xl tracking-wide block py-2 ${
+    `transition-all duration-300 block py-2.5 font-medium text-sm 3xl:text-lg 4xl:text-xl tracking-wide hover:translate-x-1 ${
       pathname === href ? "text-[var(--text-base)] font-bold" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"
     }`;
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    show: { opacity: 1, x: 0 }
+  };
+
   return (
-    <div className="flex flex-col h-full justify-between overflow-y-auto no-scrollbar">
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="show" 
+      className="flex flex-col h-full justify-between overflow-y-auto no-scrollbar"
+    >
       <div>
         <div className="flex items-center justify-between mb-8 3xl:mb-12">
           <Link 
@@ -42,46 +57,37 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
           )}
         </div>
         
-        <nav className="flex flex-col gap-2">
-          <Link href="/" onClick={onClose} className={linkClass('/')}>
-            Главная
-          </Link>
-          <Link href="/search" onClick={onClose} className={linkClass('/search')}>
-            Поиск
-          </Link>
+        <nav className="flex flex-col w-full">
+          <motion.div variants={itemVariants}><Link href="/" onClick={onClose} className={linkClass('/')}>Главная</Link></motion.div>
+          <motion.div variants={itemVariants}><Link href="/search" onClick={onClose} className={linkClass('/search')}>Поиск</Link></motion.div>
 
           {!isGuest && (
             <>
-              <Link href="/library" onClick={onClose} className={linkClass('/library')}>
-                Моя медиатека
-              </Link>
-              <Link href="/playlists" onClick={onClose} className={linkClass('/playlists')}>
-                Публичные плейлисты
-              </Link>
+              <motion.div variants={itemVariants}><Link href="/library" onClick={onClose} className={linkClass('/library')}>Моя медиатека</Link></motion.div>
+              <motion.div variants={itemVariants}><Link href="/playlists" onClick={onClose} className={linkClass('/playlists')}>Публичные плейлисты</Link></motion.div>
               
-              <div className="mt-4 pt-4 border-t border-[var(--border-color)]">
-                <ImportPlaylistButton />
-              </div>
-              <FeedbackButton />
-              <Link href="/faq" onClick={onClose} className={linkClass('/faq')}>
-                FAQ
-              </Link>
+              {/* ПРАВИЛЬНАЯ ЛИНИЯ */}
+              <motion.div variants={itemVariants} className="w-full h-px bg-[var(--border-color)] my-4" />
+              
+              <motion.div variants={itemVariants}><ImportPlaylistButton /></motion.div>
+              <motion.div variants={itemVariants}><FeedbackButton /></motion.div>
+              <motion.div variants={itemVariants}><Link href="/faq" onClick={onClose} className={linkClass('/faq')}>FAQ</Link></motion.div>
             </>
           )}
           
           {isAdmin && (
-            <Link 
-              href="/admin" 
-              onClick={onClose} 
-              className={`${linkClass('/admin')} mt-4 pt-4 border-t border-[var(--border-color)]`}
-            >
-              Админ-панель
-            </Link>
+            <motion.div variants={itemVariants}>
+              <div className="w-full h-px bg-[var(--border-color)] my-4" />
+              <Link href="/admin" onClick={onClose} className={linkClass('/admin')}>
+                Админ-панель
+              </Link>
+            </motion.div>
           )}
         </nav>
       </div>
 
-      <div className="border-t border-[var(--border-color)] pt-4 flex flex-col gap-4">
+      <div className="w-full mt-6 flex flex-col gap-4">
+        <div className="w-full h-px bg-[var(--border-color)]" />
         <UserProfileClient user={user} />
         
         <div className="text-[10px] 3xl:text-xs 4xl:text-sm text-[var(--text-subdued)] leading-tight pb-2">
@@ -91,7 +97,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
           <p>Учебный проект. Все права на аудиозаписи принадлежат их правообладателям.</p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -122,8 +128,8 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden fixed inset-0 bg-black/70 z-[200]"
+              transition={{ duration: 0.3 }}
+              className="md:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[200]"
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside 
@@ -138,7 +144,7 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
               onDragEnd={(e, info) => {
                 if (info.offset.x < -60) setSidebarOpen(false);
               }}
-              className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-main)] z-[201] p-6 transition-colors duration-300 border-r border-[var(--border-color)]"
+              className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-card)] z-[201] p-6 transition-colors duration-300 shadow-2xl"
             >
               <Suspense fallback={null}>
                 <SidebarContent user={user} isAdmin={isAdmin} onClose={() => setSidebarOpen(false)} />

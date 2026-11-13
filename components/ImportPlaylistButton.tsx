@@ -11,9 +11,10 @@ export default function ImportPlaylistButton() {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 text-[var(--text-subdued)] hover:text-[var(--text-base)] transition font-medium text-sm tracking-wide"
+        className="flex items-center gap-3 w-full py-2.5 text-[var(--text-subdued)] hover:text-[var(--text-base)] font-medium text-sm 3xl:text-lg transition-all duration-300 hover:translate-x-1"
       >
-        <ListMusic size={16} /> Импорт плейлиста
+        <ListMusic size={18} className="3xl:w-6 3xl:h-6 shrink-0" /> 
+        <span>Импорт плейлиста</span>
       </button>
 
       <ImportPlaylistModal 

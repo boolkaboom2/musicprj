@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
-import TrackList from "@/components/TrackList";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import Link from "next/link";
@@ -9,12 +8,13 @@ import PageTransition from "@/components/PageTransition";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
 import RecentlyPlayed from "@/components/RecentlyPlayed";
+import HomePageClient from "@/components/HomePageClient";
 
 export default function Home() {
   return (
     <PageTransition>
       <div className="flex flex-col h-full w-full">
-        <div className="p-8 md:p-12 lg:p-16 pb-0 flex justify-between items-end">
+        <div className="p-8 md:p-12 lg:p-16 pb-0">
           <h1 className="text-3xl md:text-5xl lg:text-6xl 2xl:text-7xl 3xl:text-8xl 4xl:text-9xl font-black text-[var(--text-base)] tracking-tight">
             Рекомендации
           </h1>
@@ -25,7 +25,7 @@ export default function Home() {
         </Suspense>
 
         <Suspense fallback={<Loader />}>
-          <TrackListData />
+          <HomePageClientWrapper />
         </Suspense>
 
         <Suspense fallback={<Loader />}>
@@ -41,64 +41,41 @@ export default function Home() {
 }
 
 async function RecentlyPlayedData() {
-  // ... код не меняется
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("auth_token")?.value;
     const payload = token ? await verifyToken(token) : null;
-
     if (!payload?.userId) return null;
 
     const history = await prisma.listenHistory.findMany({
-      where: { userId: payload.userId },
-      take: 20, 
-      orderBy: { playedAt: 'desc' },
-      include: { track: true }
+      where: { userId: payload.userId }, take: 20, orderBy: { playedAt: 'desc' }, include: { track: true }
     });
 
     const uniqueTracks: any[] = [];
     const seenIds = new Set();
     for (const h of history) {
-      if (!seenIds.has(h.track.id)) {
-        seenIds.add(h.track.id);
-        uniqueTracks.push(h.track);
-      }
+      if (!seenIds.has(h.track.id)) { seenIds.add(h.track.id); uniqueTracks.push(h.track); }
       if (uniqueTracks.length >= 6) break;
     }
-
     if (uniqueTracks.length === 0) return null;
-
     return <RecentlyPlayed tracks={uniqueTracks} />;
-  } catch (error) {
-    console.error("RecentlyPlayedData error:", error);
-    return null;
-  }
+  } catch { return null; }
 }
 
-async function TrackListData() {
-  // ... код не меняется
+async function HomePageClientWrapper() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   const payload = token ? await verifyToken(token) : null;
 
-  const tracks = await prisma.track.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const tracks = await prisma.track.findMany({ orderBy: { createdAt: "desc" } });
 
   let userLikes: string[] = [];
   let userPins: string[] = [];
 
   if (payload?.userId) {
-    const likes = await prisma.like.findMany({
-      where: { userId: payload.userId },
-      select: { trackId: true }
-    });
+    const likes = await prisma.like.findMany({ where: { userId: payload.userId }, select: { trackId: true } });
     userLikes = likes.map(l => l.trackId);
-
-    const pins = await prisma.pinnedTrack.findMany({
-      where: { userId: payload.userId },
-      select: { trackId: true }
-    });
+    const pins = await prisma.pinnedTrack.findMany({ where: { userId: payload.userId }, select: { trackId: true } });
     userPins = pins.map(p => p.trackId);
   }
 
@@ -110,18 +87,13 @@ async function TrackListData() {
     return 0;
   });
 
-  return <TrackList initialTracks={sortedTracks} userLikes={userLikes} userPins={userPins} />;
+  return <HomePageClient initialTracks={sortedTracks} userLikes={userLikes} userPins={userPins} />;
 }
 
 async function PublicPlaylistsSection() {
   const playlists = await prisma.playlist.findMany({
-    where: { isPublic: true },
-    take: 16, // Ещё больше
-    orderBy: { createdAt: 'desc' },
-    include: {
-      user: { select: { name: true, email: true } },
-      _count: { select: { items: true } }
-    }
+    where: { isPublic: true }, take: 12, orderBy: { createdAt: 'desc' },
+    include: { user: { select: { name: true, email: true } }, _count: { select: { items: true } } }
   });
 
   if (playlists.length === 0) return null;
@@ -132,44 +104,24 @@ async function PublicPlaylistsSection() {
         <h2 className="text-2xl lg:text-3xl 2xl:text-4xl 3xl:text-5xl font-black text-[var(--text-base)] flex items-center gap-3">
           <ListMusic size={32} className="3xl:w-10 3xl:h-10" /> Публичные плейлисты
         </h2>
-        <Link href="/playlists" className="text-sm md:text-base 3xl:text-lg text-[var(--text-subdued)] hover:text-[var(--text-base)] transition">
-          Все →
-        </Link>
+        <Link href="/playlists" className="text-sm md:text-base 3xl:text-lg text-[var(--text-subdued)] hover:text-[var(--text-base)] transition">Все →</Link>
       </div>
-      {/* Больше колонок на 3xl/4xl */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 4xl:grid-cols-8 gap-4 lg:gap-6 3xl:gap-8">
         {playlists.map((pl, index) => {
-          const cover = pl.coverUrl
-            ? (pl.coverUrl.startsWith('http') || pl.coverUrl.startsWith('/') 
-                ? pl.coverUrl 
-                : `/api/stream/${pl.coverUrl}`)
-            : null;
+          const cover = pl.coverUrl ? (pl.coverUrl.startsWith('http') || pl.coverUrl.startsWith('/') ? pl.coverUrl : `/api/stream/${pl.coverUrl}`) : null;
           const ownerName = pl.user.name || pl.user.email.split('@')[0];
           return (
-            <div
-              key={pl.id}
-              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-              style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s`, animationFillMode: 'both' }}
-            >
-              <Link
-                href={`/playlist/${pl.id}`}
-                className="group flex flex-col gap-3 p-3 lg:p-4 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-colors border border-[var(--border-color)]"
-              >
+            <div key={pl.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s`, animationFillMode: 'both' }}>
+              <Link href={`/playlist/${pl.id}`} className="group flex flex-col gap-3 p-3 lg:p-4 bg-[var(--bg-card)] hover:bg-[var(--bg-main)] rounded-xl transition-colors border border-[var(--border-color)]">
                 <div className="w-full aspect-square bg-[var(--border-color)] rounded-lg flex items-center justify-center relative overflow-hidden">
-                  {cover ? (
-                    <img src={cover} alt={pl.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <ListMusic size={48} className="text-[var(--text-subdued)]" />
-                  )}
+                  {cover ? <img src={cover} alt={pl.title} className="w-full h-full object-cover" /> : <ListMusic size={48} className="text-[var(--text-subdued)]" />}
                   <div className="absolute bottom-3 right-3 w-10 h-10 lg:w-12 lg:h-12 3xl:w-16 3xl:h-16 bg-green-500 rounded-full flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
                     <Play size={20} className="3xl:w-8 3xl:h-8" fill="black" />
                   </div>
                 </div>
                 <div>
                   <h3 className="text-[var(--text-base)] font-bold text-sm lg:text-base 3xl:text-xl truncate">{pl.title}</h3>
-                  <p className="text-[var(--text-subdued)] text-xs lg:text-sm 3xl:text-base mt-0.5 truncate">
-                    {ownerName} • {pl._count.items}
-                  </p>
+                  <p className="text-[var(--text-subdued)] text-xs lg:text-sm 3xl:text-base mt-0.5 truncate">{ownerName} • {pl._count.items}</p>
                 </div>
               </Link>
             </div>
