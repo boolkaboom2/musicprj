@@ -10,8 +10,10 @@ import DisableContextMenu from "@/components/DisableContextMenu";
 import Toast from "@/components/Toast";
 import VisitLogger from "@/components/VisitLogger";
 import PWARegister from "@/components/PWARegister";
+import InstallPWA from "@/components/InstallPWA";
 import GlobalImportStatus from "@/components/GlobalImportStatus";
 import MobileSwipeHandler from "@/components/MobileSwipeHandler";
+import NeuralBackground from "@/components/NeuralBackground";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -40,34 +42,39 @@ export const viewport: Viewport = {
 };
 
 async function LayoutData() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-  const payload = token ? await verifyToken(token) : null;
-  
-  let user: any = null;
-  let userLikes: string[] = [];
-  let isAdmin = false;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+    const payload = token ? await verifyToken(token) : null;
+    
+    let user: any = null;
+    let userLikes: string[] = [];
+    let isAdmin = false;
 
-  if (payload?.userId) {
-    user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, email: true, name: true, avatarUrl: true, avatarEffect: true, role: true }
-    });
-    isAdmin = user?.role === 'ADMIN';
+    if (payload?.userId) {
+      user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true, name: true, avatarUrl: true, avatarEffect: true, role: true }
+      });
+      isAdmin = user?.role === 'ADMIN';
 
-    const likes = await prisma.like.findMany({
-      where: { userId: payload.userId },
-      select: { trackId: true }
-    });
-    userLikes = likes.map(l => l.trackId);
+      const likes = await prisma.like.findMany({
+        where: { userId: payload.userId },
+        select: { trackId: true }
+      });
+      userLikes = likes.map(l => l.trackId);
+    }
+    
+    return (
+      <>
+        <UserLikesInit initialLikes={userLikes} />
+        <Sidebar user={user} isAdmin={isAdmin} />
+      </>
+    );
+  } catch (e) {
+    // Молча игнорируем ошибку при сборке, чтобы не ломать билд
+    return null;
   }
-  
-  return (
-    <>
-      <UserLikesInit initialLikes={userLikes} />
-      <Sidebar user={user} isAdmin={isAdmin} />
-    </>
-  );
 }
 
 interface RootLayoutProps {
@@ -77,19 +84,21 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ru" className={manrope.variable}>
-      <body className="antialiased bg-[var(--bg-main)] text-[var(--text-base)] h-[100dvh] flex flex-col overflow-hidden font-sans transition-colors duration-300">
+      <body className="antialiased text-[var(--text-base)] h-[100dvh] flex flex-col overflow-hidden font-sans relative">
         
+        <NeuralBackground />
+
         <Suspense fallback={null}>
           <MobileHeader />
         </Suspense>
 
-        <div className="flex flex-1 overflow-hidden md:p-2 gap-2">
+        <div className="flex flex-1 overflow-hidden p-0 md:p-4 3xl:p-6 4xl:p-8 gap-0 md:gap-4 relative z-10 w-full">
           <Suspense fallback={null}>
             <LayoutData />
           </Suspense>
           
           <MobileSwipeHandler>
-            <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[var(--bg-card)] md:rounded-lg custom-scrollbar relative transition-colors duration-300">
+            <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-transparent backdrop-blur-[2px] md:rounded-xl custom-scrollbar relative">
               {children}
             </main>
           </MobileSwipeHandler>
@@ -104,7 +113,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <DisableContextMenu />
         
         <Toast />
-        
         <GlobalImportStatus />
         
         <Suspense fallback={null}>
@@ -112,7 +120,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         </Suspense>
         
         <PWARegister />
-        
+        <InstallPWA />
       </body>
     </html>
   );

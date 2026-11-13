@@ -61,7 +61,7 @@ export default function EditablePlaylistTitle({
             if (e.key === 'Escape') { setIsEditing(false); setTitle(initialTitle); }
           }}
           autoFocus
-          className="bg-transparent text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter border-b-2 border-white/30 outline-none w-full"
+          className="bg-transparent text-3xl sm:text-4xl md:text-6xl font-black text-[var(--text-base)] tracking-tighter border-b-2 border-[var(--text-subdued)] outline-none w-full transition-colors"
         />
         <button onClick={handleSave} disabled={isLoading} className="text-green-500 hover:text-green-400 p-2 bg-green-500/10 rounded-md">
           {isLoading ? <Loader2 size={24} className="animate-spin" /> : <Check size={24} />}
@@ -75,13 +75,13 @@ export default function EditablePlaylistTitle({
 
   return (
     <div className="flex items-center gap-3 group">
-      <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white tracking-tighter break-words">
+      <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-[var(--text-base)] tracking-tighter break-words transition-colors">
         {title}
       </h1>
       {isOwner && (
         <button 
           onClick={() => setIsEditing(true)}
-          className="opacity-0 group-hover:opacity-100 text-white/40 hover:text-white transition p-2"
+          className="opacity-0 group-hover:opacity-100 text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2"
           title="Редактировать название"
         >
           <Edit2 size={24} />

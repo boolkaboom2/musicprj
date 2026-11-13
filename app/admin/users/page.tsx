@@ -136,12 +136,12 @@ export default function UsersPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-white flex items-center gap-2 mb-6 transition">
+      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-[var(--text-base)] flex items-center gap-2 mb-6 transition">
         <ArrowLeft size={18} /> Назад в админку
       </Link>
 
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-black text-white">Пользователи ({users.length})</h1>
+        <h1 className="text-2xl md:text-3xl font-black text-[var(--text-base)]">Пользователи ({users.length})</h1>
         <div className="relative w-full md:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-subdued)]" size={16} />
           <input
@@ -149,17 +149,17 @@ export default function UsersPage() {
             placeholder="Поиск..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#1a1a1a] text-white pl-9 pr-4 py-2 rounded-md outline-none text-sm border border-transparent focus:border-white/20 transition"
+            className="w-full bg-[var(--bg-input)] text-[var(--text-base)] pl-9 pr-4 py-2 rounded-md outline-none text-sm border border-[var(--border-color)] focus:border-[var(--text-subdued)] transition"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="text-white flex items-center gap-2"><Loader2 className="animate-spin" /> Загрузка...</div>
+        <div className="text-[var(--text-base)] flex items-center gap-2"><Loader2 className="animate-spin" /> Загрузка...</div>
       ) : (
-        <div className="bg-[#121212] border border-white/5 rounded-xl overflow-x-auto">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-x-auto">
           <table className="w-full text-left min-w-[800px]">
-            <thead className="bg-white/5 text-[var(--text-subdued)] text-xs uppercase">
+            <thead className="bg-[var(--bg-main)] text-[var(--text-subdued)] text-xs uppercase">
               <tr>
                 <th className="p-4">Пользователь</th>
                 <th className="p-4">Роль</th>
@@ -171,14 +171,14 @@ export default function UsersPage() {
             </thead>
             <tbody>
               {filteredUsers.map(user => (
-                <tr key={user.id} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                <tr key={user.id} className="border-t border-[var(--border-color)] hover:bg-[var(--bg-main)] transition">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center">
-                        <UserIcon size={18} className="text-white/50" />
+                      <div className="w-10 h-10 bg-[var(--bg-main)] rounded-full flex items-center justify-center border border-[var(--border-color)]">
+                        <UserIcon size={18} className="text-[var(--text-subdued)]" />
                       </div>
                       <div>
-                        <p className="text-white font-medium text-sm">{user.name || "Без имени"}</p>
+                        <p className="text-[var(--text-base)] font-medium text-sm">{user.name || "Без имени"}</p>
                         <p className="text-[var(--text-subdued)] text-xs">{user.email}</p>
                       </div>
                     </div>
@@ -187,7 +187,7 @@ export default function UsersPage() {
                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
                       user.role === 'ADMIN' ? 'bg-red-500/20 text-red-500' :
                       user.role === 'PREMIUM' ? 'bg-yellow-500/20 text-yellow-500' :
-                      'bg-white/10 text-white/70'
+                      'bg-[var(--bg-main)] text-[var(--text-subdued)] border border-[var(--border-color)]'
                     }`}>
                       {user.role === 'ADMIN' && <Shield size={12} />}
                       {user.role === 'PREMIUM' && <Crown size={12} />}
@@ -220,7 +220,6 @@ export default function UsersPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2">
-                      {/* Роль: выдать/снять админку */}
                       {user.role !== 'ADMIN' ? (
                         <button
                           onClick={() => handleChangeRole(user)}
@@ -273,13 +272,13 @@ export default function UsersPage() {
       {grantingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="absolute inset-0" onClick={() => setGrantingUser(null)} />
-          <div className="relative bg-[#1c1c1c] w-full max-w-sm rounded-2xl p-6 border border-white/5">
-            <h2 className="text-xl font-bold text-white mb-2">Выдать подписку</h2>
+          <div className="relative bg-[var(--bg-card)] w-full max-w-sm rounded-2xl p-6 border border-[var(--border-color)]">
+            <h2 className="text-xl font-bold text-[var(--text-base)] mb-2">Выдать подписку</h2>
             <p className="text-[var(--text-subdued)] text-sm mb-4">{grantingUser.email}</p>
-            <label className="text-white/70 text-sm mb-2 block">Срок (мес.)</label>
-            <input type="number" min="1" max="24" value={grantMonths} onChange={(e) => setGrantMonths(e.target.value)} className="w-full bg-[#2a2a2a] text-white p-3 rounded-md outline-none focus:ring-1 focus:ring-white/30 mb-4" />
+            <label className="text-[var(--text-subdued)] text-sm mb-2 block">Срок (мес.)</label>
+            <input type="number" min="1" max="24" value={grantMonths} onChange={(e) => setGrantMonths(e.target.value)} className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border border-[var(--border-color)] focus:border-[var(--text-subdued)] mb-4" />
             <div className="flex gap-3">
-              <button onClick={() => setGrantingUser(null)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">Отмена</button>
+              <button onClick={() => setGrantingUser(null)} className="flex-1 bg-[var(--bg-main)] text-[var(--text-base)] font-bold py-3 rounded-md hover:opacity-80 transition border border-[var(--border-color)]">Отмена</button>
               <button onClick={handleGrantSubscription} disabled={actionLoading === grantingUser.id} className="flex-1 bg-yellow-500 text-black font-bold py-3 rounded-md hover:bg-yellow-400 transition flex justify-center items-center">
                 {actionLoading === grantingUser.id ? <Loader2 className="animate-spin" size={18} /> : "Выдать"}
               </button>
@@ -291,12 +290,12 @@ export default function UsersPage() {
       {deletingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="absolute inset-0" onClick={() => setDeletingUser(null)} />
-          <div className="relative bg-[#1c1c1c] w-full max-w-sm rounded-2xl p-6 border border-white/5 flex flex-col items-center text-center">
-            <h2 className="text-xl font-bold text-white mb-2">Удалить пользователя?</h2>
+          <div className="relative bg-[var(--bg-card)] w-full max-w-sm rounded-2xl p-6 border border-[var(--border-color)] flex flex-col items-center text-center">
+            <h2 className="text-xl font-bold text-[var(--text-base)] mb-2">Удалить пользователя?</h2>
             <p className="text-[var(--text-subdued)] text-sm mb-6">{deletingUser.email}</p>
             <p className="text-red-500 text-xs mb-6">Все его данные будут удалены.</p>
             <div className="flex gap-3 w-full">
-              <button onClick={() => setDeletingUser(null)} className="flex-1 bg-white/10 text-white font-bold py-3 rounded-md hover:bg-white/20 transition">Отмена</button>
+              <button onClick={() => setDeletingUser(null)} className="flex-1 bg-[var(--bg-main)] text-[var(--text-base)] font-bold py-3 rounded-md hover:opacity-80 transition border border-[var(--border-color)]">Отмена</button>
               <button onClick={handleDelete} disabled={actionLoading === deletingUser.id} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-md hover:bg-red-600 transition flex justify-center items-center">
                 {actionLoading === deletingUser.id ? <Loader2 className="animate-spin" size={18} /> : "Удалить"}
               </button>

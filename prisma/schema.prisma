@@ -8,59 +8,59 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  password        String
-  name            String?
-  avatarUrl       String?
-  avatarEffect    String    @default("none") // <-- ДОБАВИЛИ ЭФФЕКТ АВАТАРА
-  bannerUrl       String?
-  bio             String?
-  telegram        String?
-  phone           String?
-  role            String    @default("USER")
-  status          String    @default("ACTIVE")
-  subscriptionEnd DateTime?
-  createdAt       DateTime  @default(now())
-  
-  playlists        Playlist[] // <-- ВОЗВРАЩАЕМ ПЛЕЙЛИСТЫ
+  id               String            @id @default(cuid())
+  email            String            @unique
+  password         String
+  name             String?
+  role             String            @default("USER")
+  createdAt        DateTime          @default(now())
+  avatarUrl        String?
+  status           String            @default("ACTIVE")
+  subscriptionEnd  DateTime?
+  bannerUrl        String?
+  bio              String?
+  phone            String?
+  telegram         String?
+  avatarEffect     String            @default("none")
+  feedback         Feedback[]
+  importTasks      ImportTask[]
+  createdInvites   InviteCode[]      @relation("CreatedInvites")
+  usedInvite       InviteCode?       @relation("UsedInvite")
   likes            Like[]
   listenHistory    ListenHistory[]
   pinnedTracks     PinnedTrack[]
-  visitLogs        VisitLog[]
+  playlists        Playlist[]
   subscriptionLogs SubscriptionLog[]
-  feedback         Feedback[]
-  importTasks      ImportTask[]
-  
-  createdInvites   InviteCode[] @relation("CreatedInvites")
-  usedInvite       InviteCode?  @relation("UsedInvite")
+  visitLogs        VisitLog[]
 }
 
 model Track {
-  id          String   @id @default(uuid())
-  title       String
-  artist      String
-  coverUrl    String?
-  audioUrl    String
-  duration    Int
-  genre       String?
-  releaseYear Int?
-  hash        String?  @unique
-  createdAt   DateTime @default(now())
-
-  playlists     PlaylistItem[]
+  id            String          @id @default(uuid())
+  title         String
+  artist        String
+  coverUrl      String?
+  audioUrl      String
+  duration      Int
+  createdAt     DateTime        @default(now())
+  genre         String?
+  releaseYear   Int?
+  hash          String?         @unique
+  lyrics        String?
+  syncedLyrics  String?
+  bpm           Int?
   likes         Like[]
   listenHistory ListenHistory[]
   pinnedTracks  PinnedTrack[]
+  playlists     PlaylistItem[]
 }
 
 model Playlist {
   id        String         @id @default(cuid())
   title     String
-  isPublic  Boolean        @default(false)
-  coverUrl  String?
   createdAt DateTime       @default(now())
   userId    String
+  isPublic  Boolean        @default(false)
+  coverUrl  String?
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     PlaylistItem[]
 }
@@ -75,22 +75,22 @@ model PlaylistItem {
 }
 
 model Like {
-  id        String @id @default(uuid())
-  userId    String
-  trackId   String
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track     Track  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid())
+  userId  String
+  trackId String
+  track   Track  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, trackId])
 }
 
 model ListenHistory {
-  id        String   @id @default(cuid())
-  userId    String
-  trackId   String
-  playedAt  DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  id       String   @id @default(cuid())
+  userId   String
+  trackId  String
+  playedAt DateTime @default(now())
+  track    Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PinnedTrack {
@@ -98,8 +98,8 @@ model PinnedTrack {
   userId    String
   trackId   String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, trackId])
 }
@@ -117,7 +117,7 @@ model VisitLog {
   userAgent String?
   createdAt DateTime @default(now())
   userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model SubscriptionLog {
@@ -133,35 +133,35 @@ model SubscriptionLog {
 model Feedback {
   id        String   @id @default(cuid())
   userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   type      String   @default("OTHER")
   message   String
   status    String   @default("NEW")
   adminNote String?
   createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model InviteCode {
-  id        String   @id @default(cuid())
-  code      String   @unique
+  id        String    @id @default(cuid())
+  code      String    @unique
   createdBy String?
-  creator   User?    @relation("CreatedInvites", fields: [createdBy], references: [id], onDelete: SetNull)
-  usedBy    String?  @unique
-  user      User?    @relation("UsedInvite", fields: [usedBy], references: [id], onDelete: SetNull)
+  usedBy    String?   @unique
   usedAt    DateTime?
   expiresAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  creator   User?     @relation("CreatedInvites", fields: [createdBy], references: [id])
+  user      User?     @relation("UsedInvite", fields: [usedBy], references: [id])
 }
 
 model ImportTask {
   id           String   @id @default(cuid())
   batchId      String
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String
   artist       String
   status       String   @default("PENDING")
   errorMessage String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

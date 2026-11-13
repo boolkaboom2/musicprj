@@ -16,7 +16,7 @@ async function processQueue() {
   while (true) {
     try {
       const task = await prisma.importTask.findFirst({
-        where: { status: 'PENDING' }, // Берем только PENDING (отмененные не берем)
+        where: { status: 'PENDING' },
         orderBy: { createdAt: 'asc' }
       });
 

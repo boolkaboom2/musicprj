@@ -7,6 +7,7 @@ type Track = {
   coverUrl: string | null;
   audioUrl: string;
   duration: number;
+  bpm?: number | null;
 };
 
 interface PlayerState {
@@ -28,6 +29,8 @@ interface PlayerState {
   playNext: () => void;
   playPrevious: () => void;
   addToQueue: (newTracks: Track[]) => void;
+  removeFromQueue: (id: string) => void; // <--- НОВОЕ
+  clearQueue: () => void; // <--- НОВОЕ
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -67,9 +70,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { queue, currentIndex, isShuffle } = get();
     if (queue.length === 0) return;
 
-    // ВАЖНО: ручное "далее" всегда листает, даже если включен повтор.
-    // Повтор срабатывает только при естественном окончании трека (handleEnded).
-
     if (isShuffle) {
       let nextIdx = currentIndex;
       if (queue.length > 1) {
@@ -96,5 +96,37 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const existingIds = new Set(state.queue.map(t => t.id));
     const filteredNewTracks = newTracks.filter(t => !existingIds.has(t.id));
     return { queue: [...state.queue, ...filteredNewTracks] };
-  })
-}))
+  }),
+
+  // УДАЛЕНИЕ ИЗ ОЧЕРЕДИ
+  removeFromQueue: (id) => set((state) => {
+    const idx = state.queue.findIndex(t => t.id === id);
+    if (idx === -1) return state;
+
+    const newQueue = state.queue.filter(t => t.id !== id);
+    let newIndex = state.currentIndex;
+
+    if (idx < state.currentIndex) {
+      newIndex--;
+    } else if (idx === state.currentIndex) {
+      // Если удаляем текущий трек
+      if (newQueue.length === 0) {
+        return { queue: [], activeTrack: null, isPlaying: false, currentIndex: -1 };
+      }
+      if (newIndex >= newQueue.length) {
+        newIndex = newQueue.length - 1;
+      }
+      return {
+        queue: newQueue,
+        activeTrack: newQueue[newIndex],
+        currentIndex: newIndex,
+        isPlaying: state.isPlaying
+      };
+    }
+
+    return { queue: newQueue, currentIndex: newIndex };
+  }),
+
+  // ОЧИСТКА ОЧЕРЕДИ
+  clearQueue: () => set({ queue: [], currentIndex: -1, activeTrack: null, isPlaying: false })
+}));

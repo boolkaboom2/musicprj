@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import UserProfileClient from "./UserProfileClient";
 import FeedbackButton from "./FeedbackButton";
 import ImportPlaylistButton from "./ImportPlaylistButton";
-import ThemeSwitcher from "./ThemeSwitcher";
 
 interface SidebarProps {
   user: any;
@@ -21,17 +20,17 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
   const isGuest = !user;
 
   const linkClass = (href: string) => 
-    `transition font-medium text-sm tracking-wide ${
-      pathname === href ? "text-[var(--text-base)]" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"
+    `transition font-medium text-sm 3xl:text-lg 4xl:text-xl tracking-wide block py-2 ${
+      pathname === href ? "text-[var(--text-base)] font-bold" : "text-[var(--text-subdued)] hover:text-[var(--text-base)]"
     }`;
 
   return (
     <div className="flex flex-col h-full justify-between overflow-y-auto no-scrollbar">
       <div>
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 3xl:mb-12">
           <Link 
             href="/" 
-            className="text-2xl font-black uppercase tracking-tighter text-[var(--text-base)]"
+            className="text-2xl 3xl:text-4xl 4xl:text-5xl font-black uppercase tracking-tighter text-[var(--text-base)]"
             onClick={onClose}
           >
             Sadovod
@@ -43,7 +42,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
           )}
         </div>
         
-        <nav className="flex flex-col gap-4">
+        <nav className="flex flex-col gap-2">
           <Link href="/" onClick={onClose} className={linkClass('/')}>
             Главная
           </Link>
@@ -83,17 +82,13 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
       </div>
 
       <div className="border-t border-[var(--border-color)] pt-4 flex flex-col gap-4">
-        <div className="flex justify-center mb-2">
-           <ThemeSwitcher />
-        </div>
-
         <UserProfileClient user={user} />
         
-        <div className="text-[10px] text-[var(--text-subdued)] leading-tight pb-2">
+        <div className="text-[10px] 3xl:text-xs 4xl:text-sm text-[var(--text-subdued)] leading-tight pb-2">
           <Link href="/privacy" className="hover:text-[var(--text-base)] underline transition mb-1 inline-block">
             Политика конфиденциальности
           </Link>
-          <p>Учебный проект. Все права на аудиозаписи принадлежат их правообладателям. Сайт не предназначен для коммерческого использования.</p>
+          <p>Учебный проект. Все права на аудиозаписи принадлежат их правообладателям.</p>
         </div>
       </div>
     </div>
@@ -116,7 +111,7 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
 
   return (
     <>
-      <aside className="hidden md:flex w-[280px] bg-[var(--bg-card)] rounded-lg flex-col p-6 shrink-0 h-full transition-colors duration-300">
+      <aside className="hidden md:flex w-[280px] 3xl:w-[360px] 4xl:w-[420px] bg-transparent flex-col p-6 3xl:p-8 4xl:p-10 shrink-0 h-full transition-all duration-300">
         <Suspense fallback={null}>
           <SidebarContent user={user} isAdmin={isAdmin} />
         </Suspense>
@@ -141,11 +136,9 @@ export default function Sidebar({ user, isAdmin }: SidebarProps) {
               dragElastic={0.1}
               dragDirectionLock
               onDragEnd={(e, info) => {
-                if (info.offset.x < -60) {
-                  setSidebarOpen(false);
-                }
+                if (info.offset.x < -60) setSidebarOpen(false);
               }}
-              className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-card)] z-[201] p-6 transition-colors duration-300"
+              className="md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[var(--bg-main)] z-[201] p-6 transition-colors duration-300 border-r border-[var(--border-color)]"
             >
               <Suspense fallback={null}>
                 <SidebarContent user={user} isAdmin={isAdmin} onClose={() => setSidebarOpen(false)} />

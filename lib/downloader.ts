@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 import { searchHitmoz } from './hitmoz';
+import { searchZaycev } from './zaycev'; // <--- ИМПОРТ ZAYCEV
 import { createHash } from 'crypto';
 
 type MetaData = {
@@ -12,7 +13,6 @@ type MetaData = {
   duration: number;
 };
 
-// ХЕШ БЕЗ ОЧИСТКИ (Скобки и feat. учитываются)
 function generateHash(title: string, artist: string): string {
   const normalized = `${title.toLowerCase().trim()}${artist.toLowerCase().trim()}`.replace(/[^a-z0-9а-я]/g, '');
   return createHash('md5').update(normalized).digest('hex');
@@ -110,26 +110,58 @@ async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCov
 }
 
 export async function downloadAndSaveTrack(query: string) {
-  const hitmozTrack = await searchHitmoz(query);
-  if (!hitmozTrack) throw new Error('Трек не найден в сети');
+  let trackUrl: string | null = null;
+  let foundTitle = query;
+  let foundArtist = 'Unknown';
+  let fallbackCover: string | null = null;
 
-  // --- НОВАЯ ПРОВЕРКА РЕЛЕВАНТНОСТИ ---
+  // 1. ПРОБУЕМ HITMOZ
+  try {
+    console.log(`[Downloader] Пробуем Hitmoz: ${query}`);
+    const hitmozTrack = await searchHitmoz(query);
+    if (hitmozTrack) {
+      trackUrl = hitmozTrack.url;
+      foundTitle = hitmozTrack.title;
+      foundArtist = hitmozTrack.artist;
+      fallbackCover = hitmozTrack.coverUrl;
+      console.log(`[Downloader] Hitmoz успех: ${foundArtist} - ${foundTitle}`);
+    }
+  } catch (e) {
+    console.log(`[Downloader] Hitmoz не отвечает, переключаемся на Zaycev...`);
+  }
+
+  // 2. ЕСЛИ HITMOZ УПАЛ ИЛИ НЕ НАШЕЛ — ПРОБУЕМ ZAYCEV
+  if (!trackUrl) {
+    console.log(`[Downloader] Пробуем Zaycev: ${query}`);
+    const zaycevTrack = await searchZaycev(query);
+    if (zaycevTrack) {
+      trackUrl = zaycevTrack.url;
+      foundTitle = zaycevTrack.title;
+      foundArtist = zaycevTrack.artist;
+      console.log(`[Downloader] Zaycev успех: ${foundArtist} - ${foundTitle}`);
+    }
+  }
+
+  // 3. ЕСЛИ НИЧЕГО НЕ НАШЛИ
+  if (!trackUrl) {
+    throw new Error('Трек не найден в сети');
+  }
+
+  // --- ПРОВЕРКА РЕЛЕВАНТНОСТИ ---
   const queryWords = query.toLowerCase().replace(/[^a-zа-я0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-  const foundText = `${hitmozTrack.title} ${hitmozTrack.artist}`.toLowerCase().replace(/[^a-zа-я0-9\s]/g, '');
+  const foundText = `${foundTitle} ${foundArtist}`.toLowerCase().replace(/[^a-zа-я0-9\s]/g, '');
   
   let matchCount = 0;
   for (const word of queryWords) {
     if (foundText.includes(word)) matchCount++;
   }
 
-  // Если совпало меньше половины слов (например, искали speed up, а нашли morning)
   if (queryWords.length > 0 && matchCount < queryWords.length * 0.5) {
-    throw new Error(`Hitmoz вернул неподходящий трек: "${hitmozTrack.title}". Попробуйте изменить запрос.`);
+    throw new Error(`Найден неподходящий трек: "${foundTitle}". Попробуйте изменить запрос.`);
   }
   // -------------------------------------
 
-  const meta = await enrichMetadata(hitmozTrack.title, hitmozTrack.artist, hitmozTrack.coverUrl);
-  
+  const meta = await enrichMetadata(foundTitle, foundArtist, fallbackCover);
   const trackHash = generateHash(meta.title, meta.artist);
 
   const existing = await prisma.track.findFirst({
@@ -151,7 +183,9 @@ export async function downloadAndSaveTrack(query: string) {
     return { success: true, track: existing, skipped: true };
   }
 
-  const audioRes = await fetch(hitmozTrack.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  // 4. СКАЧИВАНИЕ
+  console.log(`[Downloader] Скачиваем файл: ${trackUrl}`);
+  const audioRes = await fetch(trackUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   if (!audioRes.ok) throw new Error('Не удалось скачать файл');
 
   const buffer = await audioRes.arrayBuffer();

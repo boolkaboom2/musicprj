@@ -92,40 +92,38 @@ export default function PlaylistTrackList({
             <Reorder.Item
               key={track.id}
               value={track}
-              layout // ВАЖНО: Помогает framer-motion правильно считать позиции
+              layout
               dragListener={isOwner}
               onClick={() => setActiveTrack(track, tracks)} 
               onContextMenu={(e) => { 
                 e.preventDefault();
                 openTrackMenu(track, e.currentTarget.getBoundingClientRect());
               }}
-              // Убрали класс transition, чтобы он не конфликтовал с JS-анимацией
               className={`flex items-center gap-3 md:gap-4 p-2 md:p-2 rounded-md cursor-pointer group relative ${
-                isMenuOpenForThisTrack ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
+                isMenuOpenForThisTrack ? "bg-[var(--bg-main)]" : "hover:bg-[var(--bg-main)]"
               } ${isOwner ? 'cursor-grab active:cursor-grabbing' : ''}`}
-              // Добавили красивый эффект при перетаскивании
               whileDrag={{ 
                 scale: 1.02, 
                 zIndex: 50, 
-                backgroundColor: "#2a2a2a",
+                backgroundColor: "var(--bg-main)",
                 boxShadow: "0 10px 30px rgba(0,0,0,0.5)" 
               }}
             >
               {/* Drag Handle */}
               {isOwner && (
-                <div className="text-white/20 group-hover:text-white transition-colors cursor-grab active:cursor-grabbing p-1">
+                <div className="text-[var(--text-subdued)] group-hover:text-[var(--text-base)] transition-colors cursor-grab active:cursor-grabbing p-1">
                   <GripVertical size={20} />
                 </div>
               )}
 
               <div className={`hidden sm:flex w-6 justify-center items-center text-sm transition-colors ${
-                isMenuOpenForThisTrack ? "text-white" : "text-[#777] group-hover:text-white"
+                isMenuOpenForThisTrack ? "text-[var(--text-base)]" : "text-[var(--text-subdued)] group-hover:text-[var(--text-base)]"
               }`}>
                  <span className={isMenuOpenForThisTrack ? "hidden" : "group-hover:hidden"}>{index + 1}</span>
                  {isMenuOpenForThisTrack ? <IPlay size={12} /> : <IPlay size={12} className="hidden group-hover:block" />}
               </div>
 
-              <div className="w-14 h-14 md:w-12 md:h-12 bg-[#333] rounded overflow-hidden shrink-0 flex items-center justify-center text-[#555] pointer-events-none">
+              <div className="w-14 h-14 md:w-12 md:h-12 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-subdued)] pointer-events-none">
                 {track.coverUrl ? (
                   <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
                 ) : (
@@ -139,21 +137,20 @@ export default function PlaylistTrackList({
                     href={`/track/${track.id}`} 
                     onClick={(e) => e.stopPropagation()}
                     onContextMenu={(e) => e.stopPropagation()}
-                    className="text-white font-medium truncate hover:underline w-fit text-base md:text-base pointer-events-auto"
+                    className="text-[var(--text-base)] font-medium truncate hover:underline w-fit text-base md:text-base pointer-events-auto"
                   >
                     {track.title}
                   </Link>
                   
                   {isPinned && (
-                    <div className="hidden sm:flex items-center justify-center bg-white/10 p-1 rounded-full border border-white/5">
-                      <IPin size={12} className="text-white fill-white" />
+                    <div className="hidden sm:flex items-center justify-center bg-[var(--bg-card)] p-1 rounded-full border border-[var(--border-color)]">
+                      <IPin size={12} className="text-[var(--text-base)] fill-current" />
                     </div>
                   )}
                 </div>
                 <span className="text-sm md:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
               </div>
 
-              {/* Кнопки управления не должны мешать Drag & Drop */}
               <div className={`transition-opacity flex items-center gap-1 md:gap-4 ${
                 isMenuOpenForThisTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-100 md:group-hover:opacity-100"
               }`}>
@@ -171,7 +168,7 @@ export default function PlaylistTrackList({
                     e.stopPropagation();
                     openTrackMenu(track, e.currentTarget.getBoundingClientRect());
                   }}
-                  className="text-[var(--text-subdued)] hover:text-white transition-colors p-1 md:p-0"
+                  className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors p-1 md:p-0"
                 >
                   <IMore size={20} />
                 </button>

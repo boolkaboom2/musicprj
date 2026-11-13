@@ -70,13 +70,13 @@ export default function InvitesPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-white flex items-center gap-2 mb-6 transition">
+      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-[var(--text-base)] flex items-center gap-2 mb-6 transition">
         <ArrowLeft size={18} /> Назад в админку
       </Link>
 
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black text-[var(--text-base)] flex items-center gap-3">
             <Key size={28} /> Инвайт-коды
           </h1>
           <p className="text-[var(--text-subdued)] text-sm mt-1">
@@ -86,7 +86,7 @@ export default function InvitesPage() {
         <button
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="bg-white text-black font-bold py-2.5 px-6 rounded-full hover:bg-gray-200 transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
+          className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-2.5 px-6 rounded-full hover:opacity-80 transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
         >
           {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
           Создать код
@@ -94,13 +94,13 @@ export default function InvitesPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-white"><Loader2 className="animate-spin" size={20} /> Загрузка...</div>
+        <div className="flex items-center gap-2 text-[var(--text-base)]"><Loader2 className="animate-spin" size={20} /> Загрузка...</div>
       ) : invites.length === 0 ? (
         <p className="text-[var(--text-subdued)]">Кодов пока нет. Нажми "Создать код".</p>
       ) : (
-        <div className="bg-[#121212] border border-white/5 rounded-xl overflow-hidden">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-white/5 text-[var(--text-subdued)] text-xs uppercase">
+            <thead className="bg-[var(--bg-main)] text-[var(--text-subdued)] text-xs uppercase">
               <tr>
                 <th className="p-4">Код</th>
                 <th className="p-4">Статус</th>
@@ -110,9 +110,9 @@ export default function InvitesPage() {
             </thead>
             <tbody>
               {invites.map((invite) => (
-                <tr key={invite.id} className="border-t border-white/5 hover:bg-white/[0.02] transition">
+                <tr key={invite.id} className="border-t border-[var(--border-color)] hover:bg-[var(--bg-main)] transition">
                   <td className="p-4">
-                    <span className={`font-mono text-lg font-bold tracking-widest ${invite.usedBy ? 'text-gray-500 line-through' : 'text-white'}`}>
+                    <span className={`font-mono text-lg font-bold tracking-widest ${invite.usedBy ? 'text-[var(--text-subdued)] line-through' : 'text-[var(--text-base)]'}`}>
                       {invite.code}
                     </span>
                   </td>
@@ -134,7 +134,7 @@ export default function InvitesPage() {
                     {!invite.usedBy && (
                       <button
                         onClick={() => handleCopy(invite.code, invite.id)}
-                        className="text-white/50 hover:text-white transition p-2 bg-white/5 rounded-md"
+                        className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition p-2 bg-[var(--bg-main)] rounded-md"
                         title="Скопировать"
                       >
                         {copiedId === invite.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}

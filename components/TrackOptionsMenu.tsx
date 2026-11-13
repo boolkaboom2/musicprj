@@ -7,11 +7,11 @@ import { usePlayerStore } from "@/store/playerStore";
 import { useModalStore } from "@/store/modalStore";
 import { useToast } from "@/components/Toast";
 import { IPin, IRadio, IShare, IHeart } from "./Icons";
-import { ListMusic, Loader2, X } from "lucide-react";
+import { ListMusic, Loader2, X, PlusCircle } from "lucide-react"; // <--- Добавлен PlusCircle
 
 export default function TrackOptionsMenu() {
   const { isTrackMenuOpen, trackForMenu, menuPosition, closeTrackMenu } = useTrackMenuStore();
-  const { setActiveTrack, likedTrackIds, toggleLikedTrack } = usePlayerStore();
+  const { setActiveTrack, likedTrackIds, toggleLikedTrack, addToQueue } = usePlayerStore(); // <--- Добавлен addToQueue
   const { openAddToPlaylist } = useModalStore();
   const [isLoadingWave, setIsLoadingWave] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
@@ -83,6 +83,12 @@ export default function TrackOptionsMenu() {
     }
   };
 
+  const handleAddToQueue = () => {
+    addToQueue([trackForMenu]);
+    showToast("Трек добавлен в очередь", "success");
+    closeTrackMenu();
+  };
+
   const handleShare = async () => {
     const url = `${window.location.origin}/track/${trackForMenu.id}`;
     try {
@@ -135,6 +141,13 @@ export default function TrackOptionsMenu() {
           className="flex items-center gap-4 w-full p-3 hover:bg-[var(--bg-main)] rounded-lg transition text-left text-[var(--text-subdued)] hover:text-[var(--text-base)] text-sm font-medium"
       >
           <ListMusic size={18} /> Добавить в плейлист
+      </button>
+
+      <button 
+          onClick={handleAddToQueue}
+          className="flex items-center gap-4 w-full p-3 hover:bg-[var(--bg-main)] rounded-lg transition text-left text-[var(--text-subdued)] hover:text-[var(--text-base)] text-sm font-medium"
+      >
+          <PlusCircle size={18} /> Добавить в очередь
       </button>
 
       <button 
@@ -205,7 +218,7 @@ export default function TrackOptionsMenu() {
   }
 
   const menuWidth = 260;
-  const menuHeight = 260; 
+  const menuHeight = 330; 
   let top = menuPosition.top;
   let left = menuPosition.left;
 

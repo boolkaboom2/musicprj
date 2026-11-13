@@ -20,16 +20,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Кэшируем ТОЛЬКО картинки. Всё остальное (HTML, API, JS) идет напрямую в сеть.
   if (event.request.destination === 'image') {
     event.respondWith(
       caches.match(event.request).then((response) => {
         return response || fetch(event.request).then((res) => {
           const resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          caches.open(CACHE_NAME).then((cache) => {
+            // Просто игнорируем ошибку, если места нет (не выводим в консоль)
+            cache.put(event.request, resClone).catch(() => {});
+          });
           return res;
         });
-      })
+      }).catch(() => fetch(event.request))
     );
   }
 });

@@ -7,44 +7,46 @@ export type HitmozTrack = {
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
 };
+
+// ТВОЙ URL CLOUDFLARE WORKER
+const CLOUDFLARE_WORKER_URL = 'https://sadovod-proxy.vladgoncharov27x27x27.workers.dev'; 
 
 export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
   try {
-    const url = `https://rue.hitmoz.org/search?q=${encodeURIComponent(query)}`;
-    console.log(`[Hitmoz] Поиск: ${url}`);
+    // Формируем оригинальную ссылку для поиска
+    const originalUrl = `https://rue.hitmoz.org/search?q=${encodeURIComponent(query)}`;
+    
+    // Передаем её в Worker
+    const proxyUrl = `${CLOUDFLARE_WORKER_URL}?url=${encodeURIComponent(originalUrl)}`;
+    console.log(`[Hitmoz Proxy] Поиск: ${proxyUrl}`);
 
-    const res = await fetch(url, { headers: HEADERS });
+    const res = await fetch(proxyUrl, { headers: HEADERS });
     if (!res.ok) {
-      console.log(`[Hitmoz] Ошибка поиска: ${res.status}`);
+      console.log(`[Hitmoz Proxy] Ошибка поиска: ${res.status}`);
       return null;
     }
 
     const html = await res.text();
 
-    // Захватываем JSON внутри одинарных кавычек без порчи бэкслешей
     const metaRegex = /data-musmeta='([^']+)'/;
     const match = html.match(metaRegex);
 
     if (!match || !match[1]) {
-      console.log('[Hitmoz] Трек не найден в HTML');
+      console.log('[Hitmoz Proxy] Трек не найден в HTML');
       return null;
     }
 
-    // HTML-entities → символы
     let rawJson = match[1]
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&amp;/g, '&');
 
-    // ВАЖНО: JSON.parse сам разберется с \/ и \uXXXX. Никаких .replace(/\\/g, '')!
     let meta: any;
     try {
       meta = JSON.parse(rawJson);
     } catch (e) {
-      console.error('[Hitmoz] Не удалось распарсить JSON:', rawJson.slice(0, 200));
+      console.error('[Hitmoz Proxy] Не удалось распарсить JSON:', rawJson.slice(0, 200));
       return null;
     }
 
@@ -57,7 +59,7 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       finalUrl = `https://rue.hitmoz.org${finalUrl}`;
     }
 
-    console.log(`[Hitmoz] Найден: ${meta.artist} - ${meta.title}`);
+    console.log(`[Hitmoz Proxy] Найден: ${meta.artist} - ${meta.title}`);
 
     return {
       title: meta.title,
@@ -66,7 +68,7 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       coverUrl: meta.img || null,
     };
   } catch (e: any) {
-    console.error('[Hitmoz Error]', e.message);
+    console.error('[Hitmoz Proxy Error]', e.message);
     return null;
   }
 }

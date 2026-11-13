@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, DownloadCloud, AlertCircle, ListMusic } from "lucide-react";
+import { Search, Loader2, DownloadCloud, AlertCircle, ListMusic, Clock } from "lucide-react";
 import Link from "next/link";
 import TrackList from "./TrackList";
 import { usePlayerStore } from "@/store/playerStore";
 import { useToast } from "./Toast";
 
+const HISTORY_KEY = 'sadovod_search_history';
+
 export default function SearchClient() {
   const router = useRouter();
   const showToast = useToast((s) => s.show);
   const [query, setQuery] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
   
   const [localTracks, setLocalTracks] = useState<any[]>([]);
   const [localPlaylists, setLocalPlaylists] = useState<any[]>([]);
@@ -27,6 +31,25 @@ export default function SearchClient() {
   const userLikes = usePlayerStore((state) => state.likedTrackIds);
 
   useEffect(() => {
+    const saved = localStorage.getItem(HISTORY_KEY);
+    if (saved) {
+      try { setHistory(JSON.parse(saved)); } catch {}
+    }
+  }, []);
+
+  const saveToHistory = (q: string) => {
+    if (!q.trim()) return;
+    const newHistory = [q, ...history.filter(h => h !== q)].slice(0, 10);
+    setHistory(newHistory);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem(HISTORY_KEY);
+  };
+
+  useEffect(() => {
     if (!query.trim() || query.trim().length < 2) {
       setLocalTracks([]);
       setLocalPlaylists([]);
@@ -40,6 +63,8 @@ export default function SearchClient() {
 
     const timer = setTimeout(async () => {
       setIsSearchingLocal(true);
+      saveToHistory(query); 
+      
       fetch(`/api/search?q=${encodeURIComponent(query)}`)
         .then(async (res) => {
           if (!res.ok) return { tracks: [], playlists: [] };
@@ -53,7 +78,7 @@ export default function SearchClient() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearchExternal = async () => {
     setShowExternal(true);
@@ -63,7 +88,7 @@ export default function SearchClient() {
       const data = await res.json();
       setExternalTracks(data.results || []);
     } catch {
-      showToast("Ошибка поиска в сети", "error");
+      showToast("Ошибка поиска", "error");
     } finally {
       setIsSearchingExternal(false);
     }
@@ -106,7 +131,7 @@ export default function SearchClient() {
         showToast(data.error, "error");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else if (res.status === 404) {
-        showToast("Не удалось скачать. Попробуйте кнопку 'Скачать напрямую'.", "error");
+        showToast("Трек не найден. Попробуйте 'Скачать напрямую'.", "error");
         setExternalTracks(prev => prev.filter(t => t.title !== track.title));
       } else {
         showToast(data.error || "Ошибка скачивания", "error");
@@ -158,6 +183,7 @@ export default function SearchClient() {
   const hasLocalResults = localTracks.length > 0 || localPlaylists.length > 0;
 
   return (
+    // УБРАЛИ max-w-[1400px] mx-auto, теперь контейнер на всю ширину
     <div className="flex flex-col w-full h-full">
       <div className="px-8 mb-4">
         <div className="relative w-full max-w-xl">
@@ -167,23 +193,46 @@ export default function SearchClient() {
             placeholder="Название трека"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             className="w-full bg-[var(--bg-input)] text-[var(--text-base)] pl-14 pr-4 py-3 rounded-full outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm font-medium"
           />
           {isSearchingLocal && (
             <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-subdued)] animate-spin" size={18} />
+          )}
+
+          {isFocused && query.length === 0 && history.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-main)]">
+                <span className="text-xs font-bold text-[var(--text-subdued)] uppercase tracking-wider">История поиска</span>
+                <button onClick={clearHistory} className="text-xs text-red-500 hover:text-red-400 transition">Очистить</button>
+              </div>
+              <div className="flex flex-col max-h-60 overflow-y-auto custom-scrollbar">
+                {history.map((h, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setQuery(h); setIsFocused(false); }}
+                    className="flex items-center gap-3 w-full px-4 py-3 hover:bg-[var(--bg-main)] text-left transition"
+                  >
+                    <Clock size={16} className="text-[var(--text-subdued)] shrink-0" />
+                    <span className="text-sm text-[var(--text-base)] truncate">{h}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {(hasLocalResults || showExternal) ? (
-          <div>
+          <div className="w-full">
             {localPlaylists.length > 0 && (
               <div className="px-8 pt-4 pb-2">
                 <h2 className="text-xl font-bold text-[var(--text-base)] mb-4 flex items-center gap-2">
                   <ListMusic size={20} /> Плейлисты
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                   {localPlaylists.map((pl) => {
                     const cover = pl.items[0]?.track?.coverUrl;
                     const ownerName = pl.user.name || pl.user.email.split('@')[0];
@@ -204,7 +253,7 @@ export default function SearchClient() {
             )}
 
             {localTracks.length > 0 && (
-              <div>
+              <div className="w-full">
                 {localPlaylists.length > 0 && (
                   <h2 className="px-8 pt-6 pb-2 text-xl font-bold text-[var(--text-base)]">В библиотеке</h2>
                 )}
@@ -221,10 +270,11 @@ export default function SearchClient() {
             )}
 
             {showExternal && (
-              <div className="px-4 md:px-8 pt-4 pb-8">
+              // Убрали max-w-4xl, чтобы список растягивался на весь экран
+              <div className="px-4 md:px-8 pt-4 pb-8 w-full">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-[var(--text-base)] flex items-center gap-2">
-                    <DownloadCloud size={20} /> Найдено в сети
+                    <DownloadCloud size={20} /> Поиск {/* ЗАМЕНИЛИ "НАЙДЕНО" НА "ПОИСК" */}
                   </h2>
                   <button onClick={() => setShowExternal(false)} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] text-sm transition">
                     Скрыть
@@ -236,39 +286,39 @@ export default function SearchClient() {
                     <Loader2 className="animate-spin" size={20} /> Ищем по всем базам...
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-2 w-full">
                     {externalTracks.length > 0 ? (
                       externalTracks.map((track, idx) => {
                         const isDownloading = downloadingUrl === track.title;
                         
                         return (
-                          <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 rounded-md transition hover:bg-[var(--bg-card)] group">
-                            <div className="w-12 h-12 md:w-14 md:h-14 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center">
+                          <div key={idx} className="flex items-center gap-4 p-3 rounded-lg transition hover:bg-[var(--bg-card)] group w-full border border-transparent hover:border-[var(--border-color)]">
+                            <div className="w-14 h-14 md:w-16 md:h-16 bg-[var(--border-color)] rounded-md overflow-hidden shrink-0 flex items-center justify-center">
                               {track.coverUrl ? (
                                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
                               ) : (
-                                <ListMusic size={20} className="text-[var(--text-subdued)]" />
+                                <ListMusic size={24} className="text-[var(--text-subdued)]" />
                               )}
                             </div>
                             
-                            <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-                              <span className="text-[var(--text-base)] font-medium truncate text-sm md:text-base">{track.title}</span>
-                              <span className="text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-[var(--text-base)] font-bold truncate text-base md:text-lg">{track.title}</span>
+                              <span className="text-sm md:text-base text-[var(--text-subdued)] truncate mt-0.5">{track.artist}</span>
                             </div>
 
-                            <span className="text-sm text-[var(--text-subdued)] w-10 text-right tabular-nums shrink-0">
+                            <span className="text-sm md:text-base text-[var(--text-subdued)] tabular-nums shrink-0">
                               {formatTime(track.duration)}
                             </span>
 
                             <button
                               onClick={() => handleDownload(track)}
                               disabled={isDownloading}
-                              className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold text-xs px-3 py-2 rounded-full hover:opacity-80 transition flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                              className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold text-sm px-4 py-2.5 rounded-full hover:opacity-80 transition flex items-center gap-2 shrink-0 disabled:opacity-50"
                             >
                               {isDownloading ? (
-                                <><Loader2 size={14} className="animate-spin" /> Качаем</>
+                                <><Loader2 size={16} className="animate-spin" /> Качаем</>
                               ) : (
-                                <><DownloadCloud size={14} /> Скачать</>
+                                <><DownloadCloud size={16} /> Скачать</>
                               )}
                             </button>
                           </div>
@@ -279,15 +329,15 @@ export default function SearchClient() {
                     )}
 
                     <div className="mt-6 pt-6 border-t border-[var(--border-color)]">
-                      <p className="text-[var(--text-subdued)] text-xs mb-3">
+                      <p className="text-[var(--text-subdued)] text-sm mb-3">
                         Не нашли нужный ремикс или спед-ап? Попробуйте найти напрямую в открытых базах.
                       </p>
                       <button
                         onClick={handleDirectDownload}
                         disabled={isDirectDownloading}
-                        className="text-sm font-bold text-[var(--text-base)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] py-2.5 px-5 rounded-full transition flex items-center gap-2 disabled:opacity-50"
+                        className="text-sm font-bold text-[var(--text-base)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] py-3 px-6 rounded-full transition flex items-center gap-2 disabled:opacity-50"
                       >
-                        {isDirectDownloading ? <Loader2 size={16} className="animate-spin" /> : <DownloadCloud size={16} />}
+                        {isDirectDownloading ? <Loader2 size={18} className="animate-spin" /> : <DownloadCloud size={18} />}
                         {isDirectDownloading ? "Ищем..." : `Скачать "${query}" напрямую`}
                       </button>
                     </div>

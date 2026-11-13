@@ -2,12 +2,13 @@
 
 import { useState, useRef } from "react";
 import { useSoundStore } from "@/store/soundStore";
-import { X, Check, RotateCcw } from "lucide-react";
+import { X, Check, RotateCcw, Disc3 } from "lucide-react";
 import InfoTooltip from "./InfoTooltip";
 
 export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { 
     quality, setQuality, isEqualizerOn, toggleEqualizer,
+    isCrossfadeEnabled, toggleCrossfade,
     eqBass, eqMid, eqTreble, setEqBass, setEqMid, setEqTreble 
   } = useSoundStore();
 
@@ -17,7 +18,7 @@ export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolea
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
       <div className="absolute inset-0" onClick={onClose} />
       
-      <div className="relative w-full max-w-md bg-[var(--bg-card)] rounded-2xl p-6 shadow-2xl border border-[var(--border-color)] animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md bg-[var(--bg-card)] rounded-2xl p-6 shadow-2xl border border-[var(--border-color)] animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-[var(--text-base)] tracking-tight">Настройки звука</h2>
           <button onClick={onClose} className="text-[var(--text-subdued)] hover:text-[var(--text-base)] bg-[var(--bg-main)] p-2 rounded-full transition"><X size={18} /></button>
@@ -55,6 +56,28 @@ export default function SoundSettingsModal({ isOpen, onClose }: { isOpen: boolea
               <p className="text-[var(--text-subdued)] text-xs mt-1">Имитация низкого битрейта</p>
             </div>
             {quality === 'economical' && <Check size={20} className="text-[var(--text-base)] shrink-0" />}
+          </button>
+        </div>
+
+        <div className="h-px bg-[var(--border-color)] my-4" />
+
+        {/* DJ MODE ТУМБЛЕР */}
+        <div className="flex justify-between items-center mb-6 bg-[var(--bg-main)] p-4 rounded-xl border border-[var(--border-color)]">
+          <div className="flex items-center gap-3">
+            <Disc3 size={20} className="text-[var(--text-base)]" />
+            <div className="flex flex-col">
+              <div className="flex items-center">
+                <span className="text-[var(--text-base)] font-bold text-sm">DJ Mode (Кроссфейд)</span>
+                <InfoTooltip text="Плавный переход между треками с подстройкой BPM (темпа). Работает, когда включена очередь." />
+              </div>
+              <span className="text-[var(--text-subdued)] text-xs mt-0.5">Плавный микс треков</span>
+            </div>
+          </div>
+          <button 
+            onClick={toggleCrossfade}
+            className={`w-12 h-6 rounded-full transition-colors relative flex items-center shrink-0 ${isCrossfadeEnabled ? 'bg-green-500' : 'bg-[var(--border-color)]'}`}
+          >
+            <div className={`w-4 h-4 bg-white rounded-full absolute transition-transform ${isCrossfadeEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
           </button>
         </div>
 

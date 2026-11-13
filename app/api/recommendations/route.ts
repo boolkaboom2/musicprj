@@ -1,137 +1,112 @@
 import { NextResponse } from 'next/server';
-import { fetchSpotifyPlaylist } from '@/lib/spotify';
+import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/auth';
 
-type ParsedTrack = {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  confidence: 'high' | 'low';
-};
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const excludeIdsParam = searchParams.get('excludeIds');
+  const excludeIds = excludeIdsParam ? excludeIdsParam.split(',') : [];
 
-type ParseResult = {
-  playlistTitle: string;
-  tracks: ParsedTrack[];
-};
-
-async function fetchYandex(url: string): Promise<any> {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json',
-    }
-  });
-  if (!res.ok) throw new Error(`Яндекс: ${res.status}`);
-  return res.json();
-}
-
-async function parseYandexPlaylist(id: string): Promise<ParseResult> {
-  const data = await fetchYandex(`https://api.music.yandex.net/playlist/${id}`);
-  const rawTracks = data.result?.tracks || [];
-  const playlistTitle = data.result?.title || 'Плейлист';
-
-  const tracks = rawTracks.map((item: any, index: number) => {
-    const track = item.track || item;
-    return {
-      id: track.id?.toString() || index.toString(),
-      title: track.title || 'Unknown Title',
-      artist: track.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
-      album: track.albums?.[0]?.title || '',
-      confidence: 'high' as const,
-    };
-  });
-
-  return { playlistTitle, tracks };
-}
-
-async function parseYandexAlbum(id: string): Promise<ParseResult> {
-  const data = await fetchYandex(`https://api.music.yandex.net/albums/${id}/with-tracks`);
-  const volumes = data.result?.volumes || [];
-  const rawTracks = volumes.flat();
-  const albumTitle = data.result?.title || 'Альбом';
-  const albumArtist = data.result?.artists?.map((a: any) => a.name).join(', ') || '';
-  const fullTitle = albumArtist ? `${albumArtist} — ${albumTitle}` : albumTitle;
-
-  const tracks = rawTracks.map((track: any, index: number) => ({
-    id: track.id?.toString() || index.toString(),
-    title: track.title || 'Unknown Title',
-    artist: track.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
-    album: albumTitle,
-    confidence: 'high' as const,
-  }));
-
-  return { playlistTitle: fullTitle, tracks };
-}
-
-export async function POST(req: Request) {
   try {
-    const { url } = await req.json();
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json({ error: 'Вставьте ссылку' }, { status: 400 });
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    const payload = token ? await verifyToken(token) : null;
+
+    // 1. Если пользователь не авторизован — даем случайные треки
+    if (!payload?.userId) {
+      const randomTracks = await prisma.track.findMany({
+        take: 10,
+        where: { id: { notIn: excludeIds } },
+      });
+      return NextResponse.json(randomTracks);
     }
 
-    // === ЯНДЕКС IFRAME (HTML-код) ===
-    // Ищем ссылку внутри <iframe src="https://music.yandex.ru/iframe/playlist/...">
-    const iframeMatch = url.match(/src="https:\/\/music\.yandex\.ru\/iframe\/playlist\/([a-zA-Z0-9.\-]+)"/);
-    if (iframeMatch) {
-      const id = iframeMatch[1];
-      console.log(`[Parse] Yandex iframe playlist ${id}`);
-      const result = await parseYandexPlaylist(id);
-      return NextResponse.json({ success: true, ...result });
+    const userId = payload.userId;
+
+    // 2. Получаем лайки текущего пользователя
+    const userLikes = await prisma.like.findMany({
+      where: { userId },
+      select: { trackId: true }
+    });
+    const likedTrackIds = userLikes.map(l => l.trackId);
+
+    // Если лайков нет — даем случайные
+    if (likedTrackIds.length === 0) {
+      const randomTracks = await prisma.track.findMany({
+        take: 10,
+        where: { id: { notIn: excludeIds } },
+      });
+      return NextResponse.json(randomTracks);
     }
 
-    // === ЯНДЕКС ПЛЕЙЛИСТ (обычная ссылка) ===
-    const yandexPlaylistMatch = url.match(/music\.yandex\.ru\/playlists\/([a-zA-Z0-9.\-]+)/)
-      || url.match(/music\.yandex\.ru\/users\/[^/]+\/playlists\/(\d+)/);
-    if (yandexPlaylistMatch) {
-      const id = yandexPlaylistMatch[1];
-      console.log(`[Parse] Yandex playlist ${id}`);
-      const result = await parseYandexPlaylist(id);
-      return NextResponse.json({ success: true, ...result });
-    }
+    // 3. Ищем "похожих" пользователей (тех, кто лайкнул те же треки)
+    const similarUsers = await prisma.like.groupBy({
+      by: ['userId'],
+      where: {
+        trackId: { in: likedTrackIds },
+        userId: { not: userId } // Исключаем самого себя
+      },
+      _count: { userId: true },
+      orderBy: { _count: { userId: 'desc' } },
+      take: 10 // Берем топ-10 пользователей с похожими вкусами
+    });
 
-    // === ЯНДЕКС АЛЬБОМ ===
-    const yandexAlbumMatch = url.match(/music\.yandex\.ru\/album\/(\d+)/);
-    if (yandexAlbumMatch) {
-      const id = yandexAlbumMatch[1];
-      console.log(`[Parse] Yandex album ${id}`);
-      const result = await parseYandexAlbum(id);
-      return NextResponse.json({ success: true, ...result });
-    }
+    const similarUserIds = similarUsers.map(u => u.userId);
 
-    // === SPOTIFY ===
-    const spotifyMatch = url.match(/open\.spotify\.com\/(?:[^/]+\/)?playlist\/([a-zA-Z0-9]+)/);
-    if (spotifyMatch) {
-      const id = spotifyMatch[1];
-      console.log(`[Parse] Spotify playlist ${id}`);
-      try {
-        const result = await fetchSpotifyPlaylist(id);
-        return NextResponse.json({ success: true, ...result });
-      } catch (e: any) {
-        return NextResponse.json({ error: e.message || 'Ошибка Spotify' }, { status: 502 });
+    // 4. Если не нашли похожих — даем треки того же жанра/артиста
+    if (similarUserIds.length === 0) {
+      const favArtist = await prisma.track.findFirst({ where: { id: likedTrackIds[0] } });
+      if (favArtist) {
+        const similarTracks = await prisma.track.findMany({
+          take: 10,
+          where: {
+            id: { notIn: [...likedTrackIds, ...excludeIds] },
+            OR: [
+              { artist: { contains: favArtist.artist, mode: 'insensitive' } },
+              { genre: { equals: favArtist.genre || 'Other', mode: 'insensitive' } }
+            ]
+          }
+        });
+        if (similarTracks.length > 0) return NextResponse.json(similarTracks);
       }
     }
 
-    // === YOUTUBE MUSIC ===
-    if (/music\.youtube\.com\/playlist\?list=/.test(url)) {
-      return NextResponse.json({
-        error: 'YouTube Music: сервер в РФ, YouTube блокирует. Нужен прокси.'
-      }, { status: 400 });
+    // 5. Берем лайки от "похожих" пользователей, которых нет у текущего
+    const recommendations = await prisma.like.findMany({
+      where: {
+        userId: { in: similarUserIds },
+        trackId: { notIn: [...likedTrackIds, ...excludeIds] }
+      },
+      select: { trackId: true }
+    });
+
+    // Считаем частоту рекомендаций (чем больше людей лайкнули, тем выше)
+    const trackFrequency: Record<string, number> = {};
+    recommendations.forEach(r => {
+      trackFrequency[r.trackId] = (trackFrequency[r.trackId] || 0) + 1;
+    });
+
+    // Сортируем по популярности и берем топ-10
+    const sortedTrackIds = Object.keys(trackFrequency).sort((a, b) => trackFrequency[b] - trackFrequency[a]).slice(0, 10);
+
+    // 6. Достаем сами треки из базы
+    const recommendedTracks = await prisma.track.findMany({
+      where: { id: { in: sortedTrackIds } }
+    });
+
+    // Если алгоритм не сработал (мало данных), добиваем случайными
+    if (recommendedTracks.length < 5) {
+      const randomTracks = await prisma.track.findMany({
+        take: 10 - recommendedTracks.length,
+        where: { id: { notIn: [...likedTrackIds, ...excludeIds, ...recommendedTracks.map(t => t.id)] } },
+      });
+      return NextResponse.json([...recommendedTracks, ...randomTracks]);
     }
 
-    // === VK ===
-    if (/vk\.com\/(music|audio|playlist)/.test(url)) {
-      return NextResponse.json({
-        error: 'VK Музыка: API закрыт для новых приложений.'
-      }, { status: 400 });
-    }
-
-    return NextResponse.json({
-      error: 'Платформа не распознана. Работают: Яндекс.Музыка (ссылка или iframe), Spotify.'
-    }, { status: 400 });
-
-  } catch (error: any) {
-    console.error('[Parse Error]', error);
-    return NextResponse.json({ error: error.message || 'Ошибка парсинга' }, { status: 500 });
+    return NextResponse.json(recommendedTracks);
+  } catch (error) {
+    console.error('[Smart Recommendations Error]', error);
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

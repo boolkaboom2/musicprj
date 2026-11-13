@@ -269,62 +269,62 @@ export default function AdminPage() {
 
   return (
     <PageTransition>
-      <div className="p-4 md:p-8 relative">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-black text-[var(--text-base)] tracking-tight">Админ-панель</h1>
-          <div className="flex flex-wrap gap-2">
+      <div className="p-4 md:p-8 3xl:p-12 4xl:p-16 relative w-full max-w-[1600px] 3xl:max-w-[2200px] mx-auto">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8 3xl:mb-12">
+          <h1 className="text-2xl md:text-3xl 3xl:text-5xl font-black text-[var(--text-base)] tracking-tight">Админ-панель</h1>
+          <div className="flex flex-wrap gap-2 3xl:gap-3">
             <MotionLink 
               href="/admin/analytics" 
               whileTap={{ scale: 0.95 }}
-              className="bg-[var(--text-base)] text-[var(--bg-main)] hover:opacity-80 px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
+              className="bg-[var(--text-base)] text-[var(--bg-main)] hover:opacity-80 px-3 md:px-5 py-2 md:py-2.5 3xl:px-8 3xl:py-4 rounded-full text-xs md:text-sm 3xl:text-lg font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
             >
-              <BarChart3 size={14} className="md:w-[18px] md:h-[18px]" /> Дашборд
+              <BarChart3 size={14} className="md:w-[18px] md:h-[18px] 3xl:w-6 3xl:h-6" /> Дашборд
             </MotionLink>
             <MotionLink 
               href="/admin/users" 
               whileTap={{ scale: 0.95 }}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 3xl:px-8 3xl:py-4 rounded-full text-xs md:text-sm 3xl:text-lg font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
             >
-              <Users size={14} className="md:w-[18px] md:h-[18px]" /> Пользователи
+              <Users size={14} className="md:w-[18px] md:h-[18px] 3xl:w-6 3xl:h-6" /> Пользователи
             </MotionLink>
             <MotionLink 
               href="/admin/invites" 
               whileTap={{ scale: 0.95 }}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 3xl:px-8 3xl:py-4 rounded-full text-xs md:text-sm 3xl:text-lg font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
             >
-              <Key size={14} className="md:w-[18px] md:h-[18px]" /> Инвайты
+              <Key size={14} className="md:w-[18px] md:h-[18px] 3xl:w-6 3xl:h-6" /> Инвайты
             </MotionLink>
             <MotionLink 
               href="/admin/feedback" 
               whileTap={{ scale: 0.95 }}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 3xl:px-8 3xl:py-4 rounded-full text-xs md:text-sm 3xl:text-lg font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
             >
-              <MessageSquarePlus size={14} className="md:w-[18px] md:h-[18px]" /> Feedback
+              <MessageSquarePlus size={14} className="md:w-[18px] md:h-[18px] 3xl:w-6 3xl:h-6" /> Feedback
             </MotionLink>
             <motion.button 
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsImportModalOpen(true)} 
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 3xl:px-8 3xl:py-4 rounded-full text-xs md:text-sm 3xl:text-lg font-bold transition flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
             >
-              <ListMusic size={14} className="md:w-[18px] md:h-[18px]" /> Импорт
+              <ListMusic size={14} className="md:w-[18px] md:h-[18px] 3xl:w-6 3xl:h-6" /> Импорт
             </motion.button>
             <MotionLink 
               href="/admin/import" 
               whileTap={{ scale: 0.95 }}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold transition whitespace-nowrap"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] text-[var(--text-base)] px-3 md:px-5 py-2 md:py-2.5 3xl:px-8 3xl:py-4 rounded-full text-xs md:text-sm 3xl:text-lg font-bold transition whitespace-nowrap"
             >
               Массовый
             </MotionLink>
           </div>
         </div>
         
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-          <div className="w-full lg:w-1/2 flex flex-col gap-8">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 md:p-6 rounded-xl">
-              <h2 className="text-xl font-bold text-[var(--text-base)] mb-2 flex items-center gap-2">
-                <LinkIcon size={20} className="text-green-500" /> Импорт по ссылке
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 3xl:gap-20">
+          <div className="w-full lg:w-1/2 flex flex-col gap-8 3xl:gap-12">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 md:p-6 3xl:p-8 rounded-xl">
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--text-base)] mb-2 flex items-center gap-2">
+                <LinkIcon size={20} className="text-green-500 3xl:w-8 3xl:h-8" /> Импорт по ссылке
               </h2>
-              <p className="text-[var(--text-subdued)] text-sm mb-4">
+              <p className="text-[var(--text-subdued)] text-sm 3xl:text-base mb-4">
                 Вставьте прямую ссылку на MP3-файл (заканчивается на .mp3). Сервер скачает его и зальет в Telegram.
               </p>
               
@@ -334,13 +334,13 @@ export default function AdminPage() {
                   placeholder="https://example.com/music/track.mp3" 
                   value={directUrl} 
                   onChange={(e) => setDirectUrl(e.target.value)}
-                  className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm"
+                  className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm 3xl:text-base"
                 />
                 <motion.button 
                   whileTap={{ scale: 0.95 }}
                   onClick={handleDirectImport} 
                   disabled={isImportingDirect} 
-                  className="bg-green-500 text-black font-bold px-4 md:px-6 rounded-md hover:bg-green-400 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+                  className="bg-green-500 text-black font-bold px-4 md:px-6 3xl:px-8 3xl:py-4 3xl:text-lg rounded-md hover:bg-green-400 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
                 >
                   {isImportingDirect ? <Loader2 className="animate-spin" size={18} /> : "Загрузить"}
                 </motion.button>
@@ -348,12 +348,12 @@ export default function AdminPage() {
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-[var(--text-base)] mb-4">Ручное добавление</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--text-base)] mb-4">Ручное добавление</h2>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
                 <div className="flex gap-2 relative">
                   <input 
                     type="text" placeholder="Название трека" value={title} onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all"
+                    className="w-full bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm 3xl:text-base"
                   />
                   <motion.button 
                     whileTap={{ scale: 0.95 }}
@@ -365,10 +365,10 @@ export default function AdminPage() {
                     {isSearchingITunes ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
                   </motion.button>
                 </div>
-                <input type="text" placeholder="Исполнитель" value={artist} onChange={(e) => setArtist(e.target.value)} className="bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all" />
+                <input type="text" placeholder="Исполнитель" value={artist} onChange={(e) => setArtist(e.target.value)} className="bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm 3xl:text-base" />
                 <div className="flex gap-4">
-                  <input type="text" placeholder="Жанр" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-2/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all" />
-                  <input type="number" placeholder="Год" value={releaseYear} onChange={(e) => setReleaseYear(e.target.value)} className="w-1/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all" />
+                  <input type="text" placeholder="Жанр" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-2/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm 3xl:text-base" />
+                  <input type="number" placeholder="Год" value={releaseYear} onChange={(e) => setReleaseYear(e.target.value)} className="w-1/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] transition-all text-sm 3xl:text-base" />
                 </div>
                 
                 <div className="flex flex-col gap-2">
@@ -378,9 +378,9 @@ export default function AdminPage() {
                     type="button" 
                     onClick={() => audioInputRef.current?.click()} 
                     disabled={isUploadingAudio} 
-                    className={`flex items-center justify-between p-3 rounded-md border-2 transition-all duration-300 ${audioUrl ? "bg-green-500/10 border-green-500/50 text-green-500" : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}
+                    className={`flex items-center justify-between p-3 3xl:p-4 rounded-md border-2 transition-all duration-300 ${audioUrl ? "bg-green-500/10 border-green-500/50 text-green-500" : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}
                   >
-                    <span className="text-sm font-medium">{audioUrl ? `Аудио загружено (${formatTime(duration)})` : "Загрузить MP3"}</span>
+                    <span className="text-sm 3xl:text-base font-medium">{audioUrl ? `Аудио загружено (${formatTime(duration)})` : "Загрузить MP3"}</span>
                     {isUploadingAudio ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                   </motion.button>
                 </div>
@@ -391,16 +391,16 @@ export default function AdminPage() {
                     type="button" 
                     onClick={() => coverInputRef.current?.click()} 
                     disabled={isUploadingCover} 
-                    className={`flex items-center justify-between p-3 rounded-md border-2 transition-all duration-300 ${coverUrl ? "bg-green-500/10 border-green-500/50 text-green-500" : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}
+                    className={`flex items-center justify-between p-3 3xl:p-4 rounded-md border-2 transition-all duration-300 ${coverUrl ? "bg-green-500/10 border-green-500/50 text-green-500" : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-subdued)] hover:text-[var(--text-base)]"}`}
                   >
-                    <span className="text-sm font-medium">{coverUrl ? "Обложка загружена" : "Загрузить обложку (опционально)"}</span>
+                    <span className="text-sm 3xl:text-base font-medium">{coverUrl ? "Обложка загружена" : "Загрузить обложку (опционально)"}</span>
                     {isUploadingCover ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                   </motion.button>
                 </div>
                 <motion.button 
                   whileTap={{ scale: 0.95 }}
                   type="submit" 
-                  className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-3 rounded-md hover:opacity-80 transition-colors mt-2"
+                  className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-3 3xl:py-4 rounded-md hover:opacity-80 transition-colors mt-2 text-sm 3xl:text-base"
                 >
                   Добавить трек
                 </motion.button>
@@ -409,20 +409,20 @@ export default function AdminPage() {
           </div>
 
           <div className="w-full lg:w-1/2">
-            <h2 className="text-xl font-bold text-[var(--text-base)] mb-4">Все треки ({tracks.length})</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-[var(--text-base)] mb-4">Все треки ({tracks.length})</h2>
             {isLoading ? (
                <p className="text-[var(--text-subdued)] text-sm">Загрузка...</p>
             ) : (
               <ul className="flex flex-col gap-3">
                  {tracks.map(track => (
-                    <li key={track.id} className="bg-[var(--bg-card)] p-3 rounded-md flex items-center justify-between border border-[var(--border-color)] group">
+                    <li key={track.id} className="bg-[var(--bg-card)] p-3 3xl:p-4 rounded-md flex items-center justify-between border border-[var(--border-color)] group">
                       <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-                        <div className="w-12 h-12 bg-[var(--bg-main)] rounded overflow-hidden shrink-0 flex items-center justify-center">
+                        <div className="w-12 h-12 3xl:w-16 3xl:h-16 bg-[var(--bg-main)] rounded overflow-hidden shrink-0 flex items-center justify-center">
                           {track.coverUrl ? <img src={track.coverUrl.startsWith('http') ? track.coverUrl : `/api/stream/${track.coverUrl}`} alt={track.title} className="w-full h-full object-cover" /> : <Music size={20} className="text-[var(--text-subdued)]" />}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-[var(--text-base)] font-medium truncate">{track.title}</span>
-                          <span className="text-[var(--text-subdued)] text-sm truncate">{track.artist} {track.genre ? `• ${track.genre}` : ''} {track.releaseYear ? `• ${track.releaseYear}` : ''}</span>
+                          <span className="text-[var(--text-base)] font-medium truncate text-sm 3xl:text-lg">{track.title}</span>
+                          <span className="text-[var(--text-subdued)] text-xs 3xl:text-base truncate">{track.artist} {track.genre ? `• ${track.genre}` : ''} {track.releaseYear ? `• ${track.releaseYear}` : ''}</span>
                         </div>
                       </div>
                       
@@ -432,14 +432,14 @@ export default function AdminPage() {
                           onClick={() => openEdit(track)} 
                           className="text-[var(--text-subdued)] hover:text-[var(--text-base)] p-2 bg-[var(--bg-main)] rounded-md transition"
                         >
-                          <Edit size={16} />
+                          <Edit size={16} className="3xl:w-5 3xl:h-5" />
                         </motion.button>
                         <motion.button 
                           whileTap={{ scale: 0.9 }}
                           onClick={() => setDeletingId(track.id)} 
                           className="text-red-500 hover:text-red-400 p-2 bg-red-500/10 rounded-md transition"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={16} className="3xl:w-5 3xl:h-5" />
                         </motion.button>
                       </div>
                     </li>
@@ -452,16 +452,16 @@ export default function AdminPage() {
         {editingTrack && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
             <div className="absolute inset-0" onClick={() => setEditingTrack(null)} />
-            <div className="relative bg-[var(--bg-card)] w-full max-w-md rounded-2xl p-6 shadow-2xl border border-[var(--border-color)]">
-              <h2 className="text-xl font-bold text-[var(--text-base)] mb-4">Редактировать трек</h2>
+            <div className="relative bg-[var(--bg-card)] w-full max-w-md 3xl:max-w-xl rounded-2xl p-6 3xl:p-8 shadow-2xl border border-[var(--border-color)]">
+              <h2 className="text-xl 3xl:text-2xl font-bold text-[var(--text-base)] mb-4">Редактировать трек</h2>
               <form onSubmit={handleUpdate} className="flex flex-col gap-3">
-                <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Название" className="bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)]" />
-                <input type="text" value={editArtist} onChange={e => setEditArtist(e.target.value)} placeholder="Исполнитель" className="bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)]" />
+                <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Название" className="bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] text-sm 3xl:text-base" />
+                <input type="text" value={editArtist} onChange={e => setEditArtist(e.target.value)} placeholder="Исполнитель" className="bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] text-sm 3xl:text-base" />
                 <div className="flex gap-3">
-                  <input type="text" value={editGenre} onChange={e => setEditGenre(e.target.value)} placeholder="Жанр" className="w-2/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)]" />
-                  <input type="number" value={editYear} onChange={e => setEditYear(e.target.value)} placeholder="Год" className="w-1/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)]" />
+                  <input type="text" value={editGenre} onChange={e => setEditGenre(e.target.value)} placeholder="Жанр" className="w-2/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] text-sm 3xl:text-base" />
+                  <input type="number" value={editYear} onChange={e => setEditYear(e.target.value)} placeholder="Год" className="w-1/3 bg-[var(--bg-input)] text-[var(--text-base)] p-3 3xl:p-4 rounded-md outline-none border-2 border-[var(--border-color)] focus:border-[var(--text-subdued)] text-sm 3xl:text-base" />
                 </div>
-                <motion.button whileTap={{ scale: 0.95 }} type="submit" disabled={isUpdating} className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-3 rounded-md hover:opacity-80 transition mt-2 flex justify-center">
+                <motion.button whileTap={{ scale: 0.95 }} type="submit" disabled={isUpdating} className="bg-[var(--text-base)] text-[var(--bg-main)] font-bold py-3 3xl:py-4 rounded-md hover:opacity-80 transition mt-2 flex justify-center text-sm 3xl:text-base">
                   {isUpdating ? <Loader2 className="animate-spin" size={20} /> : "Сохранить изменения"}
                 </motion.button>
                 <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setEditingTrack(null)} className="text-sm text-[var(--text-subdued)] hover:text-[var(--text-base)] mt-1">Отмена</motion.button>
@@ -473,14 +473,14 @@ export default function AdminPage() {
         {deletingId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
             <div className="absolute inset-0" onClick={() => setDeletingId(null)} />
-            <div className="relative bg-[var(--bg-card)] w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-[var(--border-color)] flex flex-col items-center text-center">
-              <h2 className="text-xl font-bold text-[var(--text-base)] mb-2">Удалить трек?</h2>
-              <p className="text-[var(--text-subdued)] text-sm mb-6">Это действие нельзя отменить.</p>
+            <div className="relative bg-[var(--bg-card)] w-full max-w-sm 3xl:max-w-md rounded-2xl p-6 3xl:p-8 shadow-2xl border border-[var(--border-color)] flex flex-col items-center text-center">
+              <h2 className="text-xl 3xl:text-2xl font-bold text-[var(--text-base)] mb-2">Удалить трек?</h2>
+              <p className="text-[var(--text-subdued)] text-sm 3xl:text-base mb-6">Это действие нельзя отменить.</p>
               <div className="flex gap-3 w-full">
-                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingId(null)} className="flex-1 bg-[var(--bg-main)] text-[var(--text-base)] font-bold py-3 rounded-md hover:opacity-80 transition disabled:opacity-50" disabled={isDeleting}>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingId(null)} className="flex-1 bg-[var(--bg-main)] text-[var(--text-base)] font-bold py-3 3xl:py-4 rounded-md hover:opacity-80 transition disabled:opacity-50 text-sm 3xl:text-base" disabled={isDeleting}>
                   Отмена
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.95 }} onClick={handleDelete} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-md hover:bg-red-600 transition flex justify-center items-center" disabled={isDeleting}>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={handleDelete} className="flex-1 bg-red-500 text-white font-bold py-3 3xl:py-4 rounded-md hover:bg-red-600 transition flex justify-center items-center text-sm 3xl:text-base" disabled={isDeleting}>
                   {isDeleting ? <Loader2 className="animate-spin" size={20} /> : "Удалить"}
                 </motion.button>
               </div>

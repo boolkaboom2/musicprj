@@ -38,7 +38,7 @@ export default function TrackList({
   };
 
   return (
-    <div className="flex flex-col gap-1 md:gap-1 p-2 md:p-8">
+    <div className="flex flex-col gap-1 md:gap-1 p-2 md:p-8 3xl:p-12 4xl:p-16">
       {tracks.map((track, index) => {
         const isLiked = userLikes.includes(track.id);
         const isPinned = userPins.includes(track.id);
@@ -60,22 +60,23 @@ export default function TrackList({
               e.preventDefault();
               openTrackMenu(track, e.currentTarget.getBoundingClientRect());
             }}
-            className={`flex items-center gap-3 md:gap-4 p-2 md:p-2 rounded-md transition cursor-pointer group active:bg-[var(--bg-card)] md:active:bg-transparent ${
+            className={`flex items-center gap-3 md:gap-4 lg:gap-6 3xl:gap-8 p-2 md:p-3 lg:p-4 3xl:p-6 rounded-md transition cursor-pointer group active:bg-[var(--bg-card)] md:active:bg-transparent ${
               isMenuOpenForThisTrack ? "bg-[var(--bg-card)]" : "hover:bg-[var(--bg-card)]"
             }`}
           >
-            <div className={`hidden sm:flex w-6 justify-center items-center text-sm transition-colors ${
+            <div className={`hidden sm:flex w-6 lg:w-8 3xl:w-12 justify-center items-center text-sm lg:text-base 3xl:text-xl transition-colors ${
               isMenuOpenForThisTrack ? "text-[var(--text-base)]" : "text-[var(--text-subdued)] group-hover:text-[var(--text-base)]"
             }`}>
                <span className={isMenuOpenForThisTrack ? "hidden" : "group-hover:hidden"}>{index + 1}</span>
-               {isMenuOpenForThisTrack ? <IPlay size={12} /> : <IPlay size={12} className="hidden group-hover:block" />}
+               {isMenuOpenForThisTrack ? <IPlay size={16} /> : <IPlay size={16} className="hidden group-hover:block" />}
             </div>
 
-            <div className="w-14 h-14 md:w-12 md:h-12 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-subdued)]">
+            {/* УВЕЛИЧЕНИЕ ОБЛОЖЕК НА БОЛЬШИХ ЭКРАНАХ */}
+            <div className="w-14 h-14 md:w-12 md:h-12 lg:w-16 lg:h-16 2xl:w-20 2xl:h-20 3xl:w-24 3xl:h-24 4xl:w-28 4xl:h-28 bg-[var(--border-color)] rounded overflow-hidden shrink-0 flex items-center justify-center text-[var(--text-subdued)]">
               {track.coverUrl ? (
                 <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
               ) : (
-                <IMusic size={20} /> 
+                <IMusic size={32} /> 
               )}
             </div>
             
@@ -85,21 +86,21 @@ export default function TrackList({
                   href={`/track/${track.id}`} 
                   onClick={(e) => e.stopPropagation()}
                   onContextMenu={(e) => e.stopPropagation()}
-                  className="text-[var(--text-base)] font-medium truncate hover:underline w-fit text-base md:text-base"
+                  className="text-[var(--text-base)] font-medium truncate hover:underline w-fit text-base md:text-base lg:text-lg 2xl:text-xl 3xl:text-2xl 4xl:text-3xl"
                 >
                   {track.title}
                 </Link>
                 
                 {isPinned && (
                   <div className="hidden sm:flex items-center justify-center bg-[var(--bg-main)] p-1 rounded-full border border-[var(--border-color)]">
-                    <IPin size={12} className="text-[var(--text-base)] fill-current" />
+                    <IPin size={16} className="text-[var(--text-base)] fill-current" />
                   </div>
                 )}
               </div>
-              <span className="text-sm md:text-sm text-[var(--text-subdued)] truncate">{track.artist}</span>
+              <span className="text-sm md:text-sm lg:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl text-[var(--text-subdued)] truncate">{track.artist}</span>
             </div>
 
-            <div className={`transition-opacity flex items-center gap-1 md:gap-4 ${
+            <div className={`transition-opacity flex items-center gap-1 md:gap-4 3xl:gap-6 ${
               isMenuOpenForThisTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100 md:opacity-100 md:group-hover:opacity-100"
             }`}>
               <button 
@@ -109,14 +110,14 @@ export default function TrackList({
                 }}
                 className="text-[var(--text-subdued)] hover:text-[var(--text-base)] transition-colors p-1 md:p-0"
               >
-                <IMore size={20} />
+                <IMore size={28} />
               </button>
-              <div className="hidden md:block">
+              <div className="hidden md:block scale-100 3xl:scale-125">
                 <LikeButton trackId={track.id} initialIsLiked={isLiked} />
               </div>
             </div>
 
-            <span className="text-sm md:text-sm text-[var(--text-subdued)] w-10 md:w-12 text-right tabular-nums">
+            <span className="text-sm md:text-sm lg:text-base 2xl:text-lg 3xl:text-xl 4xl:text-2xl text-[var(--text-subdued)] w-10 md:w-12 3xl:w-16 text-right tabular-nums">
               {formatTime(track.duration)}
             </span>
           </motion.div>

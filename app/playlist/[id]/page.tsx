@@ -8,6 +8,7 @@ import PlaylistCoverUploader from "@/components/PlaylistCoverUploader";
 import PlaylistTrackList from "./PlaylistTrackList";
 import EditablePlaylistTitle from "./EditablePlaylistTitle";
 import DeletePlaylistButton from "@/components/DeletePlaylistButton";
+import SharePlaylistButton from "@/components/SharePlaylistButton"; // <--- ИМПОРТ
 import Loader from "@/components/Loader";
 
 export default function PlaylistPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,14 +60,14 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
 
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 p-4 md:p-8 bg-gradient-to-b from-[#2a2a2a] to-[#121212] pb-8 md:pb-12">
+      <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6 p-4 md:p-8 bg-gradient-to-b from-[var(--bg-card)] to-[var(--bg-main)] pb-8 md:pb-12 transition-colors duration-300">
         
         {isOwner ? (
           <div className="self-start md:self-end">
             <PlaylistCoverUploader playlistId={playlist.id} coverUrl={playlist.coverUrl} />
           </div>
         ) : (
-          <div className="w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 bg-[#282828] rounded-lg shadow-2xl shrink-0 overflow-hidden flex items-center justify-center self-start md:self-end">
+          <div className="w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-2xl shrink-0 overflow-hidden flex items-center justify-center self-start md:self-end">
             {playlist.coverUrl ? (
               <img 
                 src={playlist.coverUrl.startsWith('http') || playlist.coverUrl.startsWith('/') 
@@ -76,7 +77,7 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
                 className="w-full h-full object-cover" 
               />
             ) : (
-              <span className="text-white/20 text-5xl">♪</span>
+              <span className="text-[var(--text-subdued)] text-5xl">♪</span>
             )}
           </div>
         )}
@@ -98,13 +99,19 @@ async function PlaylistContent({ paramsPromise }: { paramsPromise: Promise<{ id:
           {isOwner && (
             <div className="flex flex-wrap gap-3 mt-2">
               <PlaylistPrivacyToggle playlistId={playlist.id} isPublic={playlist.isPublic} />
+              <SharePlaylistButton playlistId={playlist.id} /> {/* <--- ДОБАВЛЕНА КНОПКА */}
               <DeletePlaylistButton playlistId={playlist.id} />
+            </div>
+          )}
+          {!isOwner && (
+            <div className="flex flex-wrap gap-3 mt-2">
+              <SharePlaylistButton playlistId={playlist.id} /> {/* <--- ДЛЯ ГОСТЕЙ */}
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {tracks.length === 0 ? (
           <p className="p-4 md:p-8 text-[var(--text-subdued)]">В этом плейлисте пока нет треков.</p>
         ) : (

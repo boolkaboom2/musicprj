@@ -73,11 +73,11 @@ export default function FeedbackAdminPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-white flex items-center gap-2 mb-6 transition">
+      <Link href="/admin" className="text-[var(--text-subdued)] hover:text-[var(--text-base)] flex items-center gap-2 mb-6 transition">
         <ArrowLeft size={18} /> Назад в админку
       </Link>
 
-      <h1 className="text-2xl md:text-3xl font-black text-white mb-6">Обратная связь</h1>
+      <h1 className="text-2xl md:text-3xl font-black text-[var(--text-base)] mb-6">Обратная связь</h1>
 
       <div className="flex flex-wrap gap-2 mb-6">
         {(['ALL', 'NEW', 'IN_PROGRESS', 'RESOLVED'] as const).map(f => (
@@ -85,7 +85,7 @@ export default function FeedbackAdminPage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-full text-xs font-bold transition ${
-              filter === f ? 'bg-white text-black' : 'bg-white/10 text-white/70 hover:bg-white/20'
+              filter === f ? 'bg-[var(--text-base)] text-[var(--bg-main)]' : 'bg-[var(--bg-card)] text-[var(--text-subdued)] border border-[var(--border-color)] hover:bg-[var(--bg-main)]'
             }`}
           >
             {f === 'ALL' ? 'Все' : STATUS_LABELS[f].label} ({f === 'ALL' ? feedbacks.length : feedbacks.filter(x => x.status === f).length})
@@ -94,7 +94,7 @@ export default function FeedbackAdminPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-white"><Loader2 className="animate-spin" size={20} /> Загрузка...</div>
+        <div className="flex items-center gap-2 text-[var(--text-base)]"><Loader2 className="animate-spin" size={20} /> Загрузка...</div>
       ) : filtered.length === 0 ? (
         <p className="text-[var(--text-subdued)]">Сообщений нет.</p>
       ) : (
@@ -105,7 +105,7 @@ export default function FeedbackAdminPage() {
             const TypeIcon = typeInfo.icon;
             const StatusIcon = statusInfo.icon;
             return (
-              <div key={f.id} className="bg-[#121212] border border-white/5 rounded-xl p-4 flex flex-col gap-3">
+              <div key={f.id} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2 items-center justify-between">
                   <div className="flex flex-wrap gap-2 items-center">
                     <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded bg-${typeInfo.color}-500/10 text-${typeInfo.color}-400`}>
@@ -128,24 +128,24 @@ export default function FeedbackAdminPage() {
                   </button>
                 </div>
 
-                <p className="text-white text-sm whitespace-pre-wrap">{f.message}</p>
+                <p className="text-[var(--text-base)] text-sm whitespace-pre-wrap">{f.message}</p>
 
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--border-color)]">
                   <button
                     onClick={() => handleStatusChange(f.id, 'NEW')}
-                    className={`text-xs px-3 py-1.5 rounded transition ${f.status === 'NEW' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                    className={`text-xs px-3 py-1.5 rounded transition ${f.status === 'NEW' ? 'bg-blue-500/20 text-blue-500' : 'bg-[var(--bg-main)] text-[var(--text-subdued)] hover:bg-[var(--bg-card)]'}`}
                   >
                     Новое
                   </button>
                   <button
                     onClick={() => handleStatusChange(f.id, 'IN_PROGRESS')}
-                    className={`text-xs px-3 py-1.5 rounded transition ${f.status === 'IN_PROGRESS' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                    className={`text-xs px-3 py-1.5 rounded transition ${f.status === 'IN_PROGRESS' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-[var(--bg-main)] text-[var(--text-subdued)] hover:bg-[var(--bg-card)]'}`}
                   >
                     В работе
                   </button>
                   <button
                     onClick={() => handleStatusChange(f.id, 'RESOLVED')}
-                    className={`text-xs px-3 py-1.5 rounded transition flex items-center gap-1 ${f.status === 'RESOLVED' ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                    className={`text-xs px-3 py-1.5 rounded transition flex items-center gap-1 ${f.status === 'RESOLVED' ? 'bg-green-500/20 text-green-500' : 'bg-[var(--bg-main)] text-[var(--text-subdued)] hover:bg-[var(--bg-card)]'}`}
                   >
                     <Check size={12} /> Решено
                   </button>

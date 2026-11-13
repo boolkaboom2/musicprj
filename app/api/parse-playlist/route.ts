@@ -19,6 +19,7 @@ async function fetchYandex(url: string): Promise<any> {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': 'application/json',
+      'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621', // ПРИТВОРЯЕМСЯ ПРИЛОЖЕНИЕМ
     }
   });
   if (!res.ok) throw new Error(`Яндекс: ${res.status}`);
@@ -70,6 +71,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Вставьте ссылку' }, { status: 400 });
     }
 
+    // === ЯНДЕКС IFRAME (HTML-код) ===
+    const iframeMatch = url.match(/src="https:\/\/music\.yandex\.ru\/iframe\/playlist\/([a-zA-Z0-9.\-]+)"/);
+    if (iframeMatch) {
+      const id = iframeMatch[1];
+      console.log(`[Parse] Yandex iframe playlist ${id}`);
+      const result = await parseYandexPlaylist(id);
+      return NextResponse.json({ success: true, ...result });
+    }
+
     // === ЯНДЕКС ПЛЕЙЛИСТ ===
     const yandexPlaylistMatch = url.match(/music\.yandex\.ru\/playlists\/([a-zA-Z0-9.\-]+)/)
       || url.match(/music\.yandex\.ru\/users\/[^/]+\/playlists\/(\d+)/);
@@ -104,24 +114,22 @@ export async function POST(req: Request) {
 
     // === YOUTUBE MUSIC ===
     if (/music\.youtube\.com\/playlist\?list=/.test(url)) {
-      return NextResponse.json({
-        error: 'YouTube Music: сервер в РФ, YouTube блокирует. Нужен прокси (ЭТАП 11.5).'
-      }, { status: 400 });
+      return NextResponse.json({ error: 'YouTube Music: сервер в РФ, YouTube блокирует. Нужен прокси.' }, { status: 400 });
     }
 
     // === VK ===
     if (/vk\.com\/(music|audio|playlist)/.test(url)) {
-      return NextResponse.json({
-        error: 'VK Музыка: скоро. Сейчас работают Яндекс и Spotify.'
-      }, { status: 400 });
+      return NextResponse.json({ error: 'VK Музыка: API закрыт для новых приложений.' }, { status: 400 });
     }
 
-    return NextResponse.json({
-      error: 'Платформа не распознана. Работают: Яндекс.Музыка, Spotify.'
-    }, { status: 400 });
+    return NextResponse.json({ error: 'Платформа не распознана. Работают: Яндекс.Музыка (ссылка или iframe), Spotify.' }, { status: 400 });
 
   } catch (error: any) {
     console.error('[Parse Error]', error);
+    // Обработка ошибки 403 от Яндекса
+    if (error.message.includes('403')) {
+      return NextResponse.json({ error: 'Яндекс временно блокирует запросы. Попробуйте позже или используйте ссылку на плейлист (не альбом).' }, { status: 403 });
+    }
     return NextResponse.json({ error: error.message || 'Ошибка парсинга' }, { status: 500 });
   }
 }
