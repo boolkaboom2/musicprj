@@ -32,7 +32,7 @@ export default function Player() {
   
   const { quality, isEqualizerOn, isCrossfadeEnabled, volume, eqBass, eqMid, eqTreble, toggleMute, isMuted } = useSoundStore();
   const { openTrackMenu } = useTrackMenuStore();
-  const { isPlayerExpanded, setPlayerExpanded, isLyricsOpen, setLyricsOpen, isQueueOpen, setQueueOpen } = useUIStore();
+  const { isPlayerExpanded, setPlayerExpanded, isLyricsOpen, setLyricsOpen, isQueueOpen, setQueueOpen, isSidebarOpen } = useUIStore();
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const nextAudioRef = useRef<HTMLAudioElement>(null);
@@ -54,7 +54,6 @@ export default function Player() {
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isCrossfading, setIsCrossfading] = useState(false);
   
-  // Состояние для перетаскивания ползунка
   const [isDragging, setIsDragging] = useState(false);
 
   const hasScrobbledRef = useRef(false);
@@ -192,7 +191,6 @@ export default function Player() {
     return `${min}:${sec < 10 ? "0" : ""}${sec}`;
   };
 
-  // --- ОБРАБОТЧИКИ ПЕРЕТАСКИВАНИЯ ПОЛЗУНКА ---
   const updateSeek = (clientX: number, element: HTMLElement) => {
     if (audioRef.current && duration) {
       const rect = element.getBoundingClientRect();
@@ -433,7 +431,8 @@ export default function Player() {
         )}
       </AnimatePresence>
 
-      <footer className="relative bg-[var(--bg-card)] border-t border-[var(--border-color)] w-full shrink-0 z-50 transition-colors duration-300">
+      {/* ПРЯЧЕМ ПЛЕЕР, ЕСЛИ ОТКРЫТ САЙДБАР НА МОБИЛКЕ */}
+      <footer className={`relative bg-[var(--bg-card)] border-t border-[var(--border-color)] w-full shrink-0 z-50 transition-colors duration-300 ${isSidebarOpen ? 'hidden md:block' : 'block'}`}>
         <div className="md:hidden flex flex-col">
           <div onClick={() => activeTrack && setPlayerExpanded(true)} className="flex items-center gap-2 px-3 py-2.5 cursor-pointer active:bg-[var(--bg-main)] transition">
             <div className="w-12 h-12 bg-[var(--bg-main)] rounded-md overflow-hidden shrink-0 shadow-lg border border-[var(--border-color)]">

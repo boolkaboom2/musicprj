@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation"; // <--- ДОБАВИЛИ
 import { Download, X, Share } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,8 +9,14 @@ export default function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const pathname = usePathname();
+
+  // СКРЫВАЕМ НА СТРАНИЦАХ АВТОРИЗАЦИИ
+  const isAuthPage = ['/welcome', '/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
 
   useEffect(() => {
+    if (isAuthPage) return; // Если мы на странице логина, не показываем баннер
+
     const lastDismissed = localStorage.getItem('sadovod_pwa_dismissed');
     if (lastDismissed) {
       const daysSince = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
@@ -27,7 +34,6 @@ export default function InstallPWA() {
 
     const handler = (e: any) => {
       e.preventDefault();
-      // СОХРАНЯЕМ ПРОМПТ ГЛОБАЛЬНО, ЧТОБЫ ЕГО МОЖНО БЫЛО ВЫЗВАТЬ ИЗ НАСТРОЕК
       (window as any).deferredPrompt = e; 
       setDeferredPrompt(e);
       setIsVisible(true);
@@ -35,7 +41,7 @@ export default function InstallPWA() {
 
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [pathname, isAuthPage]);
 
   const handleInstall = async () => {
     if (isIOS) {
@@ -56,6 +62,8 @@ export default function InstallPWA() {
     setIsVisible(false);
     localStorage.setItem('sadovod_pwa_dismissed', Date.now().toString());
   };
+
+  if (isAuthPage) return null; // Двойная страховка
 
   return (
     <AnimatePresence>

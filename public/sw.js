@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sadovod-v5';
+const CACHE_NAME = 'sadovod-v6'; // <--- ОБНОВЛЕНО С v5 НА v6
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -26,7 +26,6 @@ self.addEventListener('fetch', (event) => {
         return response || fetch(event.request).then((res) => {
           const resClone = res.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            // Просто игнорируем ошибку, если места нет (не выводим в консоль)
             cache.put(event.request, resClone).catch(() => {});
           });
           return res;

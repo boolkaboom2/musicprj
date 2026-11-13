@@ -15,9 +15,9 @@ const DURATIONS = [
 ];
 
 export default function WelcomePage() {
-  const [step, setStep] = useState<"vinyl" | "welcome" | "pricing">("vinyl");
+  const [step, setStep] = useState<"vinyl" | "welcome" | "pricing">("welcome"); // Сразу на welcome, чтобы не было пустого экрана на мобилке
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false); // Новый стейт
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [durationIdx, setDurationIdx] = useState(2);
   const showToast = useToast((s) => s.show);
 
@@ -36,14 +36,13 @@ export default function WelcomePage() {
 
       <AnimatePresence mode="wait">
         
+        {/* ВИНИЛ ТОЛЬКО НА ДЕСКТОПЕ */}
         {step === "vinyl" && (
           <motion.div
             key="vinyl"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05, filter: "blur(8px)" }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.05, filter: "blur(8px)" }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 z-20"
+            className="absolute inset-0 z-20 hidden lg:block" // <--- СКРЫВАЕМ НА МОБИЛКАХ
           >
             <VinylScene onSpin={() => setStep("welcome")} />
           </motion.div>
@@ -52,9 +51,7 @@ export default function WelcomePage() {
         {step === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 text-center max-w-2xl mx-auto"
           >
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-4">
@@ -76,17 +73,11 @@ export default function WelcomePage() {
         {step === "pricing" && (
           <motion.div
             key="pricing"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 w-full max-w-4xl mx-auto"
           >
             <div className="text-center mb-12">
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: 0.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-bold text-xs uppercase tracking-widest mb-6"
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-bold text-xs uppercase tracking-widest mb-6">
                 <Crown size={16} /> Подписка
               </motion.div>
               <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-4">
@@ -101,17 +92,9 @@ export default function WelcomePage() {
               
               <div className="flex bg-[#121212] p-1.5 rounded-2xl relative mb-8 border border-white/5">
                 {DURATIONS.map((d, idx) => (
-                  <button
-                    key={d.months}
-                    onClick={() => setDurationIdx(idx)}
-                    className={`flex-1 relative py-3 text-sm font-bold transition-colors ${durationIdx === idx ? 'text-black' : 'text-white/50 hover:text-white'}`}
-                  >
+                  <button key={d.months} onClick={() => setDurationIdx(idx)} className={`flex-1 relative py-3 text-sm font-bold transition-colors ${durationIdx === idx ? 'text-black' : 'text-white/50 hover:text-white'}`}>
                     {durationIdx === idx && (
-                      <motion.div 
-                        layoutId="active-duration"
-                        className="absolute inset-0 bg-white rounded-xl shadow-lg"
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      />
+                      <motion.div layoutId="active-duration" className="absolute inset-0 bg-white rounded-xl shadow-lg" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                     )}
                     <span className="relative z-10">{d.label}</span>
                   </button>
@@ -123,24 +106,14 @@ export default function WelcomePage() {
                   <p className="text-white/40 text-sm font-bold uppercase tracking-wider mb-1">Итого к оплате</p>
                   <div className="flex items-baseline gap-2">
                     <AnimatePresence mode="popLayout">
-                      <motion.span
-                        key={durationIdx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="text-5xl font-black text-white tracking-tighter"
-                      >
+                      <motion.span key={durationIdx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-5xl font-black text-white tracking-tighter">
                         {DURATIONS[durationIdx].price} ₽
                       </motion.span>
                     </AnimatePresence>
                   </div>
                 </div>
                 {DURATIONS[durationIdx].discount && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-green-500/20 text-green-400 text-xs font-bold px-3 py-1.5 rounded-full border border-green-500/30"
-                  >
+                  <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="bg-green-500/20 text-green-400 text-xs font-bold px-3 py-1.5 rounded-full border border-green-500/30">
                     {DURATIONS[durationIdx].discount}
                   </motion.div>
                 )}
@@ -153,13 +126,7 @@ export default function WelcomePage() {
                   { icon: ShieldCheck, text: "Свои обложки для плейлистов" },
                   { icon: Crown, text: "Эксклюзивный доступ к новым фичам" },
                 ].map((feature, i) => (
-                  <motion.li 
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + i * 0.1 }}
-                    className="flex items-center gap-3 text-sm font-medium text-white/80"
-                  >
+                  <motion.li key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.1 }} className="flex items-center gap-3 text-sm font-medium text-white/80">
                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
                       <feature.icon size={16} className="text-white" />
                     </div>
@@ -168,32 +135,17 @@ export default function WelcomePage() {
                 ))}
               </ul>
 
-              <button
-                onClick={handleSubscribe}
-                className="w-full bg-white text-black font-black uppercase tracking-wider text-sm py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-              >
+              <button onClick={handleSubscribe} className="w-full bg-white text-black font-black uppercase tracking-wider text-sm py-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                 Оформить подписку
               </button>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 mt-8">
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                onClick={() => setIsInviteOpen(true)}
-                className="text-sm font-bold text-[var(--text-subdued)] hover:text-white transition-colors border-b border-transparent hover:border-white pb-1"
-              >
+              <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} onClick={() => setIsInviteOpen(true)} className="text-sm font-bold text-[var(--text-subdued)] hover:text-white transition-colors border-b border-transparent hover:border-white pb-1">
                 Я уже знаком(а) — Ввести инвайт-код
               </motion.button>
 
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                onClick={() => setIsAdminModalOpen(true)}
-                className="text-sm font-bold text-red-500/50 hover:text-red-500 transition-colors flex items-center justify-center gap-1"
-              >
+              <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} onClick={() => setIsAdminModalOpen(true)} className="text-sm font-bold text-red-500/50 hover:text-red-500 transition-colors flex items-center justify-center gap-1">
                 <ShieldAlert size={14} /> Для администрации
               </motion.button>
             </div>
