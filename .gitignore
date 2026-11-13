@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+ffmpeg.exe
+yt-dlp.exe
+ffmpeg
+yt-dlp
+*.exe
+*.deb
