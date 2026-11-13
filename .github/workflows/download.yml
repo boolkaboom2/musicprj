@@ -1,0 +1,40 @@
+name: Download Track
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Artist - Title'
+        required: true
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg curl jq
+          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          chmod a+rx /usr/local/bin/yt-dlp
+
+      - name: Download Audio
+        run: |
+          yt-dlp -x --audio-format mp3 -o "track.mp3" "scsearch1:${{ github.event.inputs.query }}"
+
+      - name: Upload to Telegram
+        id: tg_upload
+        run: |
+          RESPONSE=$(curl -s -F "chat_id=${{ secrets.TELEGRAM_CHANNEL_ID }}" -F "audio=@track.mp3" "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendAudio")
+          FILE_ID=$(echo $RESPONSE | jq -r '.result.audio.file_id')
+          echo "FILE_ID=$FILE_ID" >> $GITHUB_OUTPUT
+
+      - name: Save to Database
+        run: |
+          QUERY="${{ github.event.inputs.query }}"
+          ARTIST=$(echo "$QUERY" | cut -d'-' -f1 | xargs)
+          TITLE=$(echo "$QUERY" | cut -d'-' -f2 | xargs)
+          
+          curl -X POST "${{ secrets.SERVER_URL }}/api/admin/save-track" \
+            -H "Content-Type: application/json" \
+            -H "x-api-secret: ${{ secrets.SERVER_API_SECRET }}" \
+            -d "{\"title\": \"$TITLE\", \"artist\": \"$ARTIST\", \"fileId\": \"${{ steps.tg_upload.outputs.FILE_ID }}\"}"

@@ -1,10 +1,9 @@
-import 'dotenv/config'; // АВТОМАТИЧЕСКИ ЧИТАЕТ .env ИЗ КОРНЯ ПРОЕКТА
-import { execSync } from 'child_process';
+import 'dotenv/config';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 
-// БЕРЕМ ТОКЕНЫ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
 
@@ -24,27 +23,44 @@ async function downloadAndUpload(query: string) {
   console.log(`\n[PC Worker] Ищем и качаем: ${query}`);
   
   const tempFile = path.join(process.cwd(), 'temp_track.mp3');
+  const ytDlpPath = path.join(process.cwd(), 'yt-dlp.exe');
+  const ffmpegPath = path.join(process.cwd(), 'ffmpeg.exe');
   
+  // Проверяем наличие файлов
+  if (!fs.existsSync(ytDlpPath)) {
+    console.log(`❌ ОШИБКА: Файл yt-dlp.exe не найден в папке ${process.cwd()}`);
+    return;
+  }
+  if (!fs.existsSync(ffmpegPath)) {
+    console.log(`❌ ОШИБКА: Файл ffmpeg.exe не найден в папке ${process.cwd()}`);
+    return;
+  }
+
   try {
-    // yt-dlp.exe должен лежать в корне проекта
-    execSync(`yt-dlp.exe -x --audio-format mp3 -o "${tempFile}" "scsearch1:${query}"`, { stdio: 'inherit' });
+    console.log(`[PC Worker] Запускаем yt-dlp...`);
+    // Используем execFileSync и передаем аргументы массивом
+    execFileSync(ytDlpPath, [
+      '-x', 
+      '--audio-format', 'mp3', 
+      '--ffmpeg-location', ffmpegPath, 
+      '-o', tempFile, 
+      `scsearch1:${query}`
+    ], { stdio: 'inherit' });
     
     if (!fs.existsSync(tempFile)) {
-      console.log('❌ Не удалось скачать файл.');
+      console.log('❌ Не удалось скачать файл (yt-dlp завершился с ошибкой).');
       return;
     }
 
-    console.log(`[PC Worker] Файл скачан. Отправляем в Telegram...`);
+    console.log(`\n[PC Worker] Файл скачан. Отправляем в Telegram...`);
 
     const formData = new FormData();
-    // ВОСКЛИЦАТЕЛЬНЫЙ ЗНАК РЕШАЕТ ПРОБЛЕМУ С ТИПОМ
     formData.append('chat_id', TELEGRAM_CHANNEL_ID!);
     
     const buffer = fs.readFileSync(tempFile);
     const blob = new Blob([buffer], { type: 'audio/mpeg' });
     formData.append('audio', blob, `${query}.mp3`);
 
-    // ВОСКЛИЦАТЕЛЬНЫЙ ЗНАК РЕШАЕТ ПРОБЛЕМУ С ТИПОМ
     const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN!}/sendAudio`, {
       method: 'POST',
       body: formData
@@ -59,7 +75,6 @@ async function downloadAndUpload(query: string) {
     const fileId = tgData.result.audio.file_id;
     console.log(`✅ Загружено в TG! file_id: ${fileId}`);
 
-    // Отправляем на сервер
     console.log(`[PC Worker] Сохраняем в базу...`);
     const serverRes = await fetch(`${SERVER_URL}/api/admin/save-track`, {
       method: 'POST',
@@ -74,11 +89,11 @@ async function downloadAndUpload(query: string) {
     if (serverRes.ok) {
       console.log('✅ Трек успешно добавлен в базу!');
     } else {
-      console.log('❌ Ошибка сохранения на сервере');
+      console.log('❌ Ошибка сохранения на сервере:', await serverRes.text());
     }
 
   } catch (e: any) {
-    console.error('❌ Ошибка:', e.message);
+    console.error('❌ Ошибка выполнения:', e.message);
   } finally {
     if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
   }
