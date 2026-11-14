@@ -41,12 +41,15 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
         
         const mp3Regex = /https?:\/\/[^"'\s]+\.mp3/gi;
         const downloadRegex = /href="([^"]+download[^"]+)"/gi;
+        // Ищем обложку в мета-тегах
+        const coverRegex = /<meta property="og:image" content="([^"]+)" \/>/i;
         
         const mp3Matches = html.match(mp3Regex);
         const downloadMatches = [...html.matchAll(downloadRegex)];
+        const coverMatch = html.match(coverRegex);
 
-        // ИСПРАВЛЕНИЕ ТУТ: Явно указываем тип string | null
         let finalUrl: string | null = null;
+        const coverUrl: string | null = coverMatch ? coverMatch[1] : null;
 
         if (mp3Matches && mp3Matches.length > 0) {
              const validMp3 = mp3Matches.find(url => !url.includes('preview') && !url.includes('cover'));
@@ -55,7 +58,6 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
         
         if (!finalUrl && downloadMatches.length > 0) {
              finalUrl = downloadMatches[0][1];
-             // ИСПРАВЛЕНИЕ ТУТ: Проверяем на null перед startsWith
              if (finalUrl && finalUrl.startsWith('/')) {
                  finalUrl = domain + finalUrl;
              }
@@ -67,7 +69,7 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
             title: query.split('-')[1]?.trim() || query,
             artist: query.split('-')[0]?.trim() || 'Unknown',
             url: finalUrl,
-            coverUrl: null,
+            coverUrl: coverUrl, // <-- ВОЗВРАЩАЕМ ОБЛОЖКУ
           };
         }
 

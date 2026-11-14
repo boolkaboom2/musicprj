@@ -17,7 +17,6 @@ function generateHash(title: string, artist: string): string {
   return createHash('md5').update(normalized).digest('hex');
 }
 
-// ДОБАВЛЕН EXPORT
 export async function enrichMetadata(baseTitle: string, baseArtist: string, fallbackCover: string | null): Promise<MetaData> {
   let result: MetaData = {
     title: baseTitle,
@@ -69,26 +68,6 @@ export async function enrichMetadata(baseTitle: string, baseArtist: string, fall
     }
   } catch (e) {}
 
-  const lastfmKey = process.env.LASTFM_API_KEY;
-  if (lastfmKey) {
-    try {
-      const lastfmRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key=${lastfmKey}&artist=${encodeURIComponent(baseArtist)}&track=${encodeURIComponent(cleanTitleForSearch)}&format=json`);
-      const lastfmData = await lastfmRes.json();
-      
-      if (lastfmData.track) {
-        result.title = lastfmData.track.name || baseTitle;
-        result.artist = lastfmData.track.artist.name || baseArtist;
-        if (lastfmData.track.album?.image) {
-          result.coverUrl = lastfmData.track.album.image[3]['#text'] || fallbackCover;
-        }
-        const tags = lastfmData.track.toptags?.tag;
-        if (tags && tags.length > 0) {
-          result.genre = tags[0].name;
-        }
-      }
-    } catch (e) {}
-  }
-
   return result;
 }
 
@@ -97,7 +76,7 @@ export async function downloadAndSaveTrack(query: string) {
   const track = await searchHitmoz(query);
   
   if (!track) {
-    throw new Error('Трек не найден в сети (Hitmoz заблокирован)');
+    throw new Error('Трек не найден в сети');
   }
 
   const trackHash = generateHash(track.title, track.artist);
@@ -116,6 +95,10 @@ export async function downloadAndSaveTrack(query: string) {
     return { success: true, track: existing, skipped: true };
   }
 
+  // 1. ОБОГАЩАЕМ МЕТАДАННЫЕ
+  console.log(`[Downloader] Обогащаем метаданные...`);
+  const meta = await enrichMetadata(track.title, track.artist, track.coverUrl);
+
   console.log(`[Downloader] Скачиваем: ${track.url}`);
   const audioRes = await fetch(track.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   if (!audioRes.ok) throw new Error('Не удалось скачать файл');
@@ -132,18 +115,31 @@ export async function downloadAndSaveTrack(query: string) {
   tgFormData.append('chat_id', chatId!);
   tgFormData.append('audio', blob, fileName);
 
+  // 2. ПРИКРЕПЛЯЕМ ОБЛОЖКУ К АУДИО (Чтобы в ТГ было красиво)
+  if (meta.coverUrl) {
+    try {
+      const coverRes = await fetch(meta.coverUrl);
+      const coverBuffer = await coverRes.arrayBuffer();
+      const coverBlob = new Blob([coverBuffer], { type: 'image/jpeg' });
+      tgFormData.append('thumb', coverBlob, 'cover.jpg');
+    } catch (e) {
+      console.log(`[Downloader] Не удалось скачать обложку для TG`);
+    }
+  }
+
   const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendAudio`, { method: 'POST', body: tgFormData });
   const tgData = await tgRes.json();
   if (!tgData.ok) throw new Error('Ошибка загрузки в Telegram');
 
+  // 3. СОХРАНЯЕМ В БАЗУ С ОБЛОЖКОЙ
   const newTrack = await prisma.track.create({
     data: {
-      title: track.title,
-      artist: track.artist,
-      genre: 'Other',
-      coverUrl: track.coverUrl,
-      duration: 0,
-      releaseYear: null,
+      title: meta.title,
+      artist: meta.artist,
+      genre: meta.genre || 'Other',
+      coverUrl: meta.coverUrl, // <-- Сохраняем обложку в БД
+      duration: meta.duration,
+      releaseYear: meta.releaseYear,
       audioUrl: tgData.result.audio.file_id,
       hash: trackHash,
     },

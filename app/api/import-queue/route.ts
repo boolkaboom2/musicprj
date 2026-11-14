@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/auth';
 import { randomUUID, createHash } from 'crypto';
 
 function generateHash(title: string, artist: string): string {
@@ -9,12 +11,30 @@ function generateHash(title: string, artist: string): string {
 
 export async function POST(req: Request) {
   try {
+    // 1. Проверяем, откуда пришел запрос: от бота или от сайта
     const apiSecret = req.headers.get('x-api-secret');
-    if (apiSecret !== process.env.SERVER_API_SECRET) {
-       return NextResponse.json({ error: 'Доступ запрещён' }, { status: 401 });
+    const isBot = apiSecret === process.env.SERVER_API_SECRET;
+
+    let userId: string | null = null;
+
+    if (isBot) {
+      // Если бот — берем первого админа
+      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+      if (!admin) return NextResponse.json({ error: 'Админ не найден' }, { status: 500 });
+      userId = admin.id;
+    } else {
+      // Если сайт — проверяем куки браузера
+      const cookieStore = await cookies();
+      const token = cookieStore.get('auth_token')?.value;
+      const payload = token ? await verifyToken(token) : null;
+
+      if (!payload?.userId) {
+        return NextResponse.json({ error: 'Не авторизован. Войдите в аккаунт.' }, { status: 401 });
+      }
+      userId = payload.userId;
     }
 
-    // --- ЛОГИКА ВОЗОБНОВЛЕНИЯ (RESUME) ---
+    // 2. Логика возобновления (RESUME)
     const resumeBatchId = req.headers.get('x-resume-batch-id');
     if (resumeBatchId) {
       await prisma.importTask.updateMany({
@@ -24,10 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, batchId: resumeBatchId, resumed: true });
     }
 
-    // --- СОЗДАНИЕ НОВОГО ИМПОРТА ---
-    const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-    if (!admin) return NextResponse.json({ error: 'Админ не найден' }, { status: 500 });
-
+    // 3. Создание нового импорта
     const { tracks } = await req.json();
     if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
       return NextResponse.json({ error: 'Нет треков' }, { status: 400 });
@@ -44,7 +61,6 @@ export async function POST(req: Request) {
     const newTracksToImport = tracks.filter((t: any) => !existingHashes.has(generateHash(t.title, t.artist)));
     const skippedCount = tracks.length - newTracksToImport.length;
 
-    // Если все треки уже есть, не создаем задачи
     if (newTracksToImport.length === 0) {
       return NextResponse.json({ 
         success: true, 
@@ -58,7 +74,7 @@ export async function POST(req: Request) {
     await prisma.importTask.createMany({
       data: newTracksToImport.map((t: any) => ({
         batchId,
-        userId: admin.id,
+        userId: userId!,
         title: t.title,
         artist: t.artist,
       }))
