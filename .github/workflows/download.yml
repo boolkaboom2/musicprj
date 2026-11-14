@@ -19,7 +19,8 @@ jobs:
 
       - name: Download Audio
         run: |
-          yt-dlp -x --audio-format mp3 -o "track.mp3" "scsearch1:${{ github.event.inputs.query }}"
+          # Меняем SoundCloud (scsearch1) на YouTube (ytsearch1), так как SoundCloud закрыл доступ через DRM
+          yt-dlp -x --audio-format mp3 -o "track.mp3" "ytsearch1:${{ github.event.inputs.query }}"
 
       - name: Upload to Telegram
         id: tg_upload
@@ -30,7 +31,6 @@ jobs:
 
       - name: Save to Database
         run: |
-          # ФЛАГ -f ЗАСТАВИТ CURL УПАСТЬ, ЕСЛИ СЕРВЕР ВЕРНЕТ 4XX ИЛИ 5XX
           curl -f -X POST "${{ secrets.SERVER_URL }}/api/admin/save-track" \
             -H "Content-Type: application/json" \
             -H "x-api-secret: ${{ secrets.SERVER_API_SECRET }}" \

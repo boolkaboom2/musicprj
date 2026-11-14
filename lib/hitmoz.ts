@@ -12,22 +12,18 @@ const HEADERS = {
 };
 
 export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
-  const originalUrl = `https://eu.hitmoz.com/search?q=${encodeURIComponent(query)}`;
-  
-  // 1. Прямой запрос (вдруг прокатит)
-  // 2. Старый прокси
-  // 3. Новый прокси codetabs (самый надежный сейчас)
-  const urls = [
-    originalUrl, 
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(originalUrl)}`
+  // Пробуем новые домены
+  const domains = [
+    'https://rus.hitmos.fm',
+    'https://cdn.hitmotop.com'
   ];
 
-  for (const targetUrl of urls) {
+  for (const domain of domains) {
     try {
-      console.log(`[Hitmoz] Пробуем: ${targetUrl.split('?')[0]}`);
+      const url = `${domain}/search?q=${encodeURIComponent(query)}`;
+      console.log(`[Hitmoz] Пробуем домен: ${domain}`);
       
-      const res = await fetch(targetUrl, { 
+      const res = await fetch(url, { 
         headers: HEADERS, 
         signal: AbortSignal.timeout(15000) 
       });
@@ -38,18 +34,11 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       }
 
       const html = await res.text();
-      
-      // Если прокси вернул заглушку вместо HTML
-      if (html.includes('<!DOCTYPE html>') && !html.includes('data-musmeta')) {
-           console.log('[Hitmoz] Получен HTML без метаданных');
-           continue;
-      }
-
       const metaRegex = /data-musmeta='([^']+)'/;
       const match = html.match(metaRegex);
 
       if (!match || !match[1]) {
-        console.log('[Hitmoz] Трек не найден в HTML');
+        console.log(`[Hitmoz] Трек не найден в HTML на ${domain}`);
         continue;
       }
 
@@ -69,9 +58,7 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       if (!meta.url || !meta.artist || !meta.title) continue;
 
       let finalUrl = meta.url;
-      if (finalUrl.startsWith('/')) {
-        finalUrl = `https://eu.hitmoz.com${finalUrl}`;
-      }
+      if (finalUrl.startsWith('/')) finalUrl = `${domain}${finalUrl}`;
 
       console.log(`[Hitmoz] УСПЕХ! Найден: ${meta.artist} - ${meta.title}`);
       return {
@@ -82,10 +69,10 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
       };
 
     } catch (e: any) {
-      console.log(`[Hitmoz] Ошибка запроса: ${e.message}`);
+      console.log(`[Hitmoz] Ошибка запроса на ${domain}: ${e.message}`);
     }
   }
 
-  console.log('[Hitmoz] Все попытки провалились');
+  console.log('[Hitmoz] Все домены провалились');
   return null;
 }

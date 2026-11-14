@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { proxyFetch } from '@/lib/proxyFetch';
 
 type ParsedTrack = {
   id: string;
@@ -13,43 +14,45 @@ type ParseResult = {
   tracks: ParsedTrack[];
 };
 
-async function fetchWithProxy(url: string): Promise<any> {
-  // 1. Пробуем AllOrigins
-  const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+async function fetchYandex(url: string): Promise<any> {
   try {
-    const res = await fetch(allOriginsUrl, {
+    // Пробуем через WARP (обход блокировки IP)
+    console.log(`[Yandex] Запрос через WARP: ${url}`);
+    const res = await proxyFetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json',
         'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621',
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(10000),
     });
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
-  } catch (e) {
-    console.log('[Proxy] AllOrigins не ответил');
+    
+    if (res.ok) return await res.json();
+  } catch (e: any) {
+    console.log(`[Yandex] WARP не сработал: ${e.message}`);
   }
 
-  // 2. Пробуем Codetabs
-  const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+  // Если WARP упал, пробуем напрямую
   try {
-    const res = await fetch(codetabsUrl, { signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
-  } catch (e) {
-    console.log('[Proxy] Codetabs не ответил');
+    console.log(`[Yandex] Запрос напрямую: ${url}`);
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    
+    if (res.ok) return await res.json();
+    throw new Error(`Статус ${res.status}`);
+  } catch (e: any) {
+    throw new Error(`Яндекс недоступен даже через WARP. Ошибка: ${e.message}`);
   }
-
-  throw new Error(`Яндекс недоступен даже через прокси.`);
 }
 
 async function parseYandexPlaylist(id: string): Promise<ParseResult> {
-  const data = await fetchWithProxy(`https://api.music.yandex.net/playlist/${id}`);
+  const data = await fetchYandex(`https://api.music.yandex.net/playlist/${id}`);
   const rawTracks = data.result?.tracks || [];
   const playlistTitle = data.result?.title || 'Плейлист';
 
@@ -68,7 +71,7 @@ async function parseYandexPlaylist(id: string): Promise<ParseResult> {
 }
 
 async function parseYandexAlbum(id: string): Promise<ParseResult> {
-  const data = await fetchWithProxy(`https://api.music.yandex.net/albums/${id}/with-tracks`);
+  const data = await fetchYandex(`https://api.music.yandex.net/albums/${id}/with-tracks`);
   const volumes = data.result?.volumes || [];
   const rawTracks = volumes.flat();
   const albumTitle = data.result?.title || 'Альбом';
