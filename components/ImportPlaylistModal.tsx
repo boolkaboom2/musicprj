@@ -63,8 +63,10 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
   const handleParseText = () => {
     if (!text.trim()) return;
 
+    let textToParse = text;
+    
     // Разбиваем текст по строкам, ищем формат "Artist - Title"
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.includes(' - '));
+    const lines = textToParse.split('\n').map(l => l.trim()).filter(l => l.includes(' - '));
     
     if (lines.length === 0) {
       showToast("Не нашел ни одного трека в формате 'Исполнитель - Название'", "error");
@@ -209,14 +211,21 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
             ) : tracks.length === 0 ? (
               <div className="flex flex-col gap-6 items-center py-6 sm:py-10">
                 
+                {/* ОБНОВЛЕННАЯ ССЫЛКА НА БОТА */}
                 <a 
-                  href="https://t.me/sadovod_parser_bot" 
+                  href="https://t.me/yamusic_export_bot" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="w-full bg-[#2AABEE]/10 border border-[#2AABEE]/30 text-[#2AABEE] font-bold py-4 rounded-xl hover:bg-[#2AABEE]/20 transition flex justify-center items-center gap-2"
                 >
-                  <Send size={18} /> Спарсить через Telegram-бота
+                  <Send size={18} /> Экспорт из Яндекс.Музыки (Бот)
                 </a>
+
+                <div className="w-full flex items-center gap-4 my-2">
+                  <div className="h-px bg-[var(--border-color)] flex-1" />
+                  <span className="text-xs text-[var(--text-subdued)] uppercase tracking-wider font-bold">или вручную</span>
+                  <div className="h-px bg-[var(--border-color)] flex-1" />
+                </div>
 
                 <div className="flex bg-[var(--bg-main)] p-1 rounded-full relative w-full max-w-[320px] border border-[var(--border-color)]">
                   <motion.div 
@@ -235,7 +244,7 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
                 <div className="w-full relative">
                   {inputMode === 'text' ? (
                     <textarea 
-                      placeholder="Вставьте список треков:\nИсполнитель - Название\nИсполнитель - Название" 
+                      placeholder="Вставьте список треков из бота:\nИсполнитель - Название\nИсполнитель - Название" 
                       value={text} 
                       onChange={(e) => setText(e.target.value)} 
                       rows={8} 
