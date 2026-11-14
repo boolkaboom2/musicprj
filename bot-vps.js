@@ -5,51 +5,64 @@ const axios = require('axios');
 const TOKEN = process.env.PARSER_BOT_TOKEN; 
 const SERVER_URL = 'https://178.236.242.110.nip.io';
 const API_SECRET = process.env.SERVER_API_SECRET;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-if (!TOKEN || !API_SECRET || !GITHUB_TOKEN) {
-  console.error('❌ ОШИБКА: В .env нет PARSER_BOT_TOKEN, SERVER_API_SECRET или GITHUB_TOKEN!');
+if (!TOKEN || !API_SECRET) {
+  console.error('❌ ОШИБКА: В .env нет PARSER_BOT_TOKEN или SERVER_API_SECRET!');
   process.exit(1);
 }
 
 const bot = new Telegraf(TOKEN.trim());
-console.log('🤖 Серверный бот-парсер (через GitHub) запущен.');
+console.log('🤖 Серверный бот-парсер (Текст + Ссылки) запущен.');
 
 bot.start((ctx) => {
-  return ctx.replyWithHTML(`<b>Привет!</b> 👋\n\nКидай ссылку на плейлист (Яндекс, Spotify, YouTube).\nПарсинг происходит через GitHub (обход блокировок), это займет 1-2 минуты.`);
+  return ctx.replyWithHTML(`<b>Привет!</b> 👋\n\nЯ принимаю:</b>\n\n1. <b>Ссылки</b> на плейлисты (Spotify, YouTube).\n2. <b>Текстовые списки</b> треков в формате <code>Исполнитель - Название</code>.\n\n<i>Просто отправь текст или ссылку сюда.</i>`);
 });
 
+// Обработка текста (списков треков)
 bot.on('text', async (ctx) => {
   const text = ctx.message.text;
   const chatId = ctx.chat.id;
-  if (!text.startsWith('http')) return;
+  
+  // Если это ссылка — игнорируем здесь, пусть обрабатывает другой хендлер
+  if (text.startsWith('http')) return; 
 
-  const statusMsg = await ctx.replyWithHTML('⏳ <i>Отправляю ссылку на парсинг в GitHub...</i>');
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.includes(' - '));
+
+  if (lines.length === 0) {
+    return ctx.reply('⚠️ Не нашел ни одного трека в формате "Исполнитель - Название".');
+  }
+
+  const statusMsg = await ctx.replyWithHTML(`⏳ <i>Найдено ${lines.length} строк. Отправляю на сервер...</i>`);
 
   try {
-    // Отправляем команду в GitHub Actions
-    await axios.post(`https://api.github.com/repos/boolkaboom2/musicprj/actions/workflows/parse-playlist.yml/dispatches`, {
-      ref: 'main',
-      inputs: {
-        url: text,
-        secret: API_SECRET
-      }
-    }, {
-      headers: {
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      }
+    const tracks = lines.map(line => {
+      const [artist, ...titleParts] = line.split(' - ');
+      return {
+        artist: artist.trim(),
+        title: titleParts.join(' - ').trim()
+      };
     });
 
-    await ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, 
-      `✅ <b>Ссылка отправлена в GitHub!</b>\n\n<i>Парсинг займет около 30-60 секунд. Как только GitHub закончит, треки автоматически попадут в очередь на сайте.</i>`, 
-      { parse_mode: 'HTML' }
+    const res = await axios.post(`${SERVER_URL}/api/import-queue`, 
+      { tracks },
+      { headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET } }
     );
-    
+
+    const { batchId, skipped, message } = res.data;
+
+    if (!batchId) {
+       return ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, `✅ <b>${message}</b>`, { parse_mode: 'HTML' });
+    }
+
+    let replyText = `🚀 <b>Успешно добавлено!</b>\n\n`;
+    if (skipped > 0) replyText += `⚠️ Пропущено (уже в базе): ${skipped}\n`;
+    replyText += `🎵 В очереди: ${tracks.length - skipped}\n\n<i>Треки начнут скачиваться в течение пары минут.</i>`;
+
+    await ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, replyText, { parse_mode: 'HTML' });
+
   } catch (error) {
-    console.error('[Bot Error]', error.response?.data || error.message);
-    await ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, `❌ <b>Ошибка GitHub:</b> <code>${error.message}</code>`, {
+    console.error('[Bot Error]', error.message);
+    await ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, `❌ <b>Ошибка сервера:</b> <code>${error.message}</code>`, {
       parse_mode: 'HTML'
     });
   }

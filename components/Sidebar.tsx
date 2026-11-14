@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { X, AlertTriangle } from "lucide-react";
+import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useUIStore } from "@/store/uiStore";
 import { Suspense, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import UserProfileClient from "./UserProfileClient";
 import FeedbackButton from "./FeedbackButton";
-// import ImportPlaylistButton from "./ImportPlaylistButton";
+import ImportPlaylistButton from "./ImportPlaylistButton"; // <--- ВЕРНУЛИ ИМПОРТ
 
 interface SidebarProps {
   user: any;
@@ -68,12 +68,7 @@ function SidebarContent({ user, isAdmin, onClose }: SidebarProps & { onClose?: (
               
               <motion.div variants={itemVariants} className="w-full h-px bg-[var(--border-color)] my-4" />
               
-              <motion.div variants={itemVariants}>
-                <div className="flex items-center gap-3 w-full py-2.5 text-[var(--text-subdued)] font-medium text-sm lg:text-base opacity-50 cursor-not-allowed">
-                  <AlertTriangle size={18} className="shrink-0" />
-                  <span>Импорт (скоро)</span>
-                </div>
-              </motion.div>
+              <motion.div variants={itemVariants}><ImportPlaylistButton /></motion.div> {/* <--- Кнопка импорта */}
               <motion.div variants={itemVariants}><FeedbackButton /></motion.div>
               <motion.div variants={itemVariants}><Link href="/faq" onClick={onClose} className={linkClass('/faq')}>FAQ</Link></motion.div>
             </>
