@@ -3,60 +3,63 @@ const axios = require('axios');
 
 const TOKEN = '9015769257:AAGWGTRzQ4EuS1erer0qsKDvGs-xDwdziLQ'; 
 const SERVER_URL = 'https://178.236.242.110.nip.io';
-const API_SECRET = 'sadovod_secret_2026';
-
-// Проверка, что в токене нет русских букв
-if (TOKEN.match(/[^\x00-\x7F]/) || TOKEN.includes(' ')) {
-  console.error('\n❌ ОШИБКА: В токене есть пробелы или русские буквы! Скопируй токен от BotFather заново.\n');
-  process.exit(1);
-}
+const API_SECRET = 'sadovod_secret_2026'; 
 
 const bot = new TelegramBot(TOKEN.trim(), { polling: true });
 console.log('🤖 Бот (Локальный парсер) запущен. Ждем ссылку в Телеграме...');
 
-async function parseYandex(url) {
-  const headers = {
+// Настройки для axios, чтобы он не тупил на Windows
+const axiosConfig = {
+  timeout: 15000,
+  headers: {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/json',
     'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621',
-  };
+  }
+};
 
+async function parseYandex(url) {
   const playlistMatch = url.match(/music\.yandex\.ru\/playlists\/([a-zA-Z0-9.\-]+)/);
   if (playlistMatch) {
     const id = playlistMatch[1];
     console.log(`[Bot] Парсим плейлист: ${id}`);
-    const res = await fetch(`https://api.music.yandex.net/playlist/${id}`, { headers });
-    if (!res.ok) throw new Error(`Яндекс вернул ${res.status}.`);
-    const data = await res.json();
-    const rawTracks = data.result?.tracks || [];
-    return rawTracks.map(item => {
-      const t = item.track || item;
-      return {
-        title: t.title,
-        artist: t.artists?.map(a => a.name).join(', ') || 'Unknown'
-      };
-    });
+    try {
+      const res = await axios.get(`https://api.music.yandex.net/playlist/${id}`, axiosConfig);
+      const rawTracks = res.data.result?.tracks || [];
+      return rawTracks.map(item => {
+        const t = item.track || item;
+        return {
+          title: t.title,
+          artist: t.artists?.map(a => a.name).join(', ') || 'Unknown'
+        };
+      });
+    } catch (e) {
+      if (e.response) throw new Error(`Яндекс вернул ${e.response.status}`);
+      throw new Error(`Сетевая ошибка (${e.code}). ВЫКЛЮЧИ VPN!`);
+    }
   }
 
   const albumMatch = url.match(/music\.yandex\.ru\/album\/(\d+)/);
   if (albumMatch) {
     const id = albumMatch[1];
     console.log(`[Bot] Парсим альбом: ${id}`);
-    const res = await fetch(`https://api.music.yandex.net/albums/${id}/with-tracks`, { headers });
-    if (!res.ok) throw new Error(`Яндекс вернул ${res.status}.`);
-    const data = await res.json();
-    const rawTracks = data.result?.volumes?.flat() || [];
-    return rawTracks.map(t => ({
-      title: t.title,
-      artist: t.artists?.map(a => a.name).join(', ') || 'Unknown'
-    }));
+    try {
+      const res = await axios.get(`https://api.music.yandex.net/albums/${id}/with-tracks`, axiosConfig);
+      const rawTracks = res.data.result?.volumes?.flat() || [];
+      return rawTracks.map(t => ({
+        title: t.title,
+        artist: t.artists?.map(a => a.name).join(', ') || 'Unknown'
+      }));
+    } catch (e) {
+      if (e.response) throw new Error(`Яндекс вернул ${e.response.status}`);
+      throw new Error(`Сетевая ошибка (${e.code}). ВЫКЛЮЧИ VPN!`);
+    }
   }
 
-  throw new Error('Ссылка не распознана.');
+  throw new Error('Ссылка не распознана. Нужна ссылка на плейлист или альбом.');
 }
 
 bot.onText(/\/start/, (msg) => {
-  console.log(`[Bot] Получено /start от ${msg.chat.id}`);
   bot.sendMessage(msg.chat.id, 'Привет! Кидай ссылку на плейлист или альбом Яндекс.Музыки.');
 });
 
