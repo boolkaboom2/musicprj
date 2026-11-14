@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { fetchSpotifyPlaylist } from '@/lib/spotify';
 
 type ParsedTrack = {
   id: string;
@@ -14,20 +13,43 @@ type ParseResult = {
   tracks: ParsedTrack[];
 };
 
-async function fetchYandex(url: string): Promise<any> {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json',
-      'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621', // ПРИТВОРЯЕМСЯ ПРИЛОЖЕНИЕМ
+async function fetchWithProxy(url: string): Promise<any> {
+  // 1. Пробуем AllOrigins
+  const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  try {
+    const res = await fetch(allOriginsUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621',
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
     }
-  });
-  if (!res.ok) throw new Error(`Яндекс: ${res.status}`);
-  return res.json();
+  } catch (e) {
+    console.log('[Proxy] AllOrigins не ответил');
+  }
+
+  // 2. Пробуем Codetabs
+  const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+  try {
+    const res = await fetch(codetabsUrl, { signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch (e) {
+    console.log('[Proxy] Codetabs не ответил');
+  }
+
+  throw new Error(`Яндекс недоступен даже через прокси.`);
 }
 
 async function parseYandexPlaylist(id: string): Promise<ParseResult> {
-  const data = await fetchYandex(`https://api.music.yandex.net/playlist/${id}`);
+  const data = await fetchWithProxy(`https://api.music.yandex.net/playlist/${id}`);
   const rawTracks = data.result?.tracks || [];
   const playlistTitle = data.result?.title || 'Плейлист';
 
@@ -46,7 +68,7 @@ async function parseYandexPlaylist(id: string): Promise<ParseResult> {
 }
 
 async function parseYandexAlbum(id: string): Promise<ParseResult> {
-  const data = await fetchYandex(`https://api.music.yandex.net/albums/${id}/with-tracks`);
+  const data = await fetchWithProxy(`https://api.music.yandex.net/albums/${id}/with-tracks`);
   const volumes = data.result?.volumes || [];
   const rawTracks = volumes.flat();
   const albumTitle = data.result?.title || 'Альбом';
@@ -71,65 +93,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Вставьте ссылку' }, { status: 400 });
     }
 
-    // === ЯНДЕКС IFRAME (HTML-код) ===
     const iframeMatch = url.match(/src="https:\/\/music\.yandex\.ru\/iframe\/playlist\/([a-zA-Z0-9.\-]+)"/);
     if (iframeMatch) {
-      const id = iframeMatch[1];
-      console.log(`[Parse] Yandex iframe playlist ${id}`);
-      const result = await parseYandexPlaylist(id);
+      const result = await parseYandexPlaylist(iframeMatch[1]);
       return NextResponse.json({ success: true, ...result });
     }
 
-    // === ЯНДЕКС ПЛЕЙЛИСТ ===
     const yandexPlaylistMatch = url.match(/music\.yandex\.ru\/playlists\/([a-zA-Z0-9.\-]+)/)
       || url.match(/music\.yandex\.ru\/users\/[^/]+\/playlists\/(\d+)/);
     if (yandexPlaylistMatch) {
-      const id = yandexPlaylistMatch[1];
-      console.log(`[Parse] Yandex playlist ${id}`);
-      const result = await parseYandexPlaylist(id);
+      const result = await parseYandexPlaylist(yandexPlaylistMatch[1]);
       return NextResponse.json({ success: true, ...result });
     }
 
-    // === ЯНДЕКС АЛЬБОМ ===
     const yandexAlbumMatch = url.match(/music\.yandex\.ru\/album\/(\d+)/);
     if (yandexAlbumMatch) {
-      const id = yandexAlbumMatch[1];
-      console.log(`[Parse] Yandex album ${id}`);
-      const result = await parseYandexAlbum(id);
+      const result = await parseYandexAlbum(yandexAlbumMatch[1]);
       return NextResponse.json({ success: true, ...result });
     }
 
-    // === SPOTIFY ===
-    const spotifyMatch = url.match(/open\.spotify\.com\/(?:[^/]+\/)?playlist\/([a-zA-Z0-9]+)/);
-    if (spotifyMatch) {
-      const id = spotifyMatch[1];
-      console.log(`[Parse] Spotify playlist ${id}`);
-      try {
-        const result = await fetchSpotifyPlaylist(id);
-        return NextResponse.json({ success: true, ...result });
-      } catch (e: any) {
-        return NextResponse.json({ error: e.message || 'Ошибка Spotify' }, { status: 502 });
-      }
-    }
-
-    // === YOUTUBE MUSIC ===
-    if (/music\.youtube\.com\/playlist\?list=/.test(url)) {
-      return NextResponse.json({ error: 'YouTube Music: сервер в РФ, YouTube блокирует. Нужен прокси.' }, { status: 400 });
-    }
-
-    // === VK ===
-    if (/vk\.com\/(music|audio|playlist)/.test(url)) {
-      return NextResponse.json({ error: 'VK Музыка: API закрыт для новых приложений.' }, { status: 400 });
-    }
-
-    return NextResponse.json({ error: 'Платформа не распознана. Работают: Яндекс.Музыка (ссылка или iframe), Spotify.' }, { status: 400 });
+    return NextResponse.json({ error: 'Платформа не распознана. Работает: Яндекс.Музыка.' }, { status: 400 });
 
   } catch (error: any) {
     console.error('[Parse Error]', error);
-    // Обработка ошибки 403 от Яндекса
-    if (error.message.includes('403')) {
-      return NextResponse.json({ error: 'Яндекс временно блокирует запросы. Попробуйте позже или используйте ссылку на плейлист (не альбом).' }, { status: 403 });
-    }
     return NextResponse.json({ error: error.message || 'Ошибка парсинга' }, { status: 500 });
   }
 }

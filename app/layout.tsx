@@ -11,7 +11,7 @@ import Toast from "@/components/Toast";
 import VisitLogger from "@/components/VisitLogger";
 import PWARegister from "@/components/PWARegister";
 import InstallPWA from "@/components/InstallPWA";
-import GlobalImportStatus from "@/components/GlobalImportStatus";
+import GlobalImportNotification from "@/components/GlobalImportNotification"; // <--- НОВОЕ
 import MobileSwipeHandler from "@/components/MobileSwipeHandler";
 import NeuralBackground from "@/components/NeuralBackground";
 import { cookies } from "next/headers";
@@ -112,7 +112,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <DisableContextMenu />
         
         <Toast />
-        <GlobalImportStatus />
+        
+        {/* НОВОЕ УВЕДОМЛЕНИЕ СВЕРХУ */}
+        <GlobalImportNotification />
         
         <Suspense fallback={null}>
           <VisitLogger /> 
@@ -120,7 +122,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
         
         <PWARegister />
         
-        {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Оборачиваем InstallPWA в Suspense */}
         <Suspense fallback={null}>
           <InstallPWA />
         </Suspense>
