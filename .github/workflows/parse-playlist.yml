@@ -14,32 +14,69 @@ jobs:
   parse:
     runs-on: ubuntu-latest
     steps:
-      - name: Install yt-dlp
-        run: |
-          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          chmod a+rx /usr/local/bin/yt-dlp
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Parse Playlist and Send to Server
         run: |
-          # Получаем список треков (формат: Artist - Title)
-          yt-dlp --flat-playlist --print "%(artist)s - %(title)s" "${{ github.event.inputs.url }}" > playlist.txt || true
+          node -e "
+          const url = '${{ github.event.inputs.url }}';
+          const secret = '${{ github.event.inputs.secret }}';
           
-          # Конвертируем в JSON
-          python3 -c "
-          import json
-          tracks = []
-          with open('playlist.txt', 'r', encoding='utf-8') as f:
-              for line in f:
-                  parts = line.strip().split(' - ', 1)
-                  if len(parts) == 2:
-                      artist = parts[0] if parts[0] != 'NA' else 'Unknown'
-                      title = parts[1]
-                      tracks.append({'title': title, 'artist': artist})
-          print(json.dumps({'tracks': tracks}))
-          " > payload.json
+          async function parse() {
+            const match = url.match(/playlists\/([a-zA-Z0-9.\-]+)/) || url.match(/album\/(\d+)/);
+            if (!match) throw new Error('Неизвестный формат ссылки. Нужна ссылка на плейлист или альбом.');
+            
+            const isPlaylist = url.includes('playlists');
+            const id = match[1];
+            const apiUrl = isPlaylist 
+              ? 'https://api.music.yandex.net/playlist/' + id
+              : 'https://api.music.yandex.net/albums/' + id + '/with-tracks';
+
+            console.log('Парсим URL:', apiUrl);
+
+            const res = await fetch(apiUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'X-Yandex-Music-Client': 'YandexMusicAndroid/24023621'
+              }
+            });
+            
+            if (!res.ok) throw new Error('Яндекс вернул ' + res.status);
+            const data = await res.json();
+            
+            let rawTracks = [];
+            if (isPlaylist) {
+              rawTracks = data.result?.tracks || [];
+            } else {
+              rawTracks = data.result?.volumes?.flat() || [];
+            }
+
+            const tracks = rawTracks.map(i => {
+              const t = i.track || i;
+              return { 
+                title: t.title, 
+                artist: t.artists?.map(a => a.name).join(', ') || 'Unknown' 
+              };
+            });
+
+            if (tracks.length === 0) throw new Error('Треки не найдены');
+            console.log('Найдено треков:', tracks.length);
+            
+            const postRes = await fetch('https://178.236.242.110.nip.io/api/import-queue', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-secret': secret },
+              body: JSON.stringify({ tracks })
+            });
+            
+            if (!postRes.ok) {
+               const err = await postRes.text();
+               throw new Error('Сервер вернул ' + postRes.status + ': ' + err);
+            }
+            console.log('Успех! Треки отправлены на сервер.');
+          }
           
-          # Отправляем на сервер
-          curl -f -X POST "https://178.236.242.110.nip.io/api/import-queue" \
-            -H "Content-Type: application/json" \
-            -H "x-api-secret: ${{ github.event.inputs.secret }}" \
-            -d @payload.json
+          parse().catch(e => { console.error(e.message); process.exit(1); });
+          "
