@@ -1,14 +1,19 @@
-const TelegramBot = require('node-telegram-bot-api');
+require('dotenv').config(); 
+const { Telegraf, Markup } = require('telegraf');
 const axios = require('axios');
 
-const TOKEN = '9015769257:AAGWGTRzQ4EuS1erer0qsKDvGs-xDwdziLQ'; 
-const SERVER_URL = 'https://178.236.242.110.nip.io';
-const API_SECRET = 'sadovod_secret_2026'; 
+const TOKEN = process.env.BOT_TOKEN; 
+const SERVER_URL = process.env.SERVER_URL || 'https://178.236.242.110.nip.io';
+const API_SECRET = process.env.API_SECRET; 
 
-const bot = new TelegramBot(TOKEN.trim(), { polling: true });
-console.log('🤖 Бот (Локальный парсер) запущен. Ждем ссылку в Телеграме...');
+if (!TOKEN || !API_SECRET) {
+  console.error('\n❌ ОШИБКА: В файле .env нет BOT_TOKEN или API_SECRET!');
+  process.exit(1);
+}
 
-// Настройки для axios, чтобы он не тупил на Windows
+const bot = new Telegraf(TOKEN.trim());
+console.log('🤖 Бот (Локальный парсер) запущен.');
+
 const axiosConfig = {
   timeout: 15000,
   headers: {
@@ -18,73 +23,142 @@ const axiosConfig = {
   }
 };
 
+const activeUsers = new Map();
+
+function makeBar(percent) {
+  const filled = Math.round(percent / 10);
+  const empty = 10 - filled;
+  return '■'.repeat(filled) + '□'.repeat(empty);
+}
+
+bot.start((ctx) => {
+  const name = ctx.from.first_name || 'друг';
+  const text = `<b>Привет, ${name}!</b> 👋\n\nЯ официальный бот-парсер <b>SADOVOD</b>.\n\nОтправь мне ссылку на плейлист или альбом <b>Яндекс.Музыки</b>, и я скачаю все треки и добавлю на сервер.\n\n<i>Просто скинь ссылку в чат.</i>`;
+  
+  return ctx.replyWithHTML(text, Markup.inlineKeyboard([
+    [Markup.button.url('🚀 Открыть SADOVOD', SERVER_URL)]
+  ]));
+});
+
 async function parseYandex(url) {
   const playlistMatch = url.match(/music\.yandex\.ru\/playlists\/([a-zA-Z0-9.\-]+)/);
   if (playlistMatch) {
-    const id = playlistMatch[1];
-    console.log(`[Bot] Парсим плейлист: ${id}`);
-    try {
-      const res = await axios.get(`https://api.music.yandex.net/playlist/${id}`, axiosConfig);
-      const rawTracks = res.data.result?.tracks || [];
-      return rawTracks.map(item => {
-        const t = item.track || item;
-        return {
-          title: t.title,
-          artist: t.artists?.map(a => a.name).join(', ') || 'Unknown'
-        };
-      });
-    } catch (e) {
-      if (e.response) throw new Error(`Яндекс вернул ${e.response.status}`);
-      throw new Error(`Сетевая ошибка (${e.code}). ВЫКЛЮЧИ VPN!`);
-    }
+    const res = await axios.get(`https://api.music.yandex.net/playlist/${playlistMatch[1]}`, axiosConfig);
+    return (res.data.result?.tracks || []).map(i => ({ title: (i.track || i).title, artist: (i.track || i).artists?.map(a => a.name).join(', ') || 'Unknown' }));
   }
-
   const albumMatch = url.match(/music\.yandex\.ru\/album\/(\d+)/);
   if (albumMatch) {
-    const id = albumMatch[1];
-    console.log(`[Bot] Парсим альбом: ${id}`);
-    try {
-      const res = await axios.get(`https://api.music.yandex.net/albums/${id}/with-tracks`, axiosConfig);
-      const rawTracks = res.data.result?.volumes?.flat() || [];
-      return rawTracks.map(t => ({
-        title: t.title,
-        artist: t.artists?.map(a => a.name).join(', ') || 'Unknown'
-      }));
-    } catch (e) {
-      if (e.response) throw new Error(`Яндекс вернул ${e.response.status}`);
-      throw new Error(`Сетевая ошибка (${e.code}). ВЫКЛЮЧИ VPN!`);
-    }
+    const res = await axios.get(`https://api.music.yandex.net/albums/${albumMatch[1]}/with-tracks`, axiosConfig);
+    return (res.data.result?.volumes?.flat() || []).map(t => ({ title: t.title, artist: t.artists?.map(a => a.name).join(', ') || 'Unknown' }));
   }
-
-  throw new Error('Ссылка не распознана. Нужна ссылка на плейлист или альбом.');
+  throw new Error('Ссылка не распознана.');
 }
 
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Привет! Кидай ссылку на плейлист или альбом Яндекс.Музыки.');
-});
+bot.on('text', async (ctx) => {
+  const text = ctx.message.text;
+  const chatId = ctx.chat.id;
+  if (!text.startsWith('http')) return;
 
-bot.on('message', async (msg) => {
-  const text = msg.text;
-  if (!text || text.startsWith('/') || !text.startsWith('http')) return;
+  if (activeUsers.has(chatId)) {
+    return ctx.replyWithHTML('⚠️ <b>У вас уже есть активный импорт!</b> Дождитесь завершения или отмените его.');
+  }
 
-  console.log(`[Bot] Получена ссылка: ${text}`);
-  bot.sendMessage(msg.chat.id, '⏳ Парсим ссылку...');
+  const statusMsg = await ctx.replyWithHTML('⏳ <i>Сканирую плейлист...</i>');
 
   try {
     const tracks = await parseYandex(text);
     if (tracks.length === 0) throw new Error('Треки не найдены.');
 
-    bot.sendMessage(msg.chat.id, `✅ Найдено ${tracks.length} треков. Отправляем на сервер...`);
-
-    await axios.post(`${SERVER_URL}/api/import-queue`, 
+    const res = await axios.post(`${SERVER_URL}/api/import-queue`, 
       { tracks: tracks },
       { headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET } }
     );
 
-    bot.sendMessage(msg.chat.id, `🚀 Готово! ${tracks.length} треков добавлены в очередь.`);
+    const { batchId } = res.data;
+    activeUsers.set(chatId, batchId);
+
+    const progressMsg = await ctx.telegram.editMessageText(
+      chatId, statusMsg.message_id, null,
+      `🚀 <b>В очереди: ${tracks.length} треков</b>\n\n${makeBar(0)} 0%\n<i>Ожидаем воркер...</i>`, 
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[{ text: '🛑 Остановить импорт', callback_data: `cancel_${batchId}` }]]
+        }
+      }
+    );
+
+    const interval = setInterval(async () => {
+      try {
+        const statRes = await axios.get(`${SERVER_URL}/api/import-queue/status?batchId=${batchId}`);
+        const { total, done, failed, isFinished } = statRes.data;
+        
+        const percent = Math.round((done / total) * 100);
+        const bar = makeBar(percent);
+
+        if (isFinished) {
+          clearInterval(interval);
+          activeUsers.delete(chatId);
+          
+          let finalText = `✅ <b>Импорт завершен!</b>\n\nВсего: ${total}\nСкачано: <b>${done}</b>\nОшибок: <b>${failed}</b>`;
+          if (failed > 0) finalText += `\n\n<i>* Треки, которые не удалось найти, пропущены.</i>`;
+          finalText += `\n\n<a href="${SERVER_URL}">Перейти на SADOVOD</a>`;
+
+          ctx.telegram.editMessageText(chatId, progressMsg.message_id, null, finalText, {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+          });
+        } else {
+          ctx.telegram.editMessageText(
+            chatId, progressMsg.message_id, null,
+            `⏳ <b>Скачиваем треки...</b>\n\n${bar} ${percent}%\nСкачано: ${done} из ${total}\nОшибок: ${failed}`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [[{ text: '🛑 Остановить импорт', callback_data: `cancel_${batchId}` }]]
+              }
+            }
+          );
+        }
+      } catch (e) {
+        console.error('[Status Error]', e.message);
+      }
+    }, 3000);
 
   } catch (error) {
     console.error('[Bot Error]', error.message);
-    bot.sendMessage(msg.chat.id, `❌ Ошибка: ${error.message}`);
+    ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, `❌ <b>Ошибка:</b> <code>${error.message}</code>`, {
+      parse_mode: 'HTML'
+    });
   }
 });
+
+bot.action(/cancel_(.+)/, async (ctx) => {
+  const batchId = ctx.match[1];
+  const chatId = ctx.chat.id;
+  
+  await ctx.answerCbQuery("Отменяем...");
+  
+  try {
+    await axios.post(`${SERVER_URL}/api/import-queue/cancel`, 
+      { batchId },
+      { headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET } }
+    );
+    activeUsers.delete(chatId);
+    
+    await ctx.editMessageText(`🛑 <b>Импорт остановлен пользователем.</b>`, {
+      parse_mode: 'HTML'
+    });
+  } catch (e) {
+    await ctx.reply('Ошибка при отмене импорта на сервере.');
+  }
+});
+
+bot.launch().then(() => {
+    console.log('✅ Бот успешно подключен к Telegram.');
+}).catch(err => {
+    console.error('❌ Ошибка запуска бота:', err);
+});
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
