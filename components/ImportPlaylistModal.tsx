@@ -63,24 +63,29 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
   const handleParseText = () => {
     if (!text.trim()) return;
 
-    let textToParse = text;
+    // Разбиваем текст по строкам
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     
-    // Разбиваем текст по строкам, ищем формат "Artist - Title"
-    const lines = textToParse.split('\n').map(l => l.trim()).filter(l => l.includes(' - '));
+    const parsedTracks: Track[] = [];
     
-    if (lines.length === 0) {
+    lines.forEach((line, index) => {
+      // ОБНОВЛЕНИЕ: Срезаем нумерацию в начале строки (например "1. ", "2) ")
+      const cleanLine = line.replace(/^\d+[\.\)]\s*/, '').trim();
+      
+      if (cleanLine.includes(' - ')) {
+        const [artist, ...titleParts] = cleanLine.split(' - ');
+        parsedTracks.push({
+          id: `track-${index}-${Date.now()}`,
+          artist: artist.trim(),
+          title: titleParts.join(' - ').trim()
+        });
+      }
+    });
+
+    if (parsedTracks.length === 0) {
       showToast("Не нашел ни одного трека в формате 'Исполнитель - Название'", "error");
       return;
     }
-
-    const parsedTracks: Track[] = lines.map((line, index) => {
-      const [artist, ...titleParts] = line.split(' - ');
-      return {
-        id: `track-${index}-${Date.now()}`,
-        artist: artist.trim(),
-        title: titleParts.join(' - ').trim()
-      };
-    });
 
     setTracks(parsedTracks);
     setSelectedIds(parsedTracks.map(t => t.id));
@@ -211,7 +216,6 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
             ) : tracks.length === 0 ? (
               <div className="flex flex-col gap-6 items-center py-6 sm:py-10">
                 
-                {/* ОБНОВЛЕННАЯ ССЫЛКА НА БОТА */}
                 <a 
                   href="https://t.me/yamusic_export_bot" 
                   target="_blank" 
@@ -244,7 +248,7 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
                 <div className="w-full relative">
                   {inputMode === 'text' ? (
                     <textarea 
-                      placeholder="Вставьте список треков из бота:\nИсполнитель - Название\nИсполнитель - Название" 
+                      placeholder="Вставьте список треков из бота:\n1. Исполнитель - Название\n2. Исполнитель - Название" 
                       value={text} 
                       onChange={(e) => setText(e.target.value)} 
                       rows={8} 
