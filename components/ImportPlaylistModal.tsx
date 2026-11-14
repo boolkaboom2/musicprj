@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, AlertTriangle, Loader2 } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ImportPlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (playlistId: string | null) => void; // <--- ВЕРНУЛИ ПРОПС
 }
 
 export default function ImportPlaylistModal({ isOpen, onClose }: ImportPlaylistModalProps) {

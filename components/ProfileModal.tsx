@@ -211,7 +211,7 @@ export default function ProfileModal({
                       <div className="flex items-center justify-between bg-[var(--bg-main)] border border-[var(--border-color)] p-4 rounded-xl">
                         <div className="flex items-center gap-2">
                           <LayoutTemplate size={20} className="text-[var(--text-base)]" />
-                          <span className="text-sm 3xl:text-base font-bold text-[var(--text-base)]">Нейросеть на фоне</span>
+                          <span className="text-sm 3xl:text-base font-bold text-[var(--text-base)]">Фон</span>
                         </div>
                         <button onClick={toggleAnimatedBg} className={`w-12 h-6 3xl:w-14 3xl:h-7 rounded-full transition-colors relative flex items-center ${isAnimatedBgEnabled ? 'bg-green-500' : 'bg-[var(--border-color)]'}`}>
                           <div className={`w-4 h-4 3xl:w-5 3xl:h-5 bg-white rounded-full absolute transition-transform ${isAnimatedBgEnabled ? 'translate-x-7 3xl:translate-x-8' : 'translate-x-1'}`} />

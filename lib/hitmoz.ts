@@ -12,7 +12,6 @@ const HEADERS = {
 };
 
 export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
-  // Новые домены
   const domains = [
     'https://rus.hitmos.fm',
     'https://cdn.hitmotop.com'
@@ -21,7 +20,6 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
   for (const domain of domains) {
     const originalUrl = `${domain}/search?q=${encodeURIComponent(query)}`;
     
-    // Обход-маскировка (прокси)
     const urls = [
       originalUrl,
       `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`,
@@ -37,48 +35,41 @@ export async function searchHitmoz(query: string): Promise<HitmozTrack | null> {
           signal: AbortSignal.timeout(15000) 
         });
         
-        if (!res.ok) {
-          console.log(`[Hitmoz] Ошибка: ${res.status}`);
-          continue; 
-        }
+        if (!res.ok) continue; 
 
         const html = await res.text();
-        if (html.includes('<!DOCTYPE html>') && !html.includes('data-musmeta')) {
-             console.log('[Hitmoz] Получен HTML без метаданных');
-             continue;
+        
+        const mp3Regex = /https?:\/\/[^"'\s]+\.mp3/gi;
+        const downloadRegex = /href="([^"]+download[^"]+)"/gi;
+        
+        const mp3Matches = html.match(mp3Regex);
+        const downloadMatches = [...html.matchAll(downloadRegex)];
+
+        // ИСПРАВЛЕНИЕ ТУТ: Явно указываем тип string | null
+        let finalUrl: string | null = null;
+
+        if (mp3Matches && mp3Matches.length > 0) {
+             const validMp3 = mp3Matches.find(url => !url.includes('preview') && !url.includes('cover'));
+             if (validMp3) finalUrl = validMp3;
+        }
+        
+        if (!finalUrl && downloadMatches.length > 0) {
+             finalUrl = downloadMatches[0][1];
+             // ИСПРАВЛЕНИЕ ТУТ: Проверяем на null перед startsWith
+             if (finalUrl && finalUrl.startsWith('/')) {
+                 finalUrl = domain + finalUrl;
+             }
         }
 
-        const metaRegex = /data-musmeta='([^']+)'/;
-        const match = html.match(metaRegex);
-
-        if (!match || !match[1]) continue;
-
-        let rawJson = match[1]
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&amp;/g, '&');
-
-        let meta: any;
-        try {
-          meta = JSON.parse(rawJson);
-        } catch (e) {
-          continue;
+        if (finalUrl) {
+          console.log(`[Hitmoz] УСПЕХ! Найдена ссылка: ${finalUrl}`);
+          return {
+            title: query.split('-')[1]?.trim() || query,
+            artist: query.split('-')[0]?.trim() || 'Unknown',
+            url: finalUrl,
+            coverUrl: null,
+          };
         }
-
-        if (!meta.url || !meta.artist || !meta.title) continue;
-
-        let finalUrl = meta.url;
-        if (finalUrl.startsWith('/')) {
-          finalUrl = `${domain}${finalUrl}`;
-        }
-
-        console.log(`[Hitmoz] УСПЕХ! Найден: ${meta.artist} - ${meta.title}`);
-        return {
-          title: meta.title,
-          artist: meta.artist,
-          url: finalUrl,
-          coverUrl: meta.img || null,
-        };
 
       } catch (e: any) {
         console.log(`[Hitmoz] Ошибка запроса: ${e.message}`);
