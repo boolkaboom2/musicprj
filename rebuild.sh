@@ -13,6 +13,7 @@ NODE_OPTIONS="--max-old-space-size=4096" npm run build
 echo "=== Запуск ==="
 pm2 start npm --name "sadovod" -- run start
 pm2 start npm --name "worker" -- run worker
+pm2 start bot-vps.js --name "parser-bot"
 pm2 save
 echo "=== Готово! ==="
 pm2 status

@@ -1,0 +1,45 @@
+name: Parse Playlist
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Playlist URL'
+        required: true
+      secret:
+        description: 'API Secret'
+        required: true
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install yt-dlp
+        run: |
+          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          chmod a+rx /usr/local/bin/yt-dlp
+
+      - name: Parse Playlist and Send to Server
+        run: |
+          # Получаем список треков (формат: Artist - Title)
+          yt-dlp --flat-playlist --print "%(artist)s - %(title)s" "${{ github.event.inputs.url }}" > playlist.txt || true
+          
+          # Конвертируем в JSON
+          python3 -c "
+          import json
+          tracks = []
+          with open('playlist.txt', 'r', encoding='utf-8') as f:
+              for line in f:
+                  parts = line.strip().split(' - ', 1)
+                  if len(parts) == 2:
+                      artist = parts[0] if parts[0] != 'NA' else 'Unknown'
+                      title = parts[1]
+                      tracks.append({'title': title, 'artist': artist})
+          print(json.dumps({'tracks': tracks}))
+          " > payload.json
+          
+          # Отправляем на сервер
+          curl -f -X POST "https://178.236.242.110.nip.io/api/import-queue" \
+            -H "Content-Type: application/json" \
+            -H "x-api-secret: ${{ github.event.inputs.secret }}" \
+            -d @payload.json
