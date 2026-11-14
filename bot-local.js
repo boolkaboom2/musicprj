@@ -54,6 +54,47 @@ async function parseYandex(url) {
   throw new Error('Ссылка не распознана.');
 }
 
+async function startProgressPolling(ctx, batchId, totalTracks) {
+  const chatId = ctx.chat.id;
+  
+  const interval = setInterval(async () => {
+    try {
+      const statRes = await axios.get(`${SERVER_URL}/api/import-queue/status?batchId=${batchId}`);
+      const { total, done, failed, isFinished } = statRes.data;
+      
+      const percent = Math.round((done / total) * 100);
+      const bar = makeBar(percent);
+
+      if (isFinished) {
+        clearInterval(interval);
+        activeUsers.delete(chatId);
+        
+        let finalText = `✅ <b>Импорт завершен!</b>\n\nВсего: ${total}\nСкачано: <b>${done}</b>\nОшибок: <b>${failed}</b>`;
+        if (failed > 0) finalText += `\n\n<i>* Треки, которые не удалось найти, пропущены.</i>`;
+        finalText += `\n\n<a href="${SERVER_URL}">Перейти на SADOVOD</a>`;
+
+        ctx.telegram.editMessageText(chatId, ctx.message.message_id, null, finalText, {
+          parse_mode: 'HTML',
+          disable_web_page_preview: true
+        });
+      } else {
+        ctx.telegram.editMessageText(
+          chatId, ctx.message.message_id, null,
+          `⏳ <b>Скачиваем треки...</b>\n\n${bar} ${percent}%\nСкачано: ${done} из ${total}\nОшибок: ${failed}`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [[{ text: '🛑 Остановить импорт', callback_data: `cancel_${batchId}` }]]
+            }
+          }
+        );
+      }
+    } catch (e) {
+      console.error('[Status Error]', e.message);
+    }
+  }, 3000);
+}
+
 bot.on('text', async (ctx) => {
   const text = ctx.message.text;
   const chatId = ctx.chat.id;
@@ -74,12 +115,19 @@ bot.on('text', async (ctx) => {
       { headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET } }
     );
 
-    const { batchId } = res.data;
+    const { batchId, skipped, message } = res.data;
+
+    if (!batchId) {
+       return ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, `✅ <b>${message}</b>`, { parse_mode: 'HTML' });
+    }
+
     activeUsers.set(chatId, batchId);
 
+    let startText = `🚀 <b>В очереди: ${tracks.length - skipped} треков</b>\n\n${makeBar(0)} 0%\n<i>Ожидаем воркер...</i>`;
+    if (skipped > 0) startText = `⚠️ <i>Пропущено (уже есть): ${skipped}</i>\n\n` + startText;
+
     const progressMsg = await ctx.telegram.editMessageText(
-      chatId, statusMsg.message_id, null,
-      `🚀 <b>В очереди: ${tracks.length} треков</b>\n\n${makeBar(0)} 0%\n<i>Ожидаем воркер...</i>`, 
+      chatId, statusMsg.message_id, null, startText, 
       {
         parse_mode: 'HTML',
         reply_markup: {
@@ -88,47 +136,16 @@ bot.on('text', async (ctx) => {
       }
     );
 
-    const interval = setInterval(async () => {
-      try {
-        const statRes = await axios.get(`${SERVER_URL}/api/import-queue/status?batchId=${batchId}`);
-        const { total, done, failed, isFinished } = statRes.data;
-        
-        const percent = Math.round((done / total) * 100);
-        const bar = makeBar(percent);
-
-        if (isFinished) {
-          clearInterval(interval);
-          activeUsers.delete(chatId);
-          
-          let finalText = `✅ <b>Импорт завершен!</b>\n\nВсего: ${total}\nСкачано: <b>${done}</b>\nОшибок: <b>${failed}</b>`;
-          if (failed > 0) finalText += `\n\n<i>* Треки, которые не удалось найти, пропущены.</i>`;
-          finalText += `\n\n<a href="${SERVER_URL}">Перейти на SADOVOD</a>`;
-
-          ctx.telegram.editMessageText(chatId, progressMsg.message_id, null, finalText, {
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-          });
-        } else {
-          ctx.telegram.editMessageText(
-            chatId, progressMsg.message_id, null,
-            `⏳ <b>Скачиваем треки...</b>\n\n${bar} ${percent}%\nСкачано: ${done} из ${total}\nОшибок: ${failed}`,
-            {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [[{ text: '🛑 Остановить импорт', callback_data: `cancel_${batchId}` }]]
-              }
-            }
-          );
-        }
-      } catch (e) {
-        console.error('[Status Error]', e.message);
-      }
-    }, 3000);
+    // Передаем fake ctx.message для editMessageText
+    await startProgressPolling({ chat: { id: chatId }, message: progressMsg, telegram: ctx.telegram }, batchId, tracks.length - skipped);
 
   } catch (error) {
     console.error('[Bot Error]', error.message);
     ctx.telegram.editMessageText(chatId, statusMsg.message_id, null, `❌ <b>Ошибка:</b> <code>${error.message}</code>`, {
-      parse_mode: 'HTML'
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[{ text: '🔄 Попробовать снова', callback_data: 'retry' }]]
+      }
     });
   }
 });
@@ -146,11 +163,36 @@ bot.action(/cancel_(.+)/, async (ctx) => {
     );
     activeUsers.delete(chatId);
     
-    await ctx.editMessageText(`🛑 <b>Импорт остановлен пользователем.</b>`, {
-      parse_mode: 'HTML'
+    await ctx.editMessageText(`🛑 <b>Импорт остановлен.</b>\n\n<i>Вы можете возобновить его позже.</i>`, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[{ text: '🔄 Продолжить импорт', callback_data: `resume_${batchId}` }]]
+      }
     });
   } catch (e) {
     await ctx.reply('Ошибка при отмене импорта на сервере.');
+  }
+});
+
+bot.action(/resume_(.+)/, async (ctx) => {
+  const batchId = ctx.match[1];
+  const chatId = ctx.chat.id;
+  
+  await ctx.answerCbQuery("Возобновляем...");
+  
+  try {
+    await axios.post(`${SERVER_URL}/api/import-queue`, 
+      { tracks: [] }, 
+      { headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET, 'x-resume-batch-id': batchId } }
+    );
+    
+    activeUsers.set(chatId, batchId);
+    const progressMsg = await ctx.editMessageText(`🔄 <b>Импорт возобновлен!</b>\n\n<i>Ожидаем воркер...</i>`, { parse_mode: 'HTML' });
+    
+    await startProgressPolling({ chat: { id: chatId }, message: progressMsg, telegram: ctx.telegram }, batchId, 0);
+
+  } catch (e) {
+    await ctx.reply('Ошибка при возобновлении импорта на сервере.');
   }
 });
 

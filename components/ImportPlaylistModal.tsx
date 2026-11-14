@@ -98,10 +98,18 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
         body: JSON.stringify({ tracks: selectedTracks }),
       });
       const data = await res.json();
+      
       if (res.ok) {
-        setBatchId(data.batchId);
-        localStorage.setItem('sadovod_import_batch', data.batchId);
-        showToast("Треки добавлены в очередь", "success");
+        if (data.batchId) {
+          setBatchId(data.batchId);
+          localStorage.setItem('sadovod_import_batch', data.batchId);
+          if (data.skipped > 0) {
+             showToast(`Пропущено (уже есть): ${data.skipped}. Добавлено: ${selectedTracks.length - data.skipped}`, "info");
+          }
+        } else {
+          showToast(data.message || "Все треки уже есть в базе", "success");
+          onClose();
+        }
       } else {
         showToast(data.error || "Ошибка", "error");
       }
@@ -203,7 +211,6 @@ export default function ImportPlaylistModal({ isOpen, onClose, onSuccess }: Impo
             ) : tracks.length === 0 ? (
               <div className="flex flex-col gap-6 items-center py-6 sm:py-10">
                 
-                {/* КНОПКА ПЕРЕХОДА В БОТА */}
                 <a 
                   href="https://t.me/sadovod_parser_bot" 
                   target="_blank" 
