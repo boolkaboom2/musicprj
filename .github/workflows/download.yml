@@ -10,28 +10,88 @@ jobs:
   download:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg curl jq
-          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          chmod a+rx /usr/local/bin/yt-dlp
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Download Audio
+      - name: Download from Hitmoz and Upload
         run: |
-          # Меняем SoundCloud (scsearch1) на YouTube (ytsearch1), так как SoundCloud закрыл доступ через DRM
-          yt-dlp -x --audio-format mp3 -o "track.mp3" "ytsearch1:${{ github.event.inputs.query }}"
+          cat << 'EOF' > download.js
+          const fs = require('fs');
+          const query = process.env.QUERY;
 
-      - name: Upload to Telegram
-        id: tg_upload
-        run: |
-          RESPONSE=$(curl -s -F "chat_id=${{ secrets.TELEGRAM_CHANNEL_ID }}" -F "audio=@track.mp3" "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendAudio")
-          FILE_ID=$(echo $RESPONSE | jq -r '.result.audio.file_id')
-          echo "FILE_ID=$FILE_ID" >> $GITHUB_OUTPUT
+          async function download() {
+            const domains = ['https://rus.hitmos.fm', 'https://cdn.hitmotop.com'];
+            let mp3Url = null;
+            
+            for (const domain of domains) {
+              const originalUrl = domain + '/search?q=' + encodeURIComponent(query);
+              const urls = [
+                originalUrl,
+                'https://api.allorigins.win/raw?url=' + encodeURIComponent(originalUrl),
+                'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(originalUrl)
+              ];
+              
+              for (const targetUrl of urls) {
+                try {
+                  console.log('Пробуем:', targetUrl.split('?')[0]);
+                  const res = await fetch(targetUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                  if (!res.ok) continue;
+                  const html = await res.text();
+                  const match = html.match(/data-musmeta='([^']+)'/);
+                  if (match && match[1]) {
+                    const meta = JSON.parse(match[1].replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&'));
+                    if (meta.url) {
+                      mp3Url = meta.url.startsWith('/') ? domain + meta.url : meta.url;
+                      break;
+                    }
+                  }
+                } catch (e) { console.log('Ошибка прокси:', e.message); }
+              }
+              if (mp3Url) break;
+            }
+            
+            if (!mp3Url) throw new Error('Трек не найден на Hitmoz');
+            console.log('Ссылка найдена:', mp3Url);
+            
+            // Скачиваем файл
+            const audioRes = await fetch(mp3Url);
+            const arrayBuffer = await audioRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            fs.writeFileSync('track.mp3', buffer);
+            console.log('Файл скачан');
+            
+            // Отправляем в Telegram
+            const formData = new FormData();
+            formData.append('chat_id', process.env.TELEGRAM_CHANNEL_ID);
+            formData.append('audio', new Blob([buffer], { type: 'audio/mpeg' }), 'track.mp3');
+            
+            const tgRes = await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendAudio', {
+              method: 'POST',
+              body: formData
+            });
+            const tgData = await tgRes.json();
+            if (!tgData.ok) throw new Error('Ошибка Telegram');
+            const fileId = tgData.result.audio.file_id;
+            console.log('Загружено в TG, file_id:', fileId);
+            
+            // Сохраняем в базу
+            const saveRes = await fetch(process.env.SERVER_URL + '/api/admin/save-track', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-secret': process.env.SERVER_API_SECRET },
+              body: JSON.stringify({ query, fileId })
+            });
+            if (!saveRes.ok) throw new Error('Ошибка сохранения в БД: ' + saveRes.status);
+            console.log('Успешно сохранено в БД!');
+          }
+          
+          download().catch(e => { console.error(e.message); process.exit(1); });
+          EOF
 
-      - name: Save to Database
-        run: |
-          curl -f -X POST "${{ secrets.SERVER_URL }}/api/admin/save-track" \
-            -H "Content-Type: application/json" \
-            -H "x-api-secret: ${{ secrets.SERVER_API_SECRET }}" \
-            -d "{\"query\": \"${{ github.event.inputs.query }}\", \"fileId\": \"${{ steps.tg_upload.outputs.FILE_ID }}\"}"
+          QUERY="${{ github.event.inputs.query }}" \
+          TELEGRAM_CHANNEL_ID="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+          TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+          SERVER_URL="${{ secrets.SERVER_URL }}" \
+          SERVER_API_SECRET="${{ secrets.SERVER_API_SECRET }}" \
+          node download.js
